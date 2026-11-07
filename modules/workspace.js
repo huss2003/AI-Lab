@@ -299,7 +299,14 @@
 .m-workspace details.wsx-more[open] > summary::after { content: "–" }
 .m-workspace details.wsx-more > :not(summary) { margin: 8px 0 0; color: var(--muted) }
 .m-workspace .wsx-sec { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 4px 0 -8px }
-@media (max-width: 900px) { .m-workspace .wsx-tiles { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 900px) { .m-workspace .wsx-tiles { grid-template-columns: minmax(0, 1fr); gap: 10px } }
+@media (max-width: 600px) {
+  .m-workspace .wsx-tile { padding: 12px 16px; gap: 6px }
+  .m-workspace .wsx-tile .val { font-size: 20px }
+  .m-workspace .wsx-tile .foot { min-height: 0 }
+  .m-workspace .wsx-tile .foot .tiny { display: none }
+  .m-workspace .wsx-big { font-size: 19px }
+}
 .m-workspace .card.stack { align-content: start }
 .m-workspace .wsx-seg { justify-self: start }
 .m-workspace .wsx-panel { display: grid; gap: 16px; min-width: 0 }
@@ -548,17 +555,13 @@
     const files = filesFor(field, true);
     const view = (f) => { let m; const box = h('div', { class: 'stack' }, h('div', { class: 'eyebrow' }, 'In-browser Python · read-only view'), h('h3', {}, f.path), h('pre', { class: 'code', style: { maxHeight: '340px', overflow: 'auto', margin: 0 }, html: codeHTML(fileBody(f.path, field), esc) }), h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary sm', onclick: () => { m.close(); c.go('practical'); } }, 'Edit it in the practical'), h('button', { type: 'button', class: 'btn sm', onclick: () => m.close() }, 'Close'))); m = c.modal(box); };
     const filesCard = filesList(c, files, view, `Saved to ${first}’s lab account, so they open on any laptop.`, 'Click a file to view it.');
-    const hrs = h('section', { class: 'card stack' },
-      h('h3', {}, 'Time this week'),
-      h('div', {}, h('b', { class: 'num' }, fmtH((st.workspace || {}).hours_used_min || 0)), h('span', { class: 'muted' }, ' coding in the browser')),
-      h('p', { class: 'small muted', style: { margin: 0 } }, 'No weekly cap. Browser time costs the lab nothing.'));
     const unlock = h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Cloud workspace unlocks in Month 4'), h('span', { class: 'pill', html: icon('lock') + '<span>Month 4</span>' })),
       h('p', { class: 'small', style: { margin: 0 } }, `From Lecture ${m4}, ${first} gets VS Code in the browser with a terminal, up to 12 hours a week.`),
       h('div', { class: 'row', style: { gap: '8px' } },
         h('button', { type: 'button', class: 'btn', onclick: () => { S.preview = true; paint(); }, html: icon('cloud') + '<span>Preview the cloud workspace</span>' }),
         h('button', { type: 'button', class: 'btn sm ghost', onclick: () => openLecture(c, m4) }, `See Lecture ${m4}`)));
-    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, env, filesCard), h('div', { class: 'grid-2' }, hrs, unlock));
+    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, env, filesCard), unlock);
   }
 
   // A file list that shows the first 5 files and a "Show all" link.
