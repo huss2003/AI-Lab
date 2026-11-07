@@ -168,7 +168,7 @@
     window.addEventListener('hashchange', renderRoute);
   }
 
-  // ---------- Shell: theme, top-bar popovers, notifications, role switcher, search, guided tour, mobile drawer ----------
+  // ---------- Shell: top-bar popovers, notifications, role switcher, search, guided tour, mobile drawer ----------
   const $ = (id) => document.getElementById(id);
   const THEME_KEY = 'nm-demo-theme';
   const THEME_ICON = {
@@ -178,21 +178,12 @@
   };
   const THEME_LABEL = { light: 'Light', dark: 'Dark', system: 'Match my device' };
   const svg = (paths, cls) => `<svg class="${cls || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
-  state.theme = (() => { try { const t = localStorage.getItem(THEME_KEY); if (t === 'light' || t === 'dark') return t; } catch (e) {} return 'system'; })();
-  function isDark() { return state.theme === 'dark' || (state.theme === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }
-  function setTheme(mode) {
-    if (!THEME_LABEL[mode]) return;
-    state.theme = mode;
-    const root = document.documentElement;
-    if (mode === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', mode);
-    try { if (mode === 'system') localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, mode); } catch (e) {}
-    renderThemeBtn(); emit('theme', mode);
-  }
-  function renderThemeBtn() {
-    const b = $('themeBtn'); if (!b) return;
-    b.innerHTML = svg(THEME_ICON[state.theme]);
-    b.setAttribute('aria-label', `Colour theme: ${THEME_LABEL[state.theme]}`); b.title = `Theme: ${THEME_LABEL[state.theme]}`;
-  }
+  // The demo uses the light theme only, on every device. setTheme stays for compatibility and always applies light.
+  state.theme = 'light';
+  document.documentElement.setAttribute('data-theme', 'light');
+  try { localStorage.removeItem(THEME_KEY); } catch (e) {}
+  function isDark() { return false; }
+  function setTheme() { state.theme = 'light'; document.documentElement.setAttribute('data-theme', 'light'); }
 
   // Popovers anchored to a top-bar button (one open at a time).
   let pop = null;
@@ -230,12 +221,6 @@
     const first = el.querySelector('[aria-checked="true"]') || items()[0]; if (first) first.focus({ preventScroll: true });
   }
 
-  function themeMenu(el) {
-    el.append(h('div', { class: 'pop-head' }, h('b', {}, 'Theme')));
-    ['light', 'dark', 'system'].forEach((m) => el.append(h('button', { class: 'pop-item', type: 'button', role: 'menuitemradio', 'aria-checked': String(state.theme === m),
-      html: svg(THEME_ICON[m]) + `<span class="tx">${THEME_LABEL[m]}</span>` + (state.theme === m ? svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'tick') : ''),
-      onclick: () => { setTheme(m); closePop(); } })));
-  }
 
   // Notifications under the bell.
   function ago(ts) {
@@ -331,8 +316,6 @@
     Object.values(modules).sort((a, b) => a.order - b.order).forEach((m) => out.push({ group: 'Screens', icon: m.icon, title: m.label, sub: `${m.title || m.label} · ${m.group}`, kw: `${m.id} ${m.group}`, go: 'Open', run: () => go(m.id) }));
     const dark = isDark();
     out.push({ group: 'Actions', icon: 'spark', title: 'Start the guided tour', sub: 'A two-minute walk through the whole lab', kw: 'tour help guide demo walkthrough', go: 'Start', run: () => tourApi.start() });
-    out.push({ group: 'Actions', icon: 'settings', title: dark ? 'Switch to light mode' : 'Switch to dark mode', sub: 'Change the colour theme', kw: 'theme dark light mode night colour color', go: 'Run', run: () => setTheme(dark ? 'light' : 'dark') });
-    if (state.theme !== 'system') out.push({ group: 'Actions', icon: 'settings', title: 'Match my device theme', sub: 'Follow the light or dark setting of this device', kw: 'theme system auto', go: 'Run', run: () => setTheme('system') });
     Object.entries(PEOPLE).filter(([k]) => k !== state.role).forEach(([k, p]) => out.push({ group: 'Actions', icon: k === 'admin' ? 'shield' : k === 'mentor' ? 'mentor' : 'users', title: `View as ${p.role}`, sub: `${p.name} · ${p.desc}`, kw: 'role switch view ' + k, go: 'Switch', run: () => switchRole(k) }));
     STUDENTS.forEach((s) => {
       const cur = s.id === D.demo_student.id, f = studentField(s);
@@ -595,11 +578,8 @@
   }
 
   function shellInit() {
-    renderThemeBtn();
-    if (window.matchMedia) { const mq = matchMedia('(prefers-color-scheme: dark)'); const f = () => { if (state.theme === 'system') emit('theme', 'system'); }; if (mq.addEventListener) mq.addEventListener('change', f); }
     const kbd = $('searchKbd'); if (kbd && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) kbd.textContent = '⌘ K';
     const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
-    bind('themeBtn', (e) => openPop(e.currentTarget, themeMenu, 'Theme'));
     bind('bellBtn', (e) => openPop(e.currentTarget, bellPanel, 'Notifications'));
     bind('roleBtn', (e) => openPop(e.currentTarget, roleMenu, 'Switch view'));
     bind('searchBtn', () => openSearch());

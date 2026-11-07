@@ -6,7 +6,7 @@ Clickable demo of the **Neuromind AI Lab** by NeuroNetworks AI Ed, plus the cour
 
 | Path | What it is |
 |---|---|
-| `index.html` | The lab demo. Opens on a welcome page with a 2-minute guided tour. Screens: student home, lectures with in-video questions, practical lab with AI tutor, My lab (cloud workspace, AI key, playground, tokenizer, practice server), exams with lockdown, projects and portfolio, doubt forum, leaderboard, badges and certificate verification, mentor console, admin console (batches, content, exam builder, costs and limits, audit log) and an animated map of how the lab works. Switch between all 9 career fields, light or dark theme, and Student, Mentor or Admin view from the top bar. Press Ctrl+K to search. |
+| `index.html` | The lab demo. Opens on a welcome page with a 2-minute guided tour. Screens: student home, lectures with in-video questions, practical lab with AI tutor, My lab (cloud workspace, AI key, playground, tokenizer, practice server), exams with lockdown, projects and portfolio, doubt forum, leaderboard, badges and certificate verification, mentor console, admin console (batches, content, exam builder, costs and limits, audit log) and an animated map of how the lab works. Switch between all 9 career fields and Student, Mentor or Admin view from the top bar. Press Ctrl+K to search. |
 | `docs/` | Course documents: the full 1-year program and the 20-minute practical for every lecture (Word format). |
 | `modules/` | One script per screen, plus `data.js` with the demo data. |
 

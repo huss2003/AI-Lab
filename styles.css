@@ -1,5 +1,5 @@
 /* Neuromind AI Lab demo — shared design system.
-   Layout: app shell — left nav (off-canvas drawer on tablet/phone), top bar with search, tour, field switcher, theme, notifications and role, one working view at a time.
+   Layout: app shell — left nav (off-canvas drawer on tablet/phone), top bar with search, tour, field switcher, notifications and role, one working view at a time.
    Brand: NeuroNetworks AI Ed blue (#006DEE) with a green accent, cool blue-tinted neutrals. Tokens are only ever added, never renamed. */
 :root {
   --bg: #F4F7FB; --surface: #FFFFFF; --surface-2: #EFF3F9; --surface-3: #E6ECF5; --line: #DFE6F0; --line-strong: #C9D4E4;
@@ -7,7 +7,7 @@
   --brand: #006DEE; --brand-strong: #0057C2; --brand-soft: #E5EFFD; --brand-softer: #F2F7FE; --on-brand: #FFFFFF;
   --green: #0E9F63; --green-strong: #0A8150; --green-soft: #DDF3E9; --amber: #B26E00; --amber-soft: #FBF0DA; --red: #C8392F; --red-soft: #FCE4E1;
   --violet: #6A4CE0; --violet-soft: #EDE9FD;
-  --code-bg: #0E1A2C; --code-fg: #DCE6F5; --code-muted: #7F91AB; --code-key: #7CB7FF; --code-str: #7EE0AE; --code-num: #FFC870;
+  --code-bg: #F6F8FC; --code-fg: #1A2B45; --code-muted: #6E7D93; --code-key: #0057C2; --code-str: #0A7A4B; --code-num: #A35C00;
   --brand-grad: linear-gradient(135deg, #006DEE 0%, #1F8BFF 55%, #12B37A 100%);
   --ring: color-mix(in srgb, var(--brand) 32%, transparent);
   --backdrop: rgba(8, 16, 30, .48);
@@ -20,33 +20,7 @@
   --display: "Sora", "Manrope", system-ui, sans-serif; --body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #090F1A; --surface: #101828; --surface-2: #162034; --surface-3: #1D2940; --line: #223049; --line-strong: #31415F;
-  --fg: #E6EDF8; --muted: #97A6BE; --faint: #6B7C97;
-  --brand: #4B9BFF; --brand-strong: #78B4FF; --brand-soft: #12284A; --brand-softer: #0F1E36; --on-brand: #06101F;
-  --green: #34C98C; --green-strong: #5ED8A5; --green-soft: #0F3428; --amber: #E8A93C; --amber-soft: #382A10; --red: #F2685D; --red-soft: #3C1A17;
-  --violet: #A08BFF; --violet-soft: #241D47;
-  --code-bg: #070D18;
-  --brand-grad: linear-gradient(135deg, #2F86FF 0%, #4B9BFF 55%, #2DBF85 100%);
-  --backdrop: rgba(2, 6, 14, .66);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .3);
-  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .28);
-  --shadow-lg: 0 2px 8px rgba(0, 0, 0, .4), 0 22px 56px rgba(0, 0, 0, .55);
-  color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #090F1A; --surface: #101828; --surface-2: #162034; --surface-3: #1D2940; --line: #223049; --line-strong: #31415F;
-  --fg: #E6EDF8; --muted: #97A6BE; --faint: #6B7C97;
-  --brand: #4B9BFF; --brand-strong: #78B4FF; --brand-soft: #12284A; --brand-softer: #0F1E36; --on-brand: #06101F;
-  --green: #34C98C; --green-strong: #5ED8A5; --green-soft: #0F3428; --amber: #E8A93C; --amber-soft: #382A10; --red: #F2685D; --red-soft: #3C1A17;
-  --violet: #A08BFF; --violet-soft: #241D47;
-  --code-bg: #070D18;
-  --brand-grad: linear-gradient(135deg, #2F86FF 0%, #4B9BFF 55%, #2DBF85 100%);
-  --backdrop: rgba(2, 6, 14, .66);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .3);
-  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px rgba(0, 0, 0, .28);
-  --shadow-lg: 0 2px 8px rgba(0, 0, 0, .4), 0 22px 56px rgba(0, 0, 0, .55);
-  color-scheme: dark }
-:root[data-theme="light"] { color-scheme: light }
+:root { color-scheme: light }   /* Light theme only, by design: one calm, readable look for every viewer. */
 
 * { box-sizing: border-box }
 html, body { height: 100% }
