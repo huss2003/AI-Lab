@@ -328,9 +328,15 @@
       wrap.append(hero, weekSec, numSec, roleSec, sim,
         h('p', { class: 'wl-foot tiny muted' }, h('span', { class: 'pill amber' }, 'Demo data'), 'All people and companies are fictional. Numbers describe the planned course and lab, not real results.'));
 
+      function scrollToSim(smooth) {
+        const s = simAnchor(); if (!s) return;
+        const tb = document.querySelector('.topbar');
+        const off = (tb && /sticky|fixed/.test(getComputedStyle(tb).position) ? tb.getBoundingClientRect().bottom : 0) + 12;
+        window.scrollTo({ top: Math.max(0, s.getBoundingClientRect().top + window.scrollY - off), behavior: smooth && !reduced() ? 'smooth' : 'auto' });
+      }
       function focusSim() {
         const s = simAnchor(); if (!s) return;
-        s.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' });
+        scrollToSim(true);
         const t = (simMain.querySelector('input:not([type=checkbox]):not([disabled])') || simMain.querySelector('h3'));
         if (t) t.focus({ preventScroll: true });
         pendingFocus = false;
@@ -348,6 +354,10 @@
           const num = cls === 'done' ? icon('check') : ['1', '2', '2b', '3', '4', '5'][i];
           const note = k === 'consent' ? (skip ? 'Not needed' : !ageKnown ? 'Under 18 only' : '') : '';
           stepsList.append(h('li', { class: cls, 'aria-current': i === cur ? 'step' : null }, h('span', { class: 'n', html: num }), label, note ? h('em', {}, note) : null));
+        });
+        requestAnimationFrame(() => {
+          const li = stepsList.querySelector('li.now');
+          if (li && stepsList.scrollWidth > stepsList.clientWidth + 1) stepsList.scrollLeft = Math.max(0, li.offsetLeft - stepsList.offsetLeft - 8);
         });
       }
 
@@ -437,7 +447,7 @@
           if (SIM.otp.length < 6) { setErr('otp', 'Enter all 6 digits of the code.'); boxes.classList.add('bad'); return; }
           if (SIM.otp !== DEMO.otp) { setErr('otp', 'That code does not match. Tap “Fill demo OTP” to use the demo code.'); boxes.classList.add('bad'); return; }
           busy = 'verify'; draw();
-          later(() => { SIM.verified = true; busy = null; c.toast('Signed in. Your number is verified.', 'green'); go('age'); }, 600);
+          later(() => { SIM.verified = true; busy = null; c.toast(SIM.method === 'mobile' ? 'Signed in. Your number is verified.' : 'Signed in. Your email is verified.', 'green'); go('age'); }, 600);
         }
         boxes = otpBoxes(() => SIM.otp, (v) => { SIM.otp = v; setErr('otp', ''); }, ERR.otp ? 'bad' : '');
         const resend = () => { SIM.otpSentAt = Date.now(); SIM.otp = ''; c.toast(`New code sent to ${contactLabel()}`, 'green'); ERR = {}; pendingFocus = true; cleanup(); draw(); };
@@ -664,10 +674,10 @@
         simMain.textContent = '';
         const fn = { signin: stepSignin, otp: stepOtp, age: stepAge, consent: stepConsent, field: stepField, device: stepDevice, done: stepDone }[SIM.step] || stepSignin;
         simMain.append(...fn().filter(Boolean));
-        if (pendingFocus === 'keep') { pendingFocus = false; const s = simAnchor(); if (s) requestAnimationFrame(() => s.scrollIntoView({ block: 'start' })); const b = simMain.querySelector(`[data-field="${SIM.field}"]`); if (b) b.focus({ preventScroll: true }); }
+        if (pendingFocus === 'keep') { pendingFocus = false; requestAnimationFrame(() => scrollToSim(false)); const b = simMain.querySelector(`[data-field="${SIM.field}"]`); if (b) b.focus({ preventScroll: true }); }
         else if (pendingFocus) {
           pendingFocus = false; const s = simAnchor();
-          if (s && s.getBoundingClientRect().top < 0) s.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' });
+          if (s && s.getBoundingClientRect().top < 60) scrollToSim(true);
           const t = (simMain.querySelector('input:not([type=checkbox]):not([disabled])') || simMain.querySelector('h3')); if (t) t.focus({ preventScroll: true });
         }
       }

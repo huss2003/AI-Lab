@@ -507,7 +507,7 @@
   .m-forum .tside { grid-column: 2; justify-items: start; text-align: left; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
   .m-forum .vote { width: 42px }
   .m-forum .qtitle { grid-template-columns: minmax(0, 1fr) }
-  .m-forum .qtitle > .vote { display: none }
+  .m-forum .qtitle > .vote { display: inline-flex; width: auto; gap: 6px; padding: 5px 10px; font-size: 13px; justify-self: start; order: 2 }
   .m-forum .qtitle h1 { font-size: 18px }
   .m-forum .ctrl select { flex: 1 1 140px }
   .m-forum .fhead .btn { width: 100% }
@@ -584,7 +584,7 @@
     if (ui.month !== 'all' && !months.includes(Number(ui.month))) ui.month = 'all';
     const month = h('select', { class: 'field-input', 'aria-label': 'Filter by month' },
       h('option', { value: 'all' }, 'All months'),
-      months.map((m) => h('option', { value: String(m) }, `Month ${m} · ${D().months[m]}`)));
+      months.map((m) => h('option', { value: String(m), title: D().months[m] }, `Month ${m}`)));
     month.value = String(ui.month);
     month.addEventListener('change', () => { ui.month = month.value; renderList(); });
 
@@ -613,7 +613,7 @@
     listBox.textContent = '';
     const filterName = tabs.find((x) => x[0] === ui.filter)[1];
     listBox.append(h('div', { class: 'listhead' },
-      h('span', { class: 'small muted' }, `${list.length} ${list.length === 1 ? 'question' : 'questions'} · ${filterName}${ui.month !== 'all' ? ` · Month ${ui.month}` : ''}${ui.q.trim() ? ` · matching "${ui.q.trim()}"` : ''}`),
+      h('span', { class: 'small muted' }, `${list.length} ${list.length === 1 ? 'question' : 'questions'} · ${filterName}${ui.month !== 'all' ? ` · Month ${ui.month}: ${D().months[ui.month]}` : ''}${ui.q.trim() ? ` · matching "${ui.q.trim()}"` : ''}`),
       (ui.q || ui.month !== 'all' || ui.filter !== 'all')
         ? h('button', { class: 'linkbtn', type: 'button', onclick: () => { ui.q = ''; ui.month = 'all'; ui.filter = 'all'; renderMain(); } }, 'Clear filters')
         : h('span', { class: 'demo-tag' }, 'Demo data')));

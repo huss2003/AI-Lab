@@ -505,7 +505,7 @@
   function activitySVG() {
     const vals = []; for (let i = 0; i < 24; i++) vals.push(PROFILE[(18 + i) % 24]);
     vals[23] = S.live.online;
-    const W = 600, H = 190, pl = 40, pr = 8, pt = 10, pb = 26, max = 1000;
+    const W = clamp(Math.round((refs.act && refs.act.clientWidth) || 600), 300, 720), H = W < 480 ? 170 : 190, pl = 36, pr = 8, pt = 10, pb = 26, max = 1000;
     const bw = (W - pl - pr) / 24, y = (v) => pt + (H - pt - pb) * (1 - v / max);
     let s = `<svg viewBox="0 0 ${W} ${H}" class="act" role="img" aria-label="Students online each hour over the last 24 hours. Peak about 960 last night; ${S.live.online} now.">`;
     [0, 250, 500, 750, 1000].forEach((v) => { s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`; });
@@ -514,7 +514,7 @@
       const ago = 23 - i; const lab = ago === 0 ? 'This hour' : `${ago} h ago`;
       s += `<rect class="${cls}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${(bw - 4).toFixed(1)}" height="${(H - pb - top).toFixed(1)}" rx="2"><title>${lab}: ${v} students online</title></rect>`;
     });
-    [[0, '24 h ago'], [6, '18 h ago'], [12, '12 h ago'], [18, '6 h ago']].forEach(([i, t]) => { s += `<text class="ax" x="${pl + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle">${t}</text>`; });
+    (W < 480 ? [[0, '24 h ago'], [12, '12 h ago']] : [[0, '24 h ago'], [6, '18 h ago'], [12, '12 h ago'], [18, '6 h ago']]).forEach(([i, t]) => { s += `<text class="ax" x="${pl + i * bw + bw / 2}" y="${H - 8}" text-anchor="middle">${t}</text>`; });
     s += `<text class="axb" x="${W - pr}" y="${H - 8}" text-anchor="end">Now</text></svg>`;
     return s;
   }
@@ -562,7 +562,7 @@
         tile('Practicals checked today', h('b', {}, t.checked), 'auto-checked within a minute', () => openTab('content')),
         tile('AI questions today', h('b', {}, t.ai), 'tutor hints, never full answers', () => openTab('cost')),
         tile('Exams in progress', h('b', {}, '0'), nx ? `Next: ${nx.title}, ${fmtDate(nx.ts)}` : 'None scheduled', () => openTab('exam'))));
-    const act = svgEl(activitySVG()); refs.act = act;
+    const act = svgEl(''); refs.act = act;
     const alerts = h('div', { class: 'alerts' }); refs.alerts = alerts; fillAlerts(alerts);
     panel.append(h('div', { class: 'ov2' },
       h('section', { class: 'card stack' },
@@ -572,6 +572,7 @@
       h('section', { class: 'card stack' },
         h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Needs your attention'), h('span', { class: 'tiny muted' }, 'Clears itself when fixed')),
         alerts)));
+    act.innerHTML = activitySVG();
     const tot = fieldTotals(); const max = Math.max(...Object.values(tot));
     panel.append(h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } },
@@ -1089,8 +1090,8 @@
     s += `<text class="axb" x="${cx}" y="${cy - 2}" text-anchor="middle" style="font-size:18px">₹${tot.toFixed(2)} L</text><text class="ax" x="${cx}" y="${cy + 16}" text-anchor="middle">typical month</text></svg>`;
     return s;
   }
-  function stackSVG(mNow) {
-    const now = new Date(); const W = 520, H = 230, pl = 40, pr = 10, pt = 14, pb = 28, max = 3;
+  function stackSVG(mNow, boxW) {
+    const now = new Date(); const W = clamp(Math.round(boxW || 520), 300, 640), H = W < 480 ? 210 : 230, pl = 40, pr = 10, pt = 14, pb = 28, max = 3;
     const y = (v) => pt + (H - pt - pb) * (1 - v / max);
     const cols = HISTORY.map(([sv, ai], i) => ({ sv, ai, te: 0.15, lab: new Date(now.getFullYear(), now.getMonth() - 5 + i, 1).toLocaleDateString('en-IN', { month: 'short' }) }));
     cols.push({ sv: mNow.servers, ai: mNow.ai, te: mNow.test, lab: new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-IN', { month: 'short' }) + ' (est.)', proj: true });
@@ -1104,9 +1105,9 @@
       });
       if (c.proj) s += `<rect class="projbox" x="${x.toFixed(1)}" y="${y(base).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(base)).toFixed(1)}"/>`;
       s += `<text class="${c.proj ? 'axb' : 'ax'}" x="${(x + w / 2).toFixed(1)}" y="${y(base) - 5}" text-anchor="middle" style="font-size:11px">${base.toFixed(2)}</text>`;
-      s += `<text class="ax" x="${(x + w / 2).toFixed(1)}" y="${H - 9}" text-anchor="middle">${c.lab}</text>`;
+      s += `<text class="ax" x="${(x + w / 2).toFixed(1)}" y="${H - 9}" text-anchor="middle">${W < 480 && c.proj ? c.lab.replace(' (est.)', '*') : c.lab}</text>`;
     });
-    s += `<line class="bud" x1="${pl}" x2="${W - pr}" y1="${y(2)}" y2="${y(2)}"/><text class="budt" x="${W - pr}" y="${y(2) - 5}" text-anchor="end">Server budget ₹2 L (blue part)</text></svg>`;
+    s += `<line class="bud" x1="${pl}" x2="${W - pr}" y1="${y(2)}" y2="${y(2)}"/><text class="budt" x="${W - pr}" y="${y(2) - 5}" text-anchor="end">${W < 480 ? 'Server budget ₹2 L' : 'Server budget ₹2 L (blue part)'}</text></svg>`;
     return s;
   }
   function drawCost(panel) {
@@ -1146,7 +1147,7 @@
     const untrimmedPct = () => 1.48 * (0.6 + 0.4 * K.hours / 12) * (0.9 + 0.1 * K.idle / 20) * 1.27 / 2 * 100;
     function upd() {
       const mm = model(K, K.spike); const base = model(K, false);
-      stackBox.innerHTML = stackSVG(mm);
+      stackBox.innerHTML = stackSVG(mm, stackBox.clientWidth);
       projBox.textContent = '';
       projBox.append(
         h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('span', { class: 'eyebrow' }, 'Projected this month'), h('span', { class: 'pill amber' }, 'estimate · demo model')),
