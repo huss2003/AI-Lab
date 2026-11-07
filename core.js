@@ -99,13 +99,14 @@
   }
   function addXP(n, reason) { state.xp += n; emit('xp', { xp: state.xp, gained: n, reason }); toast(`+${n} XP · ${reason}`, 'green'); }
 
+  const openModals = new Set();   // pop-ups still open; closed when the user moves to another screen
   function modal(contentNode) {
     const back = h('div', { class: 'modal-back', onclick: (e) => { if (e.target === back) close(); } });
     const box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' }, contentNode);
-    function close() { back.remove(); document.removeEventListener('keydown', onKey); }
+    function close() { back.remove(); document.removeEventListener('keydown', onKey); openModals.delete(close); }
     function onKey(e) { if (e.key === 'Escape') close(); }
     document.addEventListener('keydown', onKey);
-    back.append(box); document.body.append(back);
+    back.append(box); document.body.append(back); openModals.add(close);
     return { close, box };
   }
 
@@ -141,6 +142,7 @@
     if (!modules[id]) id = (!id && modules.welcome) ? 'welcome' : 'home';
     const m = modules[id]; if (!m) return;
     if (state.route && modules[state.route] && modules[state.route].destroy && state.route !== id) { try { modules[state.route].destroy(); } catch (e) { console.error(e); } }
+    if (state.route && state.route !== id) [...openModals].forEach((c) => c());
     state.route = id;
     const role = m.group === 'Mentor' ? 'mentor' : m.group === 'Admin' ? 'admin' : 'student';
     if (role !== state.role) { state.role = role; emit('role', role); }
