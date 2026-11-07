@@ -556,7 +556,13 @@
       const { h, data, field, state } = c;
       const me = data.demo_student;
       // Deep link from search or the course map: NM.state.openLecture holds a lecture id (or {id}).
-      if (state.openLecture != null) { const want = Number(state.openLecture && state.openLecture.id != null ? state.openLecture.id : state.openLecture); state.openLecture = null; if (data.lectures.some((l) => l.id === want)) store.sel = want; }
+      // The admin console's "Preview" uses NM.state.previewLecture the same way.
+      ['openLecture', 'previewLecture'].forEach((k) => {
+        if (state[k] == null) return;
+        const v = state[k]; state[k] = null;
+        const want = Number(v && v.id != null ? v.id : v);
+        if (data.lectures.some((l) => l.id === want)) store.sel = want;
+      });
       if (!store.sel || !data.lectures.some((l) => l.id === store.sel)) store.sel = me.lecture;
       const lec = data.lectures.find((l) => l.id === store.sel);
       const monthLecs = data.lectures.filter((l) => l.month === lec.month);
