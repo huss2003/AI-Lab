@@ -3,6 +3,11 @@
    Every number is demo data. Demo state lives in the module-level S object, so it survives navigation and field switches. */
 (function () {
   const D = () => window.NM_DATA;
+  // The active demo student. Batch NM-2027-A (all 4 demo students) is shown at this student's point in the year;
+  // batches E to J started later, so they are further behind.
+  const ST = () => D().demo_student;
+  function batchMonths() { const M = ST().month; return { AD: M, EG: Math.max(1, M <= 3 ? M - 1 : M - 2), HJ: Math.max(1, M - (M >= 8 ? 5 : M >= 5 ? 3 : 2)) }; }
+  const lecWeek = (m, edge) => { const ws = D().lectures.filter((l) => l.month === m).map((l) => l.week); return ws.length ? (edge === 'first' ? Math.min(...ws) : Math.max(...ws)) : ST().week; };
   const ADMIN = 'Meera Iyer';
   const DAY = 864e5, MIN = 6e4;
   let C = null;           // ctx while the console is on screen
@@ -37,17 +42,17 @@
   /* ---------- demo data: batches ---------- */
   const FIELD_WEIGHT = { fullstack_software: 14, web_dev: 12, data_analytics: 13, business_analysis: 8, cloud: 10, cybersecurity: 12, data_science: 10, devops: 7, ai_ml: 14 };
   const BATCH_DEF = [
-    // letter, students, course month, lead mentor, active this week %, under 18, pending consents [name, age]
-    ['A', 312, 8, 'Rohan Patil', 91, 41, [['Riya Deshmukh', 16], ['Kabir Shaikh', 17]]],
-    ['B', 305, 8, 'Ananya Rao', 88, 37, []],
-    ['C', 298, 8, 'Vikram Joshi', 90, 44, []],
-    ['D', 301, 8, 'Farah Khan', 86, 39, [['Tanvi Jadhav', 17]]],
-    ['E', 296, 6, 'Sameer Gokhale', 89, 52, []],
-    ['F', 310, 6, 'Pooja Nair', 87, 48, [['Omkar Shinde', 16], ['Zoya Mirza', 17]]],
-    ['G', 289, 6, 'Arjun Mehta', 92, 45, []],
-    ['H', 302, 3, 'Nikita Bhosale', 93, 71, [['Pranav Kale', 16], ['Sakshi More', 16], ['Aditya Chavan', 17], ['Mahi Thakur', 16], ['Yash Pawar', 17]]],
-    ['I', 294, 3, 'Imran Sayyed', 90, 68, [['Neel Gaikwad', 16], ['Rutuja Salunkhe', 17], ['Faiz Ansari', 16], ['Ira Kapoor', 17]]],
-    ['J', 293, 3, 'Devika Menon', 89, 66, [['Siddhi Bhat', 16], ['Varun Naik', 17], ['Aisha Qureshi', 16]]],
+    // letter, students, course month group (AD, EG or HJ, see batchMonths), lead mentor, active this week %, under 18, pending consents [name, age]
+    ['A', 312, 'AD', 'Rohan Patil', 91, 41, [['Riya Deshmukh', 16], ['Kabir Shaikh', 17]]],
+    ['B', 305, 'AD', 'Ananya Rao', 88, 37, []],
+    ['C', 298, 'AD', 'Vikram Joshi', 90, 44, []],
+    ['D', 301, 'AD', 'Farah Khan', 86, 39, [['Tanvi Jadhav', 17]]],
+    ['E', 296, 'EG', 'Sameer Gokhale', 89, 52, []],
+    ['F', 310, 'EG', 'Pooja Nair', 87, 48, [['Omkar Shinde', 16], ['Zoya Mirza', 17]]],
+    ['G', 289, 'EG', 'Arjun Mehta', 92, 45, []],
+    ['H', 302, 'HJ', 'Nikita Bhosale', 93, 71, [['Pranav Kale', 16], ['Sakshi More', 16], ['Aditya Chavan', 17], ['Mahi Thakur', 16], ['Yash Pawar', 17]]],
+    ['I', 294, 'HJ', 'Imran Sayyed', 90, 68, [['Neel Gaikwad', 16], ['Rutuja Salunkhe', 17], ['Faiz Ansari', 16], ['Ira Kapoor', 17]]],
+    ['J', 293, 'HJ', 'Devika Menon', 89, 66, [['Siddhi Bhat', 16], ['Varun Naik', 17], ['Aisha Qureshi', 16]]],
   ];
   function splitFields(id, total) {
     const r = rng('split' + id); const fields = D().fields;
@@ -59,10 +64,14 @@
     const map = {}; fields.forEach((f, i) => { map[f.id] = out[i]; }); return map;
   }
   function makeBatches() {
-    return BATCH_DEF.map(([L, n, month, mentor, active, u18, pend]) => {
-      const id = 'NM-2027-' + L; const r = rng('ph' + id);
+    const BM = batchMonths();
+    const ish = (D().demo_students || []).find((p) => p.consent && p.batch === 'NM-2027-A' && p.age < 18);
+    return BATCH_DEF.map(([L, n, grp, mentor, active, u18, pend]) => {
+      const id = 'NM-2027-' + L; const r = rng('ph' + id); const month = BM[grp];
       return {
         id, letter: L, students: n, month, mentor, active, u18,
+        // Consent already on file (shown in the batch's consent table); the demo student under 18 is one of them.
+        consented: id === 'NM-2027-A' && ish ? [{ name: ish.name, age: ish.age, parent: ish.consent.parent, relation: ish.consent.relation, recorded: ish.consent.recorded, ref: ish.consent.ref, how: 'E-sign link', demo: true }] : [],
         attendance: 82 + Math.round(r() * 10), practicals: 78 + Math.round(r() * 14),
         fields: splitFields(id, n),
         pending: pend.map(([name, age], i) => ({ name, age, phone: `+91 9${Math.floor(r() * 9)}•• ••• ${100 + Math.floor(r() * 899)}`, sent: i === 0 && L === 'H' ? Date.now() - 2 * DAY : null })),
@@ -74,39 +83,53 @@
   function seedAudit() {
     const lec = (id) => D().lectures.find((l) => l.id === id) || { topic: 'Lecture', practical: 'Practical' };
     const now = Date.now();
+    const P = ST(), M = P.month, LEC = P.lecture, NE = P.next_exam.month, BM = batchMonths();
+    const lecN = (k) => Math.max(1, LEC + k);
+    const egExam = Math.max(1, BM.EG - 1);
+    const closed = NE < M
+      ? `Month ${NE} assessment closed: 1,184 of 1,216 submitted. 37 papers flagged for a mentor to look at.`
+      : `Month ${NE} assessment opened for NM-2027-A to D (1,216 students). It stays open until ${P.next_exam.due}.`;
     const rows = [
-      [14, 'Rohan Patil', 'mentor', 'grade', 'Grade overridden', 'Capstone C3, Month 8 milestone for Sana Qureshi (NM-2027-A): 58 to 64. Reason: the test file was in the wrong folder; all tests pass after a re-check.'],
+      [14, 'Rohan Patil', 'mentor', 'grade', 'Grade overridden', `Capstone ${P.capstone}, Month ${P.capstone_month} milestone for Sana Qureshi (NM-2027-A): 58 to 64. Reason: the test file was in the wrong folder; all tests pass after a re-check.`],
       [38, ADMIN, 'admin', 'consent', 'Consent recorded', 'Parent consent received by e-sign for Aditi Pawar (17), NM-2027-H. Lab access switched on.'],
       [65, 'Automatic', 'system', 'key', 'Lab AI keys rotated', 'Scheduled monthly rotation of 3,000 student lab keys. Old keys stopped working at 09:00. No student action needed.'],
-      [112, 'Ananya Rao', 'mentor', 'exam', 'Viva requested', 'Month 7 assessment, Harsh Vora (NM-2027-B): 6 tab switches. A 10-minute viva is booked for Monday.'],
-      [175, ADMIN, 'admin', 'content', 'Lecture video replaced', `Lecture 64 "${lec(64).topic}" is now version 2: audio fixed at 12:40. English and Hindi captions regenerated.`],
-      [242, 'Vikram Joshi', 'mentor', 'grade', 'Grade overridden', `Practical "${lec(62).practical}" for Kunal Shah (NM-2027-C): 70 to 80. Reason: the auto-check timed out on a slow network; a re-run passes.`],
-      [26 * 60, ADMIN, 'admin', 'exam', 'Exam published', 'Month 3 assessment for NM-2027-H to J (889 students): 25 questions, 30 minutes, lockdown on.'],
+      [112, 'Ananya Rao', 'mentor', 'exam', 'Viva requested', `Month ${NE} assessment, Harsh Vora (NM-2027-B): 6 tab switches. A 10-minute viva is booked for Monday.`],
+      [175, ADMIN, 'admin', 'content', 'Lecture video replaced', `Lecture ${lecN(-1)} "${lec(lecN(-1)).topic}" is now version 2: audio fixed at 12:40. English and Hindi captions regenerated.`],
+      [242, 'Vikram Joshi', 'mentor', 'grade', 'Grade overridden', `Practical "${lec(lecN(-3)).practical}" for Kunal Shah (NM-2027-C): 70 to 80. Reason: the auto-check timed out on a slow network; a re-run passes.`],
+      [26 * 60, ADMIN, 'admin', 'exam', 'Exam published', `Month ${BM.HJ} assessment for NM-2027-H to J (889 students): 25 questions, 30 minutes, lockdown on.`],
       [27 * 60 + 20, 'Automatic', 'system', 'limits', 'Idle shutdown applied', '214 workspaces stopped after 20 minutes idle overnight. About 160 server hours saved.'],
       [29 * 60, 'Farah Khan', 'mentor', 'consent', 'Consent recorded', 'Parent consent received for Dev Malhotra (16), NM-2027-E, after a phone call with his mother.'],
       [2 * 1440 + 30, ADMIN, 'admin', 'key', 'Mentor key rotated', 'Rotated the review key for mentor Imran Sayyed after he changed laptops.'],
       [2 * 1440 + 95, ADMIN, 'admin', 'students', 'Invites queued', '25 invites to NM-2027-J. 24 have joined so far.'],
-      [3 * 1440 + 50, 'Sameer Gokhale', 'mentor', 'exam', 'Re-test booked', 'Month 5 assessment, Nisha Rane (NM-2027-E): fresh question set on Saturday after a power cut.'],
-      [4 * 1440 + 15, ADMIN, 'admin', 'limits', 'Lab limits changed', 'AI budget per student raised from ₹100 to ₹120 a month after the Month 7 tutor usage review.'],
-      [5 * 1440 + 10, 'Automatic', 'system', 'exam', 'Exam closed', 'Month 7 assessment closed: 1,184 of 1,216 submitted. 37 papers flagged for a mentor to look at.'],
-      [6 * 1440 + 200, 'Pooja Nair', 'mentor', 'grade', 'Grade overridden', 'Month 6 project for Rehan Bhatt (NM-2027-F): 55 to 61 after the student added the missing README section.'],
-      [7 * 1440 + 40, ADMIN, 'admin', 'exam', 'Exam published', 'Month 7 assessment for NM-2027-A to D (1,216 students): 25 questions, 30 minutes, lockdown on.'],
+      [3 * 1440 + 50, 'Sameer Gokhale', 'mentor', 'exam', 'Re-test booked', `Month ${egExam} assessment, Nisha Rane (NM-2027-E): fresh question set on Saturday after a power cut.`],
+      [4 * 1440 + 15, ADMIN, 'admin', 'limits', 'Lab limits changed', `AI budget per student raised from ₹100 to ₹120 a month after the Month ${Math.max(1, M - 1)} tutor usage review.`],
+      [5 * 1440 + 10, 'Automatic', 'system', 'exam', NE < M ? 'Exam closed' : 'Exam opened', closed],
+      [6 * 1440 + 200, 'Pooja Nair', 'mentor', 'grade', 'Grade overridden', `Month ${BM.EG} project for Rehan Bhatt (NM-2027-F): 55 to 61 after the student added the missing README section.`],
+      [7 * 1440 + 40, ADMIN, 'admin', 'exam', 'Exam published', `Month ${NE} assessment for NM-2027-A to D (1,216 students): 25 questions, 30 minutes, lockdown on.`],
       [8 * 1440 + 300, 'Arjun Mehta', 'mentor', 'consent', 'Consent recorded', 'Parent consent received for Meher Sethi (16), NM-2027-G, from the school help desk form.'],
-      [9 * 1440 + 120, ADMIN, 'admin', 'content', 'Captions corrected', `Lecture 58 Hindi captions: 6 technical terms fixed by a reviewer.`],
+      [9 * 1440 + 120, ADMIN, 'admin', 'content', 'Captions corrected', `Lecture ${lecN(-7)} Hindi captions: 6 technical terms fixed by a reviewer.`],
     ];
     return rows.map(([m, actor, role, type, action, detail], i) => ({ id: 'AUD-' + (48120 - i), ts: now - m * MIN, actor, role, type, action, detail }));
   }
 
   /* ---------- demo data: video library ---------- */
-  const WEEK33 = new Date(2026, 10, 2).getTime(); // Monday of week 33 in the demo calendar
-  const releaseTs = (l) => WEEK33 + (l.week - 33) * 7 * DAY + (l.id % 2 ? 1 : 4) * DAY + 10 * 3600e3;
+  const WEEK_NOW = new Date(2026, 10, 2).getTime(); // Monday of the active student's current week in the demo calendar
+  const releaseTs = (l) => WEEK_NOW + (l.week - ST().week) * 7 * DAY + (l.id % 2 ? 1 : 4) * DAY + 10 * 3600e3;
+  // Lectures up to the one after the active student's are published; the one after that is still processing.
+  const lastLive = () => ST().lecture + 1;
+  const processingId = () => Math.min(D().lectures.length, ST().lecture + 2);
+  function videoFile(l) {
+    if (l.id === 67) return 'L67-router-branches-v1.mp4';
+    const w = l.topic.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((x) => x.length > 2 && !['and', 'the', 'for', 'with', 'from'].includes(x)).slice(0, 2);
+    return `L${l.id}-${w.join('-') || 'lecture'}-v1.mp4`;
+  }
   function makeVideos() {
     const V = {};
     D().lectures.forEach((l) => {
       const r = rng('v' + l.id);
-      V[l.id] = { status: l.id <= 66 ? 'published' : l.id === 67 ? 'processing' : 'scheduled', version: l.id <= 66 && r() < 0.18 ? 2 : 1, mcqs: 4, mins: 36 + Math.floor(r() * 9) };
+      V[l.id] = { status: l.id <= lastLive() ? 'published' : l.id === processingId() ? 'processing' : 'scheduled', version: l.id <= lastLive() && r() < 0.18 ? 2 : 1, mcqs: 4, mins: 36 + Math.floor(r() * 9) };
     });
-    V[64].version = 2;
+    if (V[ST().lecture - 1]) V[ST().lecture - 1].version = 2;
     return V;
   }
 
@@ -185,13 +208,23 @@
     if (S.batches) return;
     S.batches = makeBatches(); S.audit = seedAudit(); S.videos = makeVideos();
     const now = new Date(); const at10 = (d) => { const x = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, 10, 0); return x.getTime(); };
-    S.exam.scheduled = [
-      { id: 'EX-3', title: 'Month 3 assessment', month: 3, batches: 'NM-2027-H to J', students: 889, n: 25, mcq: 20, code: 5, duration: 30, ts: at10(5), status: 'scheduled', shuffle: true, lockdown: true },
-      { id: 'EX-2', title: 'Month 7 assessment', month: 7, batches: 'NM-2027-A to D', students: 1216, n: 25, mcq: 20, code: 5, duration: 30, ts: at10(-5), status: 'finished', submitted: 1184, shuffle: true, lockdown: true },
-      { id: 'EX-1', title: 'Month 5 assessment', month: 5, batches: 'NM-2027-E to G', students: 895, n: 25, mcq: 20, code: 5, duration: 30, ts: at10(-12), status: 'finished', submitted: 871, shuffle: true, lockdown: true },
-    ];
+    // Exams follow the active student's point in the year: batches A to D sit that student's next exam.
+    const P = ST(), M = P.month, NE = P.next_exam.month, BM = batchMonths();
+    const toFri = ((5 - now.getDay() + 7) % 7) || 7;
+    const base = { n: 25, mcq: 20, code: 5, duration: 30, shuffle: true, lockdown: true };
+    const ex = (o) => Object.assign({}, base, o);
+    S.exam.scheduled = [ex({ id: 'EX-3', title: `Month ${BM.HJ} assessment`, month: BM.HJ, batches: 'NM-2027-H to J', students: 889, ts: at10(NE < M ? 5 : toFri + 3), status: 'scheduled' })];
+    if (NE < M) S.exam.scheduled.push(ex({ id: 'EX-2', title: `Month ${NE} assessment`, month: NE, batches: 'NM-2027-A to D', students: 1216, ts: at10(-5), status: 'finished', submitted: 1184 }));
+    else {
+      // Open now: students sit it any time until the due day; mentors already see the papers handed in.
+      S.exam.scheduled.push(ex({ id: 'EX-2', title: `Month ${NE} assessment`, month: NE, batches: 'NM-2027-A to D', students: 1216, ts: at10(toFri), status: 'scheduled', window: true, submitted: 874 }));
+      if (NE > 1) S.exam.scheduled.push(ex({ id: 'EX-0', title: `Month ${NE - 1} assessment`, month: NE - 1, batches: 'NM-2027-A to D', students: 1216, ts: at10(-26), status: 'finished', submitted: 1193 }));
+    }
+    S.exam.scheduled.push(ex({ id: 'EX-1', title: `Month ${Math.max(1, BM.EG - 1)} assessment`, month: Math.max(1, BM.EG - 1), batches: 'NM-2027-E to G', students: 895, ts: at10(-12), status: 'finished', submitted: 871 }));
+    S.exam.draft.month = examGap().month;
     S.exam.draft.date = isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14));
-    JOBS[67] = { id: 67, stage: 1, sub: 3, slow: true, hindi: true, file: 'L67-router-branches-v1.mp4', bg: true };
+    const pid = processingId(); const pl = D().lectures.find((l) => l.id === pid);
+    if (pl && pid > ST().lecture) JOBS[pid] = { id: pid, stage: 1, sub: 3, slow: true, hindi: true, file: videoFile(pl), bg: true };
   }
 
   function log(type, action, detail, actor, role) {
@@ -205,7 +238,8 @@
     NM.on('milestone:reviewed', (p) => {
       ensure();
       const dec = p && p.decision === 'approved' ? 'approved' : 'sent back for changes';
-      log('grade', 'Capstone milestone reviewed', `Aarav Kulkarni (NM-2027-A), capstone milestone ${dec}${p && p.score != null ? ` with ${p.score} points` : ''}.`, (p && p.mentor) || 'Rohan Patil', 'mentor');
+      const sm = /C[1-4]/.exec(String((p && (p.slot || p.capstone)) || '')); const slot = sm ? sm[0] : ST().capstone;
+      log('grade', 'Capstone milestone reviewed', `${ST().name} (${ST().batch}), capstone ${slot} Month ${(p && p.month) || ST().capstone_month} milestone ${dec}${p && p.score != null ? ` with ${p.score} points` : ''}.`, (p && p.mentor) || 'Rohan Patil', 'mentor');
     });
   }
 
@@ -397,6 +431,14 @@
   const monthBatches = (m) => S.batches.filter((b) => b.month === m);
   function batchRange(list) { if (!list.length) return 'First batch to reach this month'; if (list.length === 1) return list[0].id; return `${list[0].id} to ${list[list.length - 1].letter}`; }
   const nextExam = () => S.exam.scheduled.filter((e) => e.status === 'scheduled' && e.ts > Date.now()).sort((a, b) => a.ts - b.ts)[0];
+  // The first month, from batch A's current month on, that has no exam yet: that is the one to schedule next.
+  function examGap() {
+    const M = ST().month; let T = M;
+    while (T < 12 && (S.exam.scheduled || []).some((e) => e.month === T && e.status !== 'cancelled')) T += 1;
+    const W = ST().week;
+    const weeks = T === M ? Math.max(1, lecWeek(T, 'last') - W + 1) : Math.max(1, lecWeek(T, 'first') - W);
+    return { month: T, current: T === M, weeks };
+  }
   const costNow = () => model(S.cost, S.cost.spike);
 
   /* ============================================================ */
@@ -491,7 +533,7 @@
     if (!JOBS[j.id]) return;
     delete JOBS[j.id];
     const v = S.videos[j.id]; const lec = D().lectures.find((l) => l.id === j.id);
-    const released = releaseTs(lec) <= Date.now() || j.id <= 66;
+    const released = releaseTs(lec) <= Date.now() || j.id <= lastLive();
     if (!j.bg) v.version += 1;
     v.status = released ? 'published' : 'scheduled';
     j.done = true;
@@ -533,8 +575,10 @@
       out.push({ k: uns ? 'amber' : 'blue', t: uns ? `${pend} parental consents pending` : `${pend} consents pending, reminders sent`, b: `Under-18 students wait for a parent to agree before the lab opens. Batches ${by}.`, go: () => openTab('batches') });
     }
     Object.values(JOBS).forEach((j) => out.push({ k: 'blue', t: `Lecture ${j.id} video is processing (${jobPct(j)}%)`, b: 'Making video sizes and captions. Students see it on the release date.', go: () => { S.content.q = String(j.id); S.content.month = 'all'; S.content.status = 'all'; S.content.page = 0; openTab('content'); } }));
-    if (!S.exam.scheduled.some((e) => e.month === 8 && e.status === 'scheduled')) {
-      out.push({ k: 'red', t: 'Month 8 exam is not scheduled yet', b: `${batchRange(monthBatches(8))} (${fmt(monthBatches(8).reduce((a, b) => a + b.students, 0))} students) finish Month 8 in about 3 weeks.`, go: () => { S.exam.draft.month = 8; S.exam.draft.previewed = false; openTab('exam'); } });
+    const gap = examGap(), gm = gap.month, ab = monthBatches(ST().month);
+    if (!S.exam.scheduled.some((e) => e.month === gm && e.status === 'scheduled')) {
+      const wk = `${gap.weeks} week${gap.weeks === 1 ? '' : 's'}`;
+      out.push({ k: 'red', t: `Month ${gm} exam is not scheduled yet`, b: `${batchRange(ab)} (${fmt(ab.reduce((a, b) => a + b.students, 0))} students) ${gap.current ? `finish Month ${gm} in about ${wk}.` : `start Month ${gm} in about ${wk}. Its exam needs a date.`}`, go: () => { S.exam.draft.month = gm; S.exam.draft.previewed = false; openTab('exam'); } });
     }
     const m = costNow();
     out.push({ k: m.pct >= 90 ? 'red' : m.pct >= 75 ? 'amber' : 'green', t: `Servers at ${Math.round(m.pct)}% of the monthly budget`, b: `Projected ${lakh(m.servers)} of ${lakh(2)} this month.${m.trimmed ? ' Auto-trim is on.' : m.pct < 75 ? ' No action needed.' : ''}`, go: () => openTab('cost') });
@@ -565,10 +609,11 @@
         h('span', { class: 'tiny muted' }, 'Tap any number or alert to open the section behind it.')),
       h('div', { class: 'tiles' },
         tile('Students online now', h('b', {}, t.online, h('small', {}, ' of 3,000')), 'signed in on any device', () => openTab('batches'), h('span', { class: 'progress green', style: { display: 'block' } }, t.onlineBar)),
-        tile('Workspaces running', h('b', {}, t.ws), 'cloud coding workspaces open now', () => openTab('cost')),
+        tile('Workspaces running', h('b', {}, t.ws), S.batches.every((b) => b.month <= 3) ? 'in-browser Python labs open now (cloud workspaces from Month 4)' : 'cloud coding workspaces open now', () => openTab('cost')),
         tile('Practicals checked today', h('b', {}, t.checked), 'auto-checked within a minute', () => openTab('content')),
         tile('AI questions today', h('b', {}, t.ai), 'tutor hints, never full answers', () => openTab('cost')),
-        tile('Exams in progress', h('b', {}, '0'), nx ? `Next: ${nx.title}, ${fmtDate(nx.ts)}` : 'None scheduled', () => openTab('exam'))));
+        (() => { const open = S.exam.scheduled.filter((e) => e.window && e.status === 'scheduled'); const o = open[0];
+          return tile('Exams in progress', h('b', {}, String(open.length)), o ? `${o.title}, open until ${fmtDay(o.ts)}` : nx ? `Next: ${nx.title}, ${fmtDate(nx.ts)}` : 'None scheduled', () => openTab('exam')); })()));
     const act = svgEl(''); refs.act = act;
     const alerts = h('div', { class: 'alerts' }); refs.alerts = alerts; fillAlerts(alerts);
     panel.append(h('div', { class: 'ov2' },
@@ -668,6 +713,16 @@
                 h('button', { class: 'btn sm', onclick: () => { sendReminder(b, p); paint(); refresh(); } }, p.sent ? 'Send again' : 'Send reminder'),
                 h('button', { class: 'btn sm', onclick: () => recordConsent(b, p) }, 'Record consent')))))))) :
             h('div', { class: 'note' }, 'Every under-18 student in this batch has parent consent. Their lab access is on.'),
+          b.consented && b.consented.length ? h('div', { class: 'stack', style: { gap: '6px' } },
+            h('b', { class: 'small' }, 'Consent on file (most recent)'),
+            h('div', { class: 'table-wrap' }, h('table', { class: 'wide-s' },
+              h('thead', {}, h('tr', {}, h('th', {}, 'Student'), h('th', {}, 'Parent'), h('th', {}, 'Recorded'), h('th', {}, 'Reference'), h('th', {}, 'Status'))),
+              h('tbody', {}, b.consented.map((x) => h('tr', {},
+                h('td', {}, h('b', { class: 'nw' }, x.name), h('span', { class: 'sub' }, `Age ${x.age}${x.demo ? ' · demo student' : ''}`)),
+                h('td', { class: 'small' }, h('span', { class: 'nw' }, x.parent), h('span', { class: 'sub' }, x.relation)),
+                h('td', { class: 'small nw' }, x.recorded, h('span', { class: 'sub' }, x.how)),
+                h('td', { class: 'small num nw' }, x.ref),
+                h('td', {}, h('span', { class: 'pill green' }, 'Consented'), h('span', { class: 'sub' }, 'Lab access on')))))))) : null,
           h('p', { class: 'tiny muted' }, 'Under-18 students can watch lectures but cannot open the lab or the AI tutor until a parent agrees. Use "Record consent" when a parent agrees by phone or on paper.')),
         h('div', { class: 'foot' },
           b.id === 'NM-2027-A' ? h('button', { class: 'btn', onclick: () => { m.close(); C.go('mentor'); } }, 'Open mentor console') : null,
@@ -676,6 +731,8 @@
     }
     function recordConsent(b2, p) {
       b2.pending = b2.pending.filter((x) => x !== p);
+      const d0 = new Date();
+      (b2.consented = b2.consented || []).unshift({ name: p.name, age: p.age, parent: 'Parent or guardian', relation: 'Agreed by phone or on paper', recorded: `${isoDay(d0)} ${fmtTime(d0.getTime())} IST`, ref: `PC-2027-${b2.letter}-${String(500 + Math.floor(Math.random() * 400)).padStart(4, '0')}`, how: `Recorded by ${ADMIN}` });
       log('consent', 'Consent recorded', `Parent consent recorded for ${p.name} (${p.age}), ${b2.id}. Lab access switched on.`);
       C.toast(`Consent recorded. ${p.name} can now use the lab.`, 'green');
       C.notify('Parental consent recorded', `${p.name} (${b2.id}) now has lab access.`, 'admin');
@@ -686,8 +743,10 @@
     m = openModal(body, '760px');
   }
 
-  const SAMPLE_EMAILS = ['priya.nair@mail.example.in', 'arjun.k@mail.example.in', 'sana.q@mail.example.in', 'dev.malhotra@mail.example.in', 'kavya.r@mail.example.in', 'rahul.gmail.com', 'om.patil@mail.example.in', 'fatima.s@mail.example.in', 'sana.q@mail.example.in', 'neha.d@mail.example.in', 'aarav.kulkarni@mail.example.in', 'tejas.m@mail.example.in', 'isha.b@mail.example.in', 'rohit.g@mail.example.in', 'meenal.p@mail.example.in'];
-  const ENROLLED = new Set(['aarav.kulkarni@mail.example.in']);
+  const SAMPLE_EMAILS = ['priya.nair@mail.example.in', 'arjun.k@mail.example.in', 'sana.q@mail.example.in', 'dev.malhotra@mail.example.in', 'kavya.r@mail.example.in', 'rahul.gmail.com', 'om.patil@mail.example.in', 'fatima.s@mail.example.in', 'sana.q@mail.example.in', 'neha.d@mail.example.in', null, 'tejas.m@mail.example.in', 'isha.b@mail.example.in', 'rohit.g@mail.example.in', 'meenal.p@mail.example.in'];
+  const myEmail = () => `${ST().name.toLowerCase().split(' ').join('.')}@mail.example.in`;
+  SAMPLE_EMAILS[SAMPLE_EMAILS.indexOf(null)] = myEmail();
+  const ENROLLED = new Set([myEmail()]);
   function checkEmails(text) {
     const parts = text.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
     const seen = new Set(), valid = [], bad = [], dup = [], enrolled = [];
@@ -874,7 +933,7 @@
           const ic = cls === 'pass' ? '✓' : cls === 'run' ? h('span', { class: 'spin', style: { width: '10px', height: '10px' } }) : '';
           checks.append(h('div', { class: 'check ' + cls }, h('span', { class: 'ic' }, ic), h('span', {}, i === 0 && j.stage === 0 ? `${t} (${j.pct || 0}%)` : t)));
         });
-        const released = l.id <= 66;
+        const released = l.id <= lastLive();
         checks.append(h('div', { class: 'check ' + (done ? 'pass' : 'wait') }, h('span', { class: 'ic' }, done ? '✓' : ''), h('span', {}, released ? 'Published to students' : `Scheduled for ${fmtDay(releaseTs(l))}`)));
         if (done) {
           doneBox.textContent = '';
@@ -1012,16 +1071,17 @@
     // scheduled list
     const tbody = h('tbody');
     S.exam.scheduled.slice().sort((a, b) => (a.status === 'scheduled' ? 0 : 1) - (b.status === 'scheduled' ? 0 : 1) || (a.status === 'scheduled' ? a.ts - b.ts : b.ts - a.ts)).forEach((ex) => {
-      const pillEl = ex.status === 'scheduled' ? h('span', { class: 'pill blue' }, 'Scheduled') : ex.status === 'finished' ? h('span', { class: 'pill green' }, 'Finished') : h('span', { class: 'pill' }, 'Cancelled');
+      const pillEl = ex.window && ex.status === 'scheduled' ? h('span', { class: 'pill green' }, 'Open now') : ex.status === 'scheduled' ? h('span', { class: 'pill blue' }, 'Scheduled') : ex.status === 'finished' ? h('span', { class: 'pill green' }, 'Finished') : h('span', { class: 'pill' }, 'Cancelled');
       const acts = h('div', { class: 'acts' });
-      if (ex.status === 'scheduled') acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View'), h('button', { class: 'btn sm', onclick: () => cancelExam(ex) }, 'Cancel'));
-      else if (ex.status === 'finished') { acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View')); if (ex.month === 7) acts.append(h('button', { class: 'btn sm', onclick: () => C.go('mentor') }, 'Integrity flags')); }
+      if (ex.window && ex.status === 'scheduled') acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View'), h('button', { class: 'btn sm', onclick: () => C.go('mentor') }, 'Integrity flags'));
+      else if (ex.status === 'scheduled') acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View'), h('button', { class: 'btn sm', onclick: () => cancelExam(ex) }, 'Cancel'));
+      else if (ex.status === 'finished') { acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View')); if (ex.month === ST().next_exam.month && ex.batches === 'NM-2027-A to D') acts.append(h('button', { class: 'btn sm', onclick: () => C.go('mentor') }, 'Integrity flags')); }
       else acts.append(h('span', { class: 'tiny muted' }, 'Students were told'));
       tbody.append(h('tr', { class: ex.fresh ? 'fresh' : ex.status === 'cancelled' ? 'dim' : '' },
         h('td', {}, h('b', {}, ex.title), h('span', { class: 'sub' }, `${ex.n} questions · ${ex.duration} min`)),
         h('td', { class: 'small' }, ex.batches, h('span', { class: 'sub' }, ex.students ? `${fmt(ex.students)} students` : 'Opens when a batch arrives')),
-        h('td', { class: 'small' }, fmtDT(ex.ts), h('span', { class: 'sub' }, rel(ex.ts))),
-        h('td', {}, pillEl, ex.submitted ? h('span', { class: 'sub' }, `${fmt(ex.submitted)} submitted`) : null),
+        h('td', { class: 'small' }, ex.window ? `Until ${fmtDT(ex.ts)}` : fmtDT(ex.ts), h('span', { class: 'sub' }, ex.window ? `closes ${rel(ex.ts)}` : rel(ex.ts))),
+        h('td', {}, pillEl, ex.submitted ? h('span', { class: 'sub' }, `${fmt(ex.submitted)} submitted${ex.window ? ' so far' : ''}`) : null),
         h('td', {}, acts)));
     });
     panel.append(h('section', { class: 'card stack', id: 'adm-sched' },
@@ -1035,15 +1095,15 @@
     const d = ex.snapshot || { month: ex.month, n: ex.n, codePct: Math.round(ex.code / ex.n * 100), shuffle: ex.shuffle, duration: ex.duration };
     const I = S.exam.integrity; let m;
     m = openModal(h('div', { class: 'stack' },
-      h('div', {}, h('div', { class: 'eyebrow' }, ex.status === 'finished' ? 'Finished exam' : 'Scheduled exam'), h('h2', {}, ex.title)),
+      h('div', {}, h('div', { class: 'eyebrow' }, ex.status === 'finished' ? 'Finished exam' : ex.window ? 'Open now' : 'Scheduled exam'), h('h2', {}, ex.title)),
       h('dl', { class: 'kv' },
-        h('dt', {}, 'When'), h('dd', {}, `${fmtDT(ex.ts)} (${rel(ex.ts)})`),
+        h('dt', {}, 'When'), h('dd', {}, ex.window ? `Open now, closes ${fmtDT(ex.ts)} (${rel(ex.ts)})` : `${fmtDT(ex.ts)} (${rel(ex.ts)})`),
         h('dt', {}, 'Batches'), h('dd', {}, `${ex.batches}${ex.students ? `, ${fmt(ex.students)} students` : ''}`),
         h('dt', {}, 'Questions'), h('dd', {}, `${ex.n}: ${ex.mcq} multiple choice + ${ex.code} code`),
         h('dt', {}, 'Rules'), h('dd', {}, `${ex.duration} minutes · ${ex.shuffle ? 'shuffled' : 'fixed order'} · lockdown ${ex.lockdown ? 'on' : 'off'} · flag after ${I.tabLimit} tab switches · autosave every ${I.autosave} s`),
         ex.submitted ? h('dt', {}, 'Submitted') : null, ex.submitted ? h('dd', {}, `${fmt(ex.submitted)} of ${fmt(ex.students)}`) : null),
       h('b', { class: 'small' }, 'Sample questions'), qsNode(sampleQs(d)),
-      h('div', { class: 'foot' }, ex.status === 'finished' && ex.month === 7 ? h('button', { class: 'btn', onclick: () => { m.close(); C.go('mentor'); } }, 'See integrity flags') : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))), '640px');
+      h('div', { class: 'foot' }, (ex.status === 'finished' && ex.month === ST().next_exam.month && ex.batches === 'NM-2027-A to D') || ex.window ? h('button', { class: 'btn', onclick: () => { m.close(); C.go('mentor'); } }, 'See integrity flags') : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))), '640px');
   }
   function cancelExam(ex) {
     const { h } = C; let m;

@@ -1,10 +1,21 @@
 /* Projects and portfolio: the capstone journey through to a public portfolio and QR-verifiable certificates.
-   Flow: 4 capstones on a year timeline -> current milestone (C3, Month 8) -> automatic acceptance tests -> mentor rubric review
-   -> publish to the student's GitHub -> auto-built portfolio site -> certificates. Everything is scripted mock data. */
+   Flow: 4 capstones on a year timeline -> the active student's current milestone (from data.demo_student: capstone + capstone_month)
+   -> automatic acceptance tests -> mentor rubric review -> publish to the student's GitHub -> auto-built portfolio site -> certificates.
+   Everything is scripted mock data. */
 (function () {
   const ID = 'projects';
   const QR_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-  const NOW_MONTH = 8;
+  const SLOTS = ['C1', 'C2', 'C3', 'C4'];
+  const SD = () => NM.data.demo_student;
+  const nowMonth = () => SD().month || 8;
+  // Mentor scores of capstones each demo student finished earlier in the year (demo data).
+  const SCORES = { S1001: { C1: 88, C2: 91 }, S1003: { C1: 86 }, S1004: { C1: 92, C2: 90, C3: 94 } };
+  // Which certificate the current milestone approval issues straight away: Aarav gets Capstone 3 at Month 8, Ishita Capstone 1 at Month 3.
+  const CERT_ON_APPROVE = { S1001: 'C3', S1002: 'C1' };
+  const LIVE_DATE = { C1: '28 Apr 2027', C3: '20 Aug 2027' };
+  const COMMON_MINI = [{ month: 1, title: 'AI foundations notes', common: true }, { month: 2, title: 'Python practice set', common: true }, { month: 3, title: 'Prompt and API lab', common: true }];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '')); return m ? `${+m[3]} ${MON[+m[2] - 1]} ${m[1]}` : String(iso || ''); };
   const store = {};          // per-field demo state, keyed by field id (survives re-renders and field switches)
   const timers = new Set();
   let live = null;           // { cleanup } for the currently mounted render
@@ -31,20 +42,45 @@
     return t;
   }
   const firstSentence = (s) => { const m = String(s).match(/^(.+?[.!?])(\s|$)/); return m ? m[1] : String(s); };
-  const m8of = (cap) => cap.milestones.find((m) => m.month === NOW_MONTH) || cap.milestones[1] || cap.milestones[0];
+  const capOf = (data, f, slot) => (slot === 'C1' ? data.common.capstone : f.capstones.find((c) => c.slot === slot) || f.capstones[SLOTS.indexOf(slot) - 1] || f.capstones[0]);
+  function scoreOf(S, slot) { const t = SCORES[S.id]; if (t && t[slot] != null) return t[slot]; return 80 + (parseInt(hash7(S.id + slot), 16) % 13); }
 
-  function journey(data, f) {
-    return [
-      { slot: 'C1', cap: data.common.capstone, months: [1, 2, 3], company: data.common.company, score: 88, issued: '8 Apr 2027' },
-      { slot: 'C2', cap: f.capstones[0], months: [4, 5, 6], company: f.company, score: 91, issued: '9 Jul 2027' },
-      { slot: 'C3', cap: f.capstones[1], months: [7, 8, 9], company: f.company, current: true },
-      { slot: 'C4', cap: f.capstones[2], months: [10, 11, 12], company: f.company },
-    ];
+  // The active student's current capstone milestone.
+  function curInfo(data, f) {
+    const S = data.demo_student;
+    const slot = SLOTS.includes(S.capstone) ? S.capstone : 'C3';
+    const cap = capOf(data, f, slot);
+    const month = S.capstone_month || nowMonth();
+    const ms = cap.milestones.find((m) => m.month === month) || cap.milestones[0];
+    const last = cap.milestones[cap.milestones.length - 1];
+    const next = cap.milestones.find((m) => m.month === ms.month + 1) || null;
+    const n = slot.slice(1);
+    const nextText = next ? `Publish it and start the Month ${next.month} milestone${slot === 'C4' && next.month === 12 ? ', which you present at Demo Day' : ''}.`
+      : slot === 'C1' ? `Capstone 1 is complete. Publish it, then Capstone 2 for ${f.company} starts in Month 4.` : 'Publish it to finish this capstone.';
+    const certSlot = CERT_ON_APPROVE[S.id] === slot ? slot : null;
+    return { slot, n, cap, month: ms.month, ms, last, next, final: ms === last, nextText, certSlot, company: slot === 'C1' ? data.common.company : f.company, idx: SLOTS.indexOf(slot) };
   }
 
+  function journey(data, f) {
+    const S = data.demo_student, info = curInfo(data, f);
+    return SLOTS.map((slot, i) => {
+      const cap = capOf(data, f, slot);
+      const cert = (S.certificates || []).find((x) => x.slot === slot);
+      return { slot, cap, months: cap.milestones.map((m) => m.month), company: slot === 'C1' ? data.common.company : f.company,
+        before: i < info.idx, current: i === info.idx, after: i > info.idx, score: i < info.idx ? scoreOf(S, slot) : null, issued: cert ? fmtDate(cert.date) : null };
+    });
+  }
+
+  // Certificates issued live in this session (shared with Exams and Achievements through NM.state.liveCerts).
+  function liveCerts() { return (NM.state.liveCerts = NM.state.liveCerts || {}); }
+  function syncCertCount() { NM.state.progress.certificates = (SD().certificates || []).length + Object.keys(liveCerts()).length; }
+  function issueLive(slot, info) { const L = liveCerts(); if (L[slot] || (SD().certificates || []).some((x) => x.slot === slot)) return false; L[slot] = info; syncCertCount(); return true; }
+  function dropLive(slot) { delete liveCerts()[slot]; syncCertCount(); }
+
   // ---------- mentor review (rubric scores that add up to a total out of 100) ----------
-  function makeReview(cap, p) {
+  function makeReview(info, p) {
     p = p || {};
+    const cap = info.cap;
     const rub = cap.rubric || [];
     const fr = [0.9, 0.85, 0.88, 0.8, 0.92, 0.86];
     const scores = rub.map((r, i) => ({ criterion: r.criterion, weight: r.weight, excellent: r.excellent, acceptable: r.acceptable, score: Math.round(r.weight * fr[i % fr.length]) }));
@@ -64,11 +100,11 @@
     const decision = p.decision == null || /approv|accept|pass/i.test(String(p.decision)) ? 'approved' : 'changes';
     const ranked = scores.slice().sort((a, b) => b.score / b.weight - a.score / a.weight);
     const best = ranked[0], weak = ranked[ranked.length - 1];
-    const tests = m8of(cap).tests.length;
+    const tests = info.ms.tests.length;
     let comment = typeof p.comment === 'string' && p.comment.trim() ? p.comment.trim() : null;
     if (!comment && best && weak) {
       comment = decision === 'approved'
-        ? `Solid, working submission and all ${tests} acceptance tests pass. "${best.criterion}" is your strongest area. To move "${weak.criterion}" from acceptable to excellent, aim for this: ${weak.excellent}. Approved. Publish it and start the Month 9 milestone.`
+        ? `Solid, working submission and all ${tests} acceptance tests pass. "${best.criterion}" is your strongest area. To move "${weak.criterion}" from acceptable to excellent, aim for this: ${weak.excellent}. Approved. ${info.nextText}`
         : `Good start, but not ready yet. "${weak.criterion}" needs work before I can approve it. Aim for this: ${weak.excellent}. Fix it and resubmit; the tests will run again.`;
     }
     const mentor = typeof p.mentor === 'string' ? p.mentor : (p.mentor && p.mentor.name) || 'Kavita Rao';
@@ -76,13 +112,13 @@
   }
 
   function freshState(f, progress) {
-    const cap = f.capstones[1], m = m8of(cap);
+    const info = curInfo(NM.data, f), m = info.ms;
     const st = { phase: 'draft', checked: m.deliverables.map((_, i) => i < m.deliverables.length - 1), testsDone: 0, justPassed: -1, review: null, reviewing: false,
-      pub: { stage: 0, commits: 0, readme: null }, selected: 'C3', flash: false, xpGiven: false };
+      pub: { stage: 0, commits: 0, readme: null }, selected: info.slot, flash: false, xpGiven: false, demo: { picked: null, booked: null } };
     const ms = progress.milestoneStatus;
     if (ms === 'submitted' || ms === 'in_review') { st.phase = 'review'; st.testsDone = m.tests.length; st.checked = st.checked.map(() => true); }
     if (ms === 'approved' || ms === 'changes_requested') {
-      st.review = makeReview(cap, { decision: ms === 'approved' ? 'approved' : 'changes' });
+      st.review = makeReview(info, { decision: ms === 'approved' ? 'approved' : 'changes' });
       st.phase = ms === 'approved' ? 'approved' : 'changes'; st.testsDone = m.tests.length; st.checked = st.checked.map(() => true); st.xpGiven = true;
       if (ms === 'approved' && progress.portfolioPublished) { st.pub.stage = 6; st.pub.commits = 4; }
     }
@@ -93,26 +129,27 @@
   // Capture mentor decisions even while this screen is not open (e.g. the investor approves from the mentor console).
   NM.on('milestone:reviewed', (p) => {
     p = p || {};
-    const D = NM.data, f = NM.field(), cap = f.capstones[1];
+    const D = NM.data, f = NM.field(), info = curInfo(D, f), cap = info.cap;
     const who = p.student || p.studentId;
     const whoKey = who && typeof who === 'object' ? who.id || who.name : who;
     if (whoKey && whoKey !== D.demo_student.id && whoKey !== D.demo_student.name) return;
-    if (p.month != null && +p.month !== NOW_MONTH) return;
+    if (p.month != null && +p.month !== info.month) return;
     const capKey = p.capstone && typeof p.capstone === 'object' ? p.capstone.id || p.capstone.title : p.capstone;
-    if (capKey && capKey !== cap.id && capKey !== cap.title && capKey !== 'C3') {
+    if (capKey && capKey !== cap.id && capKey !== cap.title && capKey !== info.slot) {
       const known = D.fields.some((x) => x.capstones.some((cc) => cc.id === capKey || cc.title === capKey)) || capKey === D.common.capstone.id;
       if (known) return;
     }
-    const st = getSt(f, NM.state.progress), m = m8of(cap);
-    st.review = makeReview(cap, p);
+    const st = getSt(f, NM.state.progress), m = info.ms;
+    st.review = makeReview(info, p);
     st.phase = st.review.decision === 'approved' ? 'approved' : 'changes';
     st.testsDone = m.tests.length; st.checked = st.checked.map(() => true); st.reviewing = false;
     NM.state.progress.milestoneStatus = st.phase === 'approved' ? 'approved' : 'changes_requested';
-    if (st.phase === 'approved') NM.state.progress.certificates = Math.max(4, NM.state.progress.certificates || 0);
+    const sc = p.score != null ? p.score : st.review.total;
+    if (st.phase === 'approved' && info.certSlot) issueLive(info.certSlot, { date: LIVE_DATE[info.certSlot] || 'Today', score: sc });
     if (NM.notify) {
-      const mentor = p.mentor || st.review.mentor || 'Your mentor', sc = p.score != null ? p.score : st.review.total;
-      if (st.phase === 'approved') NM.notify('Milestone approved', `${mentor} approved Capstone 3, Month ${NOW_MONTH} with ${sc}/100. Your Capstone 3 certificate is ready and you can publish to GitHub.`, 'projects');
-      else NM.notify('Changes requested', `${mentor} asked for changes on Capstone 3, Month ${NOW_MONTH} (${sc}/100). Read the feedback, fix it and resubmit.`, 'projects');
+      const mentor = p.mentor || st.review.mentor || 'Your mentor';
+      if (st.phase === 'approved') NM.notify('Milestone approved', `${mentor} approved Capstone ${info.n}, Month ${info.month} with ${sc}/100. ${info.certSlot ? `Your Capstone ${info.n} certificate is ready and you can publish to GitHub.` : 'You can publish it to GitHub now.'}`, 'projects');
+      else NM.notify('Changes requested', `${mentor} asked for changes on Capstone ${info.n}, Month ${info.month} (${sc}/100). Read the feedback, fix it and resubmit.`, 'projects');
     }
   });
 
@@ -284,10 +321,20 @@
 .m-projects .mp-valid .ok{width:40px;height:40px;border-radius:50%;background:var(--green-soft);color:var(--green);display:grid;place-items:center;flex:none}
 .m-projects .mp-valid .ok svg{width:22px;height:22px}
 .m-projects .mp-vsite{padding:18px;display:grid;gap:10px;background:var(--bg)}
+.m-projects .mp-dslots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.m-projects .mp-dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.m-projects .mp-dslot{display:grid;gap:2px;justify-items:center;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius-sm);padding:10px 4px;cursor:pointer;min-width:0;font:inherit}
+.m-projects .mp-dslot:hover:not(:disabled){border-color:var(--brand)}
+.m-projects .mp-dslot b{font-size:14px}
+.m-projects .mp-dslot span{color:var(--green)}
+.m-projects .mp-dslot:disabled{cursor:not-allowed;background:var(--surface-2);color:var(--faint);border-style:dashed}
+.m-projects .mp-dslot:disabled span{color:var(--faint)}
+.m-projects .mp-dslot.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.m-projects .mp-dslot.mine{background:var(--green-soft);border-color:var(--green)}
 @media (max-width:1100px){.m-projects .mp-caps{grid-template-columns:repeat(2,minmax(0,1fr))}.m-projects .mp-row2,.m-projects .mp-body{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:900px){.m-projects .mp-detail{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.m-projects .mp-detail,.m-projects .mp-dslots{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.m-projects .mp-pgrid{grid-template-columns:minmax(0,1fr)}.m-projects .mp-steps li{font-size:10.5px}.m-projects .mp-site{padding:20px 16px}}
-@media (max-width:520px){.m-projects .mp-caps{grid-template-columns:minmax(0,1fr)}.m-projects .mp-qr{width:88px;height:88px}}
+@media (max-width:520px){.m-projects .mp-dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.m-projects .mp-caps{grid-template-columns:minmax(0,1fr)}.m-projects .mp-qr{width:88px;height:88px}}
 @media (prefers-reduced-motion: reduce){.m-projects *,.m-projects *::before{animation:none!important;transition:none!important}}
 `;
     const el = document.createElement('style'); el.id = 'm-' + ID; el.textContent = css; document.head.append(el);
@@ -304,25 +351,30 @@
       const S = data.demo_student, gh = S.github;
       const st = getSt(f, state.progress);
       const J = journey(data, f);
-      const cap = f.capstones[1], m8 = m8of(cap);
+      const info = curInfo(data, f), NOW = nowMonth();
+      const cap = info.cap, m8 = info.ms, CUR = J[info.idx], CN = info.n, MM = info.month;
       const repo = kebab(cap.title);
+      const first = S.name.split(' ')[0];
       const smooth = () => (reduced() ? 'auto' : 'smooth');
       const mod = this;
 
       const wrap = h('div', { class: 'm-projects' });
       const secTimeline = h('section', { class: 'card' });
       const secMilestone = h('section', { class: 'card', id: 'mp-milestone' });
+      const secDemo = info.slot === 'C4' ? h('section', { class: 'card', id: 'mp-demoday' }) : null;
       const secPublish = h('section', { class: 'card', id: 'mp-publish' });
       const secCerts = h('section', { class: 'card' });
       const secPortfolio = h('section', { class: 'card', id: 'mp-portfolio' });
-      wrap.append(secTimeline, secMilestone, h('div', { class: 'mp-row2' }, secPublish, secCerts), secPortfolio);
+      wrap.append(secTimeline, secMilestone);
+      if (secDemo) wrap.append(secDemo);
+      wrap.append(h('div', { class: 'mp-row2' }, secPublish, secCerts), secPortfolio);
       root.append(wrap);
       const fill = (el, ...kids) => { el.textContent = ''; el.append(...kids.flat().filter(Boolean)); };
       const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: smooth(), block: 'start' }); };
 
       function capStatus(j) {
-        if (j.slot === 'C1' || j.slot === 'C2') return { label: `Approved · ${j.score}/100`, cls: 'green' };
-        if (j.slot === 'C4') return { label: 'Upcoming', cls: '' };
+        if (j.before) return { label: `Approved · ${j.score}/100`, cls: 'green' };
+        if (j.after) return { label: 'Upcoming', cls: '' };
         return ({ draft: { label: 'In progress', cls: 'blue' }, testing: { label: 'Running tests', cls: 'blue' }, review: { label: 'In mentor review', cls: 'amber' },
           changes: { label: 'Changes requested', cls: 'red' }, approved: { label: st.pub.stage === 6 ? 'Approved · published' : 'Approved', cls: 'green' } })[st.phase];
       }
@@ -337,46 +389,49 @@
             h('div', { class: 'mp-cap-top' }, h('span', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'mp-slot' }, j.slot), h('span', { class: 'tiny muted' }, `Months ${j.months[0]}–${j.months[2]}`)), h('span', { class: 'pill ' + s.cls }, s.label)),
             h('b', { class: 'mp-cap-title' }, j.cap.title),
             h('span', { class: 'tiny muted' }, j.slot === 'C1' ? `${j.company} · common to all fields` : j.company),
-            h('div', { class: 'mp-mo' }, j.months.map((m) => h('i', { class: m < NOW_MONTH ? 'done' : m === NOW_MONTH ? 'now' : '' }, `M${m}`))));
+            h('div', { class: 'mp-mo', style: { gridTemplateColumns: `repeat(${j.months.length},minmax(0,1fr))` } }, j.months.map((m) => h('i', { class: m < NOW ? 'done' : m === NOW ? 'now' : '' }, `M${m}`))));
         }));
         const minis = h('div', { class: 'mp-mini' }, h('span', { class: 'eyebrow', style: { marginRight: '4px' } }, 'Monthly mini-projects'),
-          (f.standalone || []).map((s) => h('button', { class: 'mp-chip ' + (s.month < NOW_MONTH ? 'done' : s.month === NOW_MONTH ? 'now' : ''), title: s.month < NOW_MONTH ? 'Done' : s.month === NOW_MONTH ? 'This month' : 'Upcoming', onclick: () => openMini(s),
-            html: (s.month < NOW_MONTH ? icon('check') : '') + `<b>M${s.month}</b><span>${c.esc(s.title)}</span>` })));
+          COMMON_MINI.concat(f.standalone || []).map((s) => h('button', { class: 'mp-chip ' + (s.month < NOW ? 'done' : s.month === NOW ? 'now' : ''), title: s.month < NOW ? 'Done' : s.month === NOW ? 'This month' : 'Upcoming', onclick: () => openMini(s),
+            html: (s.month < NOW ? icon('check') : '') + `<b>M${s.month}</b><span>${c.esc(s.title)}</span>` })));
         fill(secTimeline,
           h('div', { class: 'card-head' },
-            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone journey · ${f.name}`), h('h2', {}, 'Four capstones, one public portfolio')),
-            h('span', { class: 'pill blue' }, `Month ${NOW_MONTH} of 12`)),
+            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone journey · ${S.name} · ${NOW <= 3 ? `common foundation, then ${f.name}` : f.name}`), h('h2', {}, 'Four capstones, one public portfolio')),
+            h('span', { class: 'pill blue' }, `Month ${NOW} of 12`)),
           h('p', { class: 'small muted' }, `Each capstone is a real tool built for a fictional company. Months 1 to 3 are the same for everyone; from Month 4 the work is for ${f.company}. Tap a capstone to see what it involves.`),
-          caps, minis, capDetail(J.find((j) => j.slot === st.selected) || J[2]));
+          caps, minis, capDetail(J.find((j) => j.slot === st.selected) || CUR));
       }
 
       function openMini(s) {
-        const done = s.month < NOW_MONTH, now = s.month === NOW_MONTH;
+        const done = s.month < NOW, now = s.month === NOW;
+        const co = s.common ? data.common.company : f.company;
+        const browser = /browser/i.test((S.workspace && S.workspace.env) || '');
         const m = c.modal(h('div', { class: 'm-projects mp-modal' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${s.month} mini-project · ${f.short}`), h('h3', {}, s.title)),
+          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${s.month} mini-project · ${s.common ? 'Common foundation' : f.short}`), h('h3', {}, s.title)),
             h('span', { class: 'pill ' + (done ? 'green' : now ? 'blue' : '') }, done ? 'Done' : now ? 'This month' : 'Upcoming')),
-          h('p', { class: 'small muted' }, `A short standalone project for Month ${s.month}, "${data.months[s.month]}". It practises the month's skills on ${f.company} data, next to the capstone work.`),
-          h('div', { class: 'note' }, done ? `Finished in Month ${s.month}. Automatic checks passed and the code is in ${gh}'s GitHub with the rest of the lab work.` : now ? 'Open now. It runs in the cloud workspace and is checked automatically when submitted.' : `Opens in Month ${s.month}, after the earlier months are done.`),
-          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, now ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('workspace'); } }, 'Open the cloud workspace') : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+          h('p', { class: 'small muted' }, `A short standalone project for Month ${s.month}, "${data.months[s.month]}". It practises the month's skills on ${co} data, next to the capstone work.`),
+          h('div', { class: 'note' }, done ? `Finished in Month ${s.month}. Automatic checks passed and the code is in ${gh}'s GitHub with the rest of the lab work.` : now ? (browser ? 'Open now. It runs in the in-browser Python lab and is checked automatically when submitted.' : 'Open now. It runs in the cloud workspace and is checked automatically when submitted.') : `Opens in Month ${s.month}, after the earlier months are done.`),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, now ? (browser ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('practical'); } }, 'Open the practical') : h('button', { class: 'btn', onclick: () => { m.close(); c.go('workspace'); } }, 'Open the cloud workspace')) : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
       }
       function flashEl(id) { const el = document.getElementById(id); if (!el) return; el.classList.remove('mp-flashcard'); void el.offsetWidth; el.classList.add('mp-flashcard'); }
 
       function capDetail(j) {
         const msState = (m) => {
-          if (j.slot === 'C1' || j.slot === 'C2') return ['Done', 'green'];
-          if (j.slot === 'C4') return ['Upcoming', ''];
-          if (m.month < NOW_MONTH) return ['Done', 'green'];
-          if (m.month === NOW_MONTH) { const s = capStatus(j); return [phaseLabel(), s.cls]; }
+          if (j.before) return ['Done', 'green'];
+          if (j.after) return ['Upcoming', ''];
+          if (m.month < MM) return ['Done', 'green'];
+          if (m.month === MM) { const s = capStatus(j); return [phaseLabel(), s.cls]; }
           return ['Upcoming', ''];
         };
-        const open = (m) => (j.slot === 'C3' ? m.month === NOW_MONTH : m === j.cap.milestones[0]);
+        const open = (m) => (j.current ? m.month === MM : m === j.cap.milestones[0]);
         return h('div', { class: 'mp-detail' },
           h('div', { class: 'stack' },
             h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'mp-slot' }, j.slot), h('h3', { style: { minWidth: 0, flex: '1 1 200px' } }, j.cap.title), h('span', { class: 'pill violet' }, j.cap.level)),
             h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'The problem'), h('p', {}, j.cap.problem)),
             h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'What students build'), h('p', {}, j.cap.build)),
             h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Tech stack'), h('div', { class: 'mp-tags' }, j.cap.stack.map((t) => h('span', { class: 'mp-tag' }, t)))),
-            j.slot === 'C3' ? h('div', {}, h('button', { class: 'btn primary sm', onclick: () => { scrollTo('mp-milestone'); flashEl('mp-milestone'); } }, `Go to the Month ${NOW_MONTH} milestone`)) : null),
+            j.current ? h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn primary sm', onclick: () => { scrollTo('mp-milestone'); flashEl('mp-milestone'); } }, `Go to the Month ${MM} milestone`),
+              secDemo ? h('button', { class: 'btn sm', onclick: () => { scrollTo('mp-demoday'); flashEl('mp-demoday'); } }, 'Book your Demo Day slot') : null) : null),
           h('div', { class: 'stack' },
             h('div', { class: 'eyebrow' }, 'Milestones'),
             j.cap.milestones.map((m) => {
@@ -408,21 +463,21 @@
       function finishTests() {
         st.testsDone = m8.tests.length; st.phase = 'review';
         state.progress.milestoneStatus = 'submitted';
-        c.emit('milestone:submitted', { capstone: cap.id, title: cap.title, slot: 'C3', month: NOW_MONTH, field: f.id, student: S.id, tests: { passed: m8.tests.length, total: m8.tests.length } });
+        c.emit('milestone:submitted', { capstone: cap.id, title: cap.title, slot: info.slot, month: MM, field: f.id, student: S.id, tests: { passed: m8.tests.length, total: m8.tests.length } });
         refreshAll();
         c.toast('All tests passed. Sent to your mentor for review.', 'green');
       }
       function simulateReview() {
         st.reviewing = true; fillMilestone();
         later(() => {
-          const r = makeReview(cap, { decision: 'approved' });
-          c.emit('milestone:reviewed', { capstone: cap.id, title: cap.title, month: NOW_MONTH, decision: 'approved', score: r.total, scores: r.scores.map((s) => s.score), comment: r.comment, mentor: r.mentor, student: S.id, field: f.id });
+          const r = makeReview(info, { decision: 'approved' });
+          c.emit('milestone:reviewed', { capstone: cap.id, title: cap.title, slot: info.slot, month: MM, decision: 'approved', score: r.total, scores: r.scores.map((s) => s.score), comment: r.comment, mentor: r.mentor, student: S.id, field: f.id });
         }, 1400);
       }
 
       function fillMilestone() {
         const n = m8.tests.length;
-        const pill = capStatus(J[2]);
+        const pill = capStatus(CUR);
         const order = ['draft', 'testing', 'review', 'approved'];
         const pi = st.phase === 'changes' ? 2 : order.indexOf(st.phase);
         const published = st.pub.stage === 6;
@@ -462,7 +517,7 @@
 
         fill(secMilestone,
           h('div', { class: 'card-head' },
-            h('div', { style: { minWidth: 0, flex: '1 1 300px' } }, h('div', { class: 'eyebrow' }, `Current milestone · Capstone 3 · Month ${NOW_MONTH}`), h('h2', {}, cap.title), h('div', { class: 'small muted', style: { marginTop: '4px' } }, `${data.months[NOW_MONTH]} · for ${f.company}`)),
+            h('div', { style: { minWidth: 0, flex: '1 1 300px' } }, h('div', { class: 'eyebrow' }, `Current milestone · Capstone ${CN} · Month ${MM}${info.final ? ' (final)' : ''}`), h('h2', {}, cap.title), h('div', { class: 'small muted', style: { marginTop: '4px' } }, `${data.months[MM]} · for ${info.company}`)),
             h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill ' + pill.cls }, phaseLabel()), h('button', { class: 'btn ghost sm', title: 'Start this demo flow again', onclick: resetDemo }, 'Reset demo'))),
           h('ol', { class: 'mp-steps', 'aria-label': 'Milestone progress' }, steps),
           h('div', { class: 'mp-body' },
@@ -485,7 +540,7 @@
                 h('p', { class: 'small muted' }, 'Your submission is in your mentor’s queue with the test results attached. The mentor scores it against the rubric and writes feedback.')),
               h('span', { class: 'pill amber' }, 'In queue')),
             st.reviewing
-              ? h('div', { class: 'row small' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), 'Your mentor, Kavita Rao, is reviewing it…')
+              ? h('div', { class: 'row small' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), `Your mentor, Kavita Rao, is reviewing ${first}'s submission…`)
               : h('div', { class: 'row' },
                 h('button', { class: 'btn primary', onclick: simulateReview, html: icon('mentor') + '<span>Simulate mentor review</span>' }),
                 h('button', { class: 'btn', onclick: () => c.go('mentor') }, 'Open the mentor console'),
@@ -508,7 +563,8 @@
             h('div', { class: 'mp-quote' }, r.comment),
             ok
               ? h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => scrollTo('mp-publish'), html: icon('github') + `<span>${st.pub.stage === 6 ? 'See what was published' : 'Next: publish to GitHub'}</span>` }),
-                h('span', { class: 'tiny muted' }, 'Capstone 3 certificate unlocked.'))
+                secDemo ? h('button', { class: 'btn', onclick: () => { scrollTo('mp-demoday'); flashEl('mp-demoday'); } }, st.demo.booked ? 'See your Demo Day slot' : 'Book your Demo Day slot') : null,
+                h('span', { class: 'tiny muted' }, info.certSlot ? `Capstone ${CN} certificate unlocked.` : info.slot === 'C4' ? 'Capstone 4 and the program certificate follow Demo Day in Month 12.' : `The Capstone ${CN} certificate follows when the Month ${info.last.month} milestone is approved.`))
               : h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { st.phase = 'changes'; st.testsDone = 0; st.review = r; state.progress.milestoneStatus = 'changes_requested'; fillMilestone(); scrollTo('mp-milestone'); } }, 'Make changes and resubmit')));
         }
         if (st.phase === 'draft') return h('p', { class: 'note', style: { marginTop: '16px' } }, 'After you submit: the tests run automatically, then your mentor scores the work with the rubric and approves it or asks for changes.');
@@ -519,7 +575,9 @@
         st.phase = 'draft'; st.pub.stage = 0;   // so cleanup does not "finish" anything we are throwing away
         if (live) live.cleanup();
         store[f.id] = freshState(f, { milestoneStatus: 'in_progress', portfolioPublished: false });
-        Object.assign(state.progress, { milestoneStatus: 'in_progress', portfolioPublished: false, certificates: 3 });
+        if (info.certSlot) dropLive(info.certSlot);
+        Object.assign(state.progress, { milestoneStatus: 'in_progress', portfolioPublished: false });
+        syncCertCount();
         root.textContent = '';
         mod.render(root, NM.ctx());
         c.toast('Demo flow reset for this field.');
@@ -527,27 +585,29 @@
 
       // ----- 3. Publish to GitHub -----
       function commitsList() {
-        const ms7 = cap.milestones.find((m) => m.month === NOW_MONTH - 1) || cap.milestones[0];
+        const ms7 = cap.milestones.find((m) => m.month === MM - 1) || cap.milestones[0];
         return [
           `feat: ${shortLine(ms7.deliverables[0])}`,
           `feat: ${shortLine(m8.deliverables[0])}`,
           `feat: ${shortLine(m8.deliverables[1] || m8.deliverables[0])}`,
-          `test: add the ${m8.tests.length} Month ${NOW_MONTH} acceptance tests`,
+          `test: add the ${m8.tests.length} Month ${MM} acceptance tests`,
         ].map((msg) => ({ msg, hash: hash7(f.id + msg) }));
       }
       function readmeDraft() {
-        const ms9 = cap.milestones.find((m) => m.month === NOW_MONTH + 1);
+        const ms9 = info.next;
         const score = st.review ? `${st.review.total}/${st.review.maxTotal}` : 'approved';
+        const doneMs = cap.milestones.filter((m) => m.month <= MM).map((m) => m.month);
+        const doneTxt = doneMs.length > 1 ? `Month ${doneMs.slice(0, -1).join(', ')} and ${doneMs[doneMs.length - 1]} milestones are complete` : `The Month ${doneMs[0]} milestone is complete`;
         return [
           `# ${cap.title}`, '',
-          `Capstone 3 · ${f.name} · Neuromind AI Creator Program (Batch ${S.batch})`,
-          `Built for ${f.company}, a fictional company used in the course.`, '',
+          `Capstone ${CN} · ${info.slot === 'C1' ? 'Common foundation' : f.name} · Neuromind AI Creator Program (Batch ${S.batch})`,
+          `Built for ${info.company}, a fictional company used in the course.`, '',
           '## Purpose', cap.problem, '',
           '## How it works', cap.build, '',
           '## Tech used', ...cap.stack.map((t) => `- ${t}`), '',
           '## Status and limits',
-          `- Month ${NOW_MONTH - 1} and Month ${NOW_MONTH} milestones are complete; mentor score ${score}.`,
-          ms9 ? `- Still to come in Month ${NOW_MONTH + 1}: ${shortLine(ms9.deliverables[0])}.` : '- Further milestones are still to come.',
+          `- ${doneTxt}; mentor score ${score}.`,
+          ms9 ? `- Still to come in Month ${ms9.month}${info.slot === 'C4' && ms9.month === 12 ? ' (presented live at Demo Day)' : ''}: ${shortLine(ms9.deliverables[0])}.` : '- All milestones of this capstone are complete.',
           '- Runs on the lab practice datasets only. No real customer data.',
           '- AI output is checked by automatic tests, and a person approves anything risky.',
         ].join('\n');
@@ -609,13 +669,13 @@
             step(3, 'Push your commits', stage >= 3
               ? h('div', { class: 'mp-commits' }, commits.slice(0, stage === 3 ? st.pub.commits : 4).map((x) => h('div', { html: `<span class="hx">${x.hash}</span> ${c.esc(x.msg)}` })),
                 stage === 3 && st.pub.commits < 4 ? h('div', { class: 'dm' }, 'pushing…') : h('div', { class: 'dm' }, `4 commits pushed to main`))
-              : h('span', { class: 'mp-sub' }, '4 commits from your lab workspace')),
+              : h('span', { class: 'mp-sub' }, '4 commits from your lab work')),
             step(4, 'Review the README', readmeBlock),
             step(5, 'Rebuild the portfolio site', h('span', { class: 'mp-sub' }, stage === 6 ? `Live at https://${gh}.github.io` : stage === 5 ? 'Building the site from your repositories…' : 'Adds this project to your public portfolio'))),
           stage === 0
             ? h('div', { class: 'row', style: { marginTop: '12px' } },
               h('button', { class: 'btn primary', disabled: !ok, onclick: startPublish, html: icon('github') + '<span>Publish to GitHub</span>' }),
-              !ok ? h('span', { class: 'tiny muted' }, `Unlocks when your mentor approves the Month ${NOW_MONTH} milestone.`) : null)
+              !ok ? h('span', { class: 'tiny muted' }, `Unlocks when your mentor approves the Month ${MM} milestone.`) : null)
             : stage === 6
               ? h('div', { class: 'callout', style: { marginTop: '12px', borderLeftColor: 'var(--green)' } },
                 h('div', { class: 'row', style: { justifyContent: 'space-between' } },
@@ -624,25 +684,42 @@
               : null);
       }
 
-      // ----- 4. Certificates -----
+      // ----- 4. Certificates (from the student's profile, plus any issued live in this session) -----
       function certList() {
-        const approved = st.phase === 'approved';
-        const base = `${S.batch}-${S.id}`;
-        return [
-          { key: 'F', title: 'Months 1–3 completion', what: `has completed Months 1 to 3 of the Neuromind AI Creator Program: ${[1, 2, 3].map((m) => data.months[m]).join(', ')}.`, issued: '4 Apr 2027', id: `${base}-F`, kind: 'Certificate of Completion' },
-          { key: 'C1', title: `Capstone 1: ${J[0].cap.title}`, what: `has built and passed mentor review for Capstone 1, “${J[0].cap.title}”, for ${J[0].company}.`, issued: J[0].issued, id: `${base}-C1`, score: J[0].score, kind: 'Capstone Certificate' },
-          { key: 'C2', title: `Capstone 2: ${J[1].cap.title}`, what: `has built and passed mentor review for Capstone 2, “${J[1].cap.title}”, in the ${f.name} track.`, issued: J[1].issued, id: `${base}-C2`, score: J[1].score, kind: 'Capstone Certificate' },
-          { key: 'C3', title: approved ? `Capstone 3: ${cap.title}` : 'Capstone 3 — available after approval', locked: !approved, what: `has built and passed mentor review for Capstone 3, “${cap.title}”, in the ${f.name} track.`, issued: '20 Aug 2027', id: `${base}-C3`, score: st.review ? st.review.total : null, kind: 'Capstone Certificate' },
-        ];
+        const base = `${S.batch}-${S.id}`, live = liveCerts();
+        const prof = (slot) => (S.certificates || []).find((x) => x.slot === slot);
+        const defs = {
+          F: { key: 'F', title: 'Months 1–3 completion', what: `has completed Months 1 to 3 of the Neuromind AI Creator Program: ${[1, 2, 3].map((m) => data.months[m]).join(', ')}.`, kind: 'Certificate of Completion' },
+        };
+        J.forEach((j, i) => { if (j.slot !== 'C4') defs[j.slot] = { key: j.slot, title: `Capstone ${i + 1}: ${j.cap.title}`, what: `has built and passed mentor review for Capstone ${i + 1}, “${j.cap.title}”, ${j.slot === 'C1' ? `for ${j.company}` : `in the ${f.name} track`}.`, kind: 'Capstone Certificate' }; });
+        const out = [];
+        ['F', 'C1', 'C2', 'C3'].forEach((slot) => {
+          const p = prof(slot), l = live[slot];
+          if (!p && !l) return;
+          const j = J.find((x) => x.slot === slot);
+          const score = l && l.score != null ? l.score : slot === info.slot && st.review ? st.review.total : j && j.score != null ? j.score : null;
+          out.push(Object.assign({}, defs[slot], { id: `${base}-${slot}`, issued: p ? fmtDate(p.date) : l.date, score: slot === 'F' ? null : score }));
+        });
+        // What comes next, so the list never looks finished when it is not.
+        const has = (slot) => out.some((x) => x.key === slot);
+        if (info.slot !== 'C4' && !has(info.slot)) {
+          out.push(Object.assign({}, defs[info.slot], { id: `${base}-${info.slot}`, locked: true, title: info.certSlot ? `Capstone ${CN} — available after approval` : `Capstone ${CN} — after the Month ${info.last.month} milestone`,
+            lockText: info.certSlot ? `Unlocks when your mentor approves the Month ${MM} milestone` : `Unlocks when the final Month ${info.last.month} milestone is approved` }));
+        }
+        if (!has('F') && NOW <= 3) out.push(Object.assign({}, defs.F, { id: `${base}-F`, locked: true, title: 'Months 1–3 completion', lockText: 'Issued when you pass the Month 3 assessment' }));
+        if (info.slot === 'C4') out.push({ key: 'C4', id: `${base}-C4`, locked: true, title: `Capstone 4 and program completion`, lockText: 'Issued after you present at Demo Day in Month 12', kind: 'Program Completion and Capstone 4' });
+        return out;
       }
       function fillCerts() {
-        const list = certList();
+        const list = certList(), issued = list.filter((x) => !x.locked);
         fill(secCerts,
-          h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'QR-verifiable'), h('h3', {}, 'Certificates')), h('span', { class: 'pill' }, `${list.filter((x) => !x.locked).length} issued`)),
+          h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'QR-verifiable'), h('h3', {}, 'Certificates')), h('span', { class: 'pill' }, `${issued.length} issued`)),
           h('p', { class: 'small muted', style: { marginBottom: '10px' } }, 'Every certificate has a QR code. Anyone can scan it to check it is genuine.'),
+          issued.length ? null : h('div', { class: 'note', style: { marginBottom: '10px' } }, h('b', {}, 'No certificates yet. '),
+            `${first}'s first certificates arrive at the end of Month 3: Capstone 1 once the mentor approves this milestone, and Months 1–3 completion after the Month 3 assessment is passed.`),
           h('div', { class: 'mp-certs' }, list.map((x) => h('button', { class: 'mp-cert', disabled: !!x.locked, onclick: () => openCert(x) },
             h('span', { class: 'ix', html: icon('trophy') }),
-            h('span', { class: 'tx' }, h('b', {}, x.title), h('span', {}, x.locked ? 'Unlocks when the mentor approves the Month 8 milestone' : `Issued ${x.issued} · ${x.id}`)),
+            h('span', { class: 'tx' }, h('b', {}, x.title), h('span', {}, x.locked ? x.lockText : `Issued ${x.issued} · ${x.id}`)),
             x.locked ? h('span', { class: 'pill' }, 'Locked') : h('span', { class: 'pill green' }, 'View')))),
           h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo certificates. Not real credentials.'));
       }
@@ -679,56 +756,107 @@
         drawQR(qrBox, url, qrNote);
       }
 
-      // ----- 5. Portfolio preview -----
+      // ----- 5. Portfolio preview (the student's finished projects) -----
       function fillPortfolio() {
         const approved = st.phase === 'approved', published = st.pub.stage === 6;
         const skills = [];
-        [J[0].cap, J[1].cap, cap].forEach((cc) => cc.stack.forEach((t) => { const s = cleanTech(t); if (s && !skills.includes(s)) skills.push(s); }));
+        J.filter((j) => j.before || j.current).forEach((j) => j.cap.stack.forEach((t) => { const s = cleanTech(t); if (s && !skills.includes(s)) skills.push(s); }));
         const certs = certList().filter((x) => !x.locked);
         const card = (j) => {
           let status, cls, link = null, dim = false, flash = false;
-          if (j.slot === 'C1' || j.slot === 'C2') { status = 'Approved'; cls = 'green'; link = `github.com/${gh}/${kebab(j.cap.title)}`; }
-          else if (j.slot === 'C3') {
+          const n = j.slot.slice(1);
+          if (j.before) { status = `Approved · ${j.score}/100`; cls = 'green'; link = `github.com/${gh}/${kebab(j.cap.title)}`; }
+          else if (j.current) {
             if (published) { status = 'Approved'; cls = 'green'; link = `github.com/${gh}/${repo}`; flash = st.flash; }
             else if (approved) { status = 'Approved · publishing soon'; cls = 'blue'; }
             else { status = 'In progress'; cls = 'amber'; }
-          } else { status = 'Coming in Month 10'; cls = ''; dim = true; }
+          } else { status = `Coming in Month ${j.months[0]}`; cls = ''; dim = true; }
           return h('div', { class: 'mp-pcard' + (dim ? ' dim' : '') + (flash ? ' flash' : '') },
-            h('div', { class: 'row', style: { justifyContent: 'space-between', gap: '8px' } }, h('span', { class: 'mp-slot' }, `Capstone ${j.slot.slice(1)}`), h('span', { class: 'pill ' + cls }, status)),
+            h('div', { class: 'row', style: { justifyContent: 'space-between', gap: '8px' } }, h('span', { class: 'mp-slot' }, `Capstone ${n}`), h('span', { class: 'pill ' + cls }, status)),
             h('b', {}, j.cap.title),
             h('span', { class: 'mp-sub' }, firstSentence(j.cap.build)),
             h('div', { class: 'mp-tags', style: { marginTop: '2px' } }, j.cap.stack.slice(0, 3).map((t) => h('span', { class: 'mp-tag' }, cleanTech(t)))),
             link ? h('button', { class: 'mp-repo lnk', onclick: () => repoToast(link) }, link) : null);
         };
+        const shownCaps = J.filter((j, i) => j.before || j.current || i === info.idx + 1);
+        const minisDone = COMMON_MINI.concat(f.standalone || []).filter((x) => x.month < NOW);
+        const lastIssued = certs.length ? certs[certs.length - 1].issued : 'last week';
+        const role = NOW <= 3 ? `Common foundation · ${f.name} from Month 4` : `${f.name} · AI-assisted builder`;
         st.flash = false;
         fill(secPortfolio,
           h('div', { class: 'card-head' },
             h('div', {}, h('div', { class: 'eyebrow' }, 'Built automatically'), h('h3', {}, 'Portfolio site preview')),
-            h('span', { class: 'pill ' + (published ? 'green' : '') }, published ? 'Rebuilt just now' : `Last built ${J[1].issued}`)),
+            h('span', { class: 'pill ' + (published ? 'green' : '') }, published ? 'Rebuilt just now' : `Last built ${lastIssued}`)),
           h('p', { class: 'small muted', style: { marginBottom: '12px' } }, 'Every approved project lands on the student’s public portfolio. No web skills needed; it rebuilds whenever they publish.'),
           h('div', { class: 'mp-browser' },
             h('div', { class: 'mp-bbar' }, h('span', { class: 'mp-dots', html: '<i></i><i></i><i></i>' }), h('span', { class: 'mp-url' }, `https://${gh}.github.io`)),
             h('div', { class: 'mp-site' },
-              h('div', { class: 'mp-hero' }, h('span', { class: 'mp-av' }, S.name.split(' ').map((s) => s[0]).join('')),
-                h('div', {}, h('h2', {}, S.name), h('b', { class: 'small', style: { color: 'var(--brand)' } }, `${f.name} · AI-assisted builder`),
-                  h('p', { class: 'small muted' }, `Student in the Neuromind AI Creator Program, Batch ${S.batch}. I build working tools for ${f.company}, a fictional company used in the course, and every project here was reviewed by a mentor.`),
-                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('button', { class: 'mp-repo lnk', onclick: () => repoToast(`github.com/${gh}`) }, `github.com/${gh}`), h('button', { class: 'lnk muted', onclick: () => c.go('achievements') }, `${certs.length} verified certificates`)))),
-              h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Skills'), h('div', { class: 'mp-tags' }, skills.slice(0, 14).map((t) => h('span', { class: 'mp-tag' }, t)))),
-              h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Capstone projects'), h('div', { class: 'mp-pgrid' }, J.map(card))),
+              h('div', { class: 'mp-hero' }, h('span', { class: 'mp-av' }, S.initials || S.name.split(' ').map((s) => s[0]).join('')),
+                h('div', {}, h('h2', {}, S.name), h('b', { class: 'small', style: { color: 'var(--brand)' } }, role),
+                  h('p', { class: 'small muted' }, `${S.education ? S.education + '. ' : ''}Student in the Neuromind AI Creator Program, Batch ${S.batch}. I build working tools for ${info.company}, a fictional company used in the course, and every project here was reviewed by a mentor.`),
+                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('button', { class: 'mp-repo lnk', onclick: () => repoToast(`github.com/${gh}`) }, `github.com/${gh}`), h('button', { class: 'lnk muted', onclick: () => c.go('achievements') }, certs.length ? `${certs.length} verified certificate${certs.length === 1 ? '' : 's'}` : 'Badges and progress')))),
+              skills.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Skills'), h('div', { class: 'mp-tags' }, skills.slice(0, 14).map((t) => h('span', { class: 'mp-tag' }, t)))) : null,
+              h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Capstone projects'), h('div', { class: 'mp-pgrid' }, shownCaps.map(card))),
+              minisDone.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Monthly projects'),
+                h('div', { class: 'mp-tags' }, minisDone.map((x) => h('button', { class: 'mp-chip done', onclick: () => repoToast(`github.com/${gh}/${kebab(x.title)}`), html: icon('check') + `<b>M${x.month}</b><span>${c.esc(x.title)}</span>` })))) : null,
               h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Certificates'),
-                h('div', { class: 'mp-tags' }, certs.map((x) => h('span', { class: 'pill green', title: x.id }, x.key === 'F' ? 'Months 1–3' : `Capstone ${x.key.slice(1)}`)))),
+                certs.length ? h('div', { class: 'mp-tags' }, certs.map((x) => h('span', { class: 'pill green', title: x.id }, x.key === 'F' ? 'Months 1–3' : `Capstone ${x.key.slice(1)}`)))
+                  : h('span', { class: 'small muted' }, 'The first certificates appear here at the end of Month 3.')),
               h('div', { class: 'tiny muted' }, 'Rebuilt automatically from GitHub · Demo data'))));
       }
 
+      // ----- 6. Demo Day booking (Capstone 4 students, Month 12) -----
+      const DEMO_SLOTS = [
+        ['Sat 22 Jan 2028', '10:00'], ['Sat 22 Jan 2028', '10:20'], ['Sat 22 Jan 2028', '10:40'], ['Sat 22 Jan 2028', '11:00'],
+        ['Sun 23 Jan 2028', '10:00'], ['Sun 23 Jan 2028', '10:20'], ['Sun 23 Jan 2028', '14:00'], ['Sun 23 Jan 2028', '14:20'],
+      ].map(([day, time], i) => ({ id: 'd' + i, day, time, taken: [0, 2, 5, 6].includes(i) }));
+      function fillDemo() {
+        if (!secDemo) return;
+        const d = st.demo, booked = DEMO_SLOTS.find((x) => x.id === d.booked), picked = DEMO_SLOTS.find((x) => x.id === d.picked);
+        const finalMs = cap.milestones[cap.milestones.length - 1];
+        const days = [...new Set(DEMO_SLOTS.map((x) => x.day))];
+        const grid = h('div', { class: 'mp-dslots' }, days.map((day) => h('div', { class: 'stack', style: { gap: '6px' } }, h('b', { class: 'small' }, day),
+          h('div', { class: 'mp-dgrid' }, DEMO_SLOTS.filter((x) => x.day === day).map((x) => {
+            const mine = booked && booked.id === x.id, sel = d.picked === x.id;
+            return h('button', { class: 'mp-dslot' + (sel ? ' sel' : '') + (mine ? ' mine' : ''), disabled: x.taken && !mine, 'aria-pressed': sel ? 'true' : 'false',
+              'aria-label': `${x.day}, ${x.time} IST${x.taken ? ', taken' : mine ? ', your slot' : ''}`, onclick: () => { d.picked = x.id; fillDemo(); } },
+              h('b', { class: 'num' }, x.time), h('span', { class: 'tiny' }, x.taken ? 'Taken' : mine ? 'Your slot' : 'Free'));
+          })))));
+        const book = () => {
+          if (!picked) return;
+          const was = booked;
+          d.booked = picked.id; d.picked = null;
+          fillDemo();
+          c.toast(was ? `Demo Day slot changed to ${picked.day}, ${picked.time}.` : `Demo Day slot booked: ${picked.day}, ${picked.time}.`, 'green');
+          if (c.notify) c.notify(was ? 'Demo Day slot changed' : 'Demo Day slot booked', `${picked.day} at ${picked.time} IST. You present "${cap.title}" for 10 minutes, then 5 minutes of questions from mentors and guests.`, 'projects');
+          c.emit('demoday:booked', { student: S.id, day: picked.day, time: picked.time, capstone: cap.id });
+        };
+        fill(secDemo,
+          h('div', { class: 'card-head' },
+            h('div', { style: { minWidth: 0, flex: '1 1 260px' } }, h('div', { class: 'eyebrow' }, 'Next step · Month 12'), h('h3', {}, 'Book your Demo Day slot'),
+              h('p', { class: 'small muted', style: { marginTop: '4px' } }, `Capstone 4 ends at Demo Day. ${first} presents "${cap.title}" live: 10 minutes of demo and 5 minutes of questions from mentors and invited guests. The Month ${finalMs.month} milestone is graded there.`)),
+            h('span', { class: 'pill ' + (booked ? 'green' : 'amber') }, booked ? 'Booked' : 'Not booked yet')),
+          booked
+            ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--green)', marginBottom: '12px' } },
+              h('div', { class: 'row', style: { justifyContent: 'space-between' } },
+                h('span', { class: 'small', style: { minWidth: 0 } }, h('b', {}, `Booked: ${booked.day}, ${booked.time} IST. `), 'Online stage in the lab, with a tech check 30 minutes before.'),
+                h('button', { class: 'btn sm', onclick: () => c.toast(`Added to your lab calendar: Demo Day, ${booked.day} at ${booked.time} IST.`, 'green') }, 'Add to calendar')))
+            : null,
+          grid,
+          h('div', { class: 'row', style: { marginTop: '12px', gap: '10px' } },
+            h('button', { class: 'btn primary', disabled: !picked || (booked && picked.id === booked.id), onclick: book }, booked ? 'Move to this slot' : 'Book this slot'),
+            h('span', { class: 'tiny muted' }, picked ? `Selected: ${picked.day}, ${picked.time} IST` : booked ? 'You can change the slot until a week before Demo Day.' : 'Pick a free slot. Times are in IST.')));
+      }
+
       function repoToast(link) { c.toast(`On the live site this opens ${link} on GitHub. The demo stays offline, so it does not leave this page.`); }
-      function refreshAll() { fillTimeline(); fillMilestone(); fillPublish(); fillCerts(); fillPortfolio(); }
+      function refreshAll() { fillTimeline(); fillMilestone(); fillDemo(); fillPublish(); fillCerts(); fillPortfolio(); }
 
       // Mentor decisions (from this screen or the mentor console): the store was already updated by the module-level listener.
       const off = c.on('milestone:reviewed', () => {
         const cur = store[f.id];
         if (!cur || cur !== st) return;
         refreshAll();
-        if (st.phase === 'approved' && !st.xpGiven) { st.xpGiven = true; c.addXP(120, 'Capstone 3 milestone approved'); }
+        if (st.phase === 'approved' && !st.xpGiven) { st.xpGiven = true; c.addXP(120, `Capstone ${CN} milestone approved`); }
         else if (st.phase === 'changes') c.toast('Your mentor asked for changes.', 'amber');
       });
 
@@ -745,10 +873,12 @@
       };
       function finishTestsQuiet() {
         st.testsDone = m8.tests.length; st.phase = 'review'; state.progress.milestoneStatus = 'submitted';
-        c.emit('milestone:submitted', { capstone: cap.id, title: cap.title, slot: 'C3', month: NOW_MONTH, field: f.id, student: S.id, tests: { passed: m8.tests.length, total: m8.tests.length } });
+        c.emit('milestone:submitted', { capstone: cap.id, title: cap.title, slot: info.slot, month: MM, field: f.id, student: S.id, tests: { passed: m8.tests.length, total: m8.tests.length } });
       }
 
       refreshAll();
+      // Approved from the mentor console while this screen was closed: give the milestone XP now.
+      if (st.phase === 'approved' && !st.xpGiven) { st.xpGiven = true; c.addXP(120, `Capstone ${CN} milestone approved`); }
     },
 
     destroy() { if (live) live.cleanup(); },

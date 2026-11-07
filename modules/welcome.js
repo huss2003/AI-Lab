@@ -3,7 +3,21 @@
    Bottom half: a clickable student sign-up simulator (OTP sign-in, age check, parental consent for under-18s,
    career field, device check). All details are demo data; nothing is sent anywhere. */
 (function () {
-  const DEMO = { mobile: '9822041210', email: 'aarav.k@example.com', otp: '482913', parentName: 'Sunita Kulkarni', parentMobile: '9890012345', parentOtp: '275064' };
+  const DEMO = { mobile: '9822047788', email: 'new.student@example.com', otp: '482913', parentName: 'Anita Shinde', parentMobile: '9890012345', parentOtp: '275064' };
+  // Fictional login details for the 4 demo students (shown masked; demo codes fill in by themselves).
+  const LOGIN = {
+    S1002: { mobile: '9850031426', email: 'ishita.d@example.com', otp: '615204' },
+    S1003: { mobile: '9763208815', email: 'kabir.p@example.com', otp: '739051' },
+    S1001: { mobile: '9822041210', email: 'aarav.k@example.com', otp: '482913' },
+    S1004: { mobile: '9447106532', email: 'sneha.n@example.com', otp: '204786' },
+  };
+  // A practical-specific tutor hint for the hero preview, by lecture.
+  const HINTS = {
+    26: 'Hint: print response.stop_reason before you parse. What does it say when the reply is cut short?',
+    43: 'Hint: which line in your Dockerfile makes the app run as a user that is not root?',
+    65: 'Hint: send one request with a field missing. Which branch answers it, and what status code comes back?',
+    90: 'Hint: hide the instruction inside a retrieved document, not the chat box. Does the model follow it?',
+  };
   const RESEND_S = 30;
   const MIN_AGE = 14;
 
@@ -17,6 +31,7 @@
   let ERR = {};               // validation message per input key, cleared on each step change
   let busy = null;            // key of the button showing a spinner
   let pendingFocus = false;   // move focus + scroll to the simulator after the next render
+  let loginOpener = null;     // opens the demo-student login step (set on each render)
   const timers = new Set();
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
@@ -187,7 +202,43 @@
 .m-welcome .wl-sum .check > span:last-child { min-width: 0 }
 .m-welcome .wl-foot { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; text-align: center }
 
+/* log in as a demo student */
+.m-welcome .wl-login { scroll-margin-top: 84px }
+.m-welcome .wl-stus { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px }
+.m-welcome .wl-stu { position: relative; display: grid; gap: 10px; align-content: start; text-align: left; cursor: pointer; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; min-width: 0; transition: border-color .15s, box-shadow .15s, transform .15s }
+.m-welcome .wl-stu:hover { border-color: var(--brand); box-shadow: var(--shadow); transform: translateY(-2px) }
+.m-welcome .wl-stu:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
+.m-welcome .wl-stu.cur { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 55%, transparent) inset; background: color-mix(in srgb, var(--green-soft) 35%, var(--surface)) }
+.m-welcome .wl-stu > span { min-width: 0 }
+.m-welcome .st-top { display: flex; gap: 10px; align-items: center; min-width: 0 }
+.m-welcome .avatar { width: 40px; height: 40px; border-radius: 11px; font-size: 14px }
+.m-welcome .avatar.av-0 { background: var(--violet-soft); color: var(--violet) }
+.m-welcome .avatar.av-1 { background: var(--brand-soft); color: var(--brand) }
+.m-welcome .avatar.av-2 { background: var(--amber-soft); color: var(--amber) }
+.m-welcome .avatar.av-3 { background: var(--green-soft); color: var(--green) }
+.m-welcome .st-who { display: grid; min-width: 0 }
+.m-welcome .st-who b { font-family: var(--display); font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-welcome .st-who small { font-size: 12px; color: var(--muted) }
+.m-welcome .st-cur { justify-self: start }
+.m-welcome .st-tags { display: flex; gap: 6px; flex-wrap: wrap }
+.m-welcome .st-year { display: block; height: 5px; border-radius: 99px; background: var(--surface-2); overflow: hidden }
+.m-welcome .st-year i { display: block; height: 100%; background: var(--brand); border-radius: inherit }
+.m-welcome .st-now { display: grid; gap: 1px; font-size: 13px; font-weight: 700 }
+.m-welcome .st-now small { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--faint) }
+.m-welcome .st-story { font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
+.m-welcome .st-stats { display: flex; gap: 6px 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line) }
+.m-welcome .st-stats b { color: var(--fg); font-size: 13.5px }
+.m-welcome .st-minor { display: flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-soft); border-radius: 8px; padding: 6px 8px }
+.m-welcome .st-minor svg { width: 15px; height: 15px; flex: none }
+.m-welcome .wl-stu .go { font-size: 13px; font-weight: 700; color: var(--brand); margin-top: auto }
+.m-welcome .wl-or { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line-strong); border-radius: 10px }
+.m-welcome .wl-or .btn.cur { border-color: var(--green); color: var(--green) }
+.wl-login-modal { container-type: normal }
+.wl-login-modal .wl-form { max-width: none }
+@media (prefers-reduced-motion: reduce) { .m-welcome .wl-stu:hover { transform: none } }
+
 @container (min-width: 560px) {
+  .m-welcome .wl-stus { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-welcome .wl-nums { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .m-welcome .wl-fields { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-welcome .wl-week { grid-template-columns: repeat(2, minmax(0, 1fr)) }
@@ -201,6 +252,9 @@
   .m-welcome .wl-week li:last-child { grid-column: auto }
   .m-welcome .wl-week .wl-step { flex-direction: column }
   .m-welcome .wl-week li:not(:last-child) .wl-step::after { content: ""; position: absolute; top: 31px; right: -10px; width: 10px; height: 2px; background: var(--line) }
+}
+@container (min-width: 1000px) {
+  .m-welcome .wl-stus { grid-template-columns: repeat(4, minmax(0, 1fr)) }
 }
 @container (min-width: 900px) {
   .m-welcome .wl-hero { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); padding: 36px; gap: 32px }
@@ -239,22 +293,25 @@
       root.append(wrap);
 
       /* ---------- hero ---------- */
-      const prac = (field.practicals && (field.practicals[String(data.demo_student.lecture)] || Object.values(field.practicals)[0])) || null;
+      const S = data.demo_student;
+      const commonPrac = S.practical_company === 'common';
+      const pracSet = commonPrac ? (data.common.practicals || {}) : (field.practicals || {});
+      const prac = pracSet[String(S.lecture)] || Object.values(pracSet)[0] || null;
       const checks = prac ? prac.checks.slice(0, 3) : [];
-      const lec = data.lectures.find((l) => l.id === data.demo_student.lecture) || data.lectures[0];
+      const lec = data.lectures.find((l) => l.id === S.lecture) || data.lectures[0];
       const preview = h('div', { class: 'wl-win', 'aria-label': 'Example of a checked practical' },
-        h('div', { class: 'wl-bar' }, h('i'), h('i'), h('i'), h('b', {}, `Practical · Lecture ${lec.id} · ${field.short}`)),
+        h('div', { class: 'wl-bar' }, h('i'), h('i'), h('i'), h('b', {}, `${S.name.split(' ')[0]}’s practical · Lecture ${lec.id} · ${commonPrac ? 'Foundation' : field.short}`)),
         h('div', { class: 'wl-wbody' },
-          h('div', {}, h('div', { class: 'eyebrow' }, field.company), h('h3', {}, prac ? prac.topic : lec.practical)),
+          h('div', {}, h('div', { class: 'eyebrow' }, commonPrac ? data.common.company : field.company), h('h3', {}, prac ? prac.topic : lec.practical)),
           h('div', { class: 'stack', style: { gap: '6px' } }, checks.map((t, i) =>
             h('div', { class: 'wl-chk', style: { animationDelay: `${0.25 + i * 0.35}s` } }, h('span', { class: 'ic', html: icon('check') }), h('span', { title: t }, t)))),
           h('div', { class: 'wl-wfoot' },
             h('span', { class: 'pill green' }, h('span', { class: 'dot' }), `${checks.length} of ${checks.length} checks passed`),
             h('span', { class: 'tiny muted' }, 'Checked automatically in 38 seconds')),
           h('div', { class: 'wl-hint' }, h('div', {}, h('span', { class: 'ai-badge' }, 'AI tutor')),
-            h('p', {}, 'Hint: send one request with a field missing. Which branch answers it, and what status code comes back?')),
+            h('p', {}, HINTS[lec.id] || 'Hint: run the checks once before you change anything. Which one fails first, and why?')),
           h('div', { class: 'wl-wfoot' },
-            h('span', { class: 'tiny muted' }, `Same lab, ${data.fields.length} fields. Switch the field at the top.`),
+            h('span', { class: 'tiny muted' }, commonPrac ? 'Months 1 to 3 are common. Fields open in Month 4.' : `Same lab, ${data.fields.length} fields. Switch the field at the top.`),
             h('button', { class: 'btn sm', onclick: () => c.go('practical'), html: `${icon('code')}Open this practical` }))));
 
       const simAnchor = () => wrap.querySelector('.wl-sim');
@@ -269,13 +326,84 @@
           h('div', { class: 'wl-mini' },
             h('span', { html: `${icon('check')}No install, runs in the browser` }),
             h('span', { html: `${icon('check')}4 GB RAM laptop is enough` }),
+            h('span', {}, h('button', { class: 'wl-linkbtn', onclick: () => { const t = wrap.querySelector('.wl-login'); if (t) { t.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' }); const b = t.querySelector('.wl-stu'); if (b) b.focus({ preventScroll: true }); } } }, 'Log in as a student →')),
             h('span', {}, h('button', { class: 'wl-linkbtn', onclick: () => { pendingFocus = true; focusSim(); } }, 'Try student sign-up →')))),
         preview);
+
+      /* ---------- log in as one of the 4 demo students ---------- */
+      const students = (c.students && c.students.length ? c.students : [S]).slice().sort((a, b) => a.month - b.month);
+      const fieldLabel = (st) => { const f = fieldById(st.field); const n = f ? f.short : st.field; return st.month <= 3 ? `${n} from Month 4` : n; };
+      const loginSec = h('section', { class: 'card wl-login', id: 'wl-login', 'aria-labelledby': 'wlLoginH' },
+        h('div', { class: 'wl-sec-head' },
+          h('div', {}, h('div', { class: 'eyebrow' }, `Batch ${S.batch} · 4 demo students`), h('h2', { id: 'wlLoginH' }, 'Log in as a student'),
+            h('p', { class: 'small muted', style: { marginTop: '4px', maxWidth: '62ch' } }, 'Each student is at a different point of the year, in a different field. Pick one and every screen follows them: lecture, practical, exam, capstone and certificates.')),
+          h('span', { class: 'pill blue' }, `Currently viewing: ${S.name}`)),
+        h('div', { class: 'wl-stus' }, students.map((st, i) => studentCard(st, i))));
+
+      function studentCard(st, i) {
+        const cur = st.id === S.id;
+        const l = data.lectures.find((x) => x.id === st.lecture) || data.lectures[0];
+        const nCert = (st.certificates || []).length;
+        return h('button', { class: 'wl-stu' + (cur ? ' cur' : ''), type: 'button', 'data-student': st.id, 'aria-label': `Log in as ${st.name}, Month ${st.month}, ${fieldLabel(st)}${cur ? ', currently viewing' : ''}`, onclick: () => openLogin(st),
+          html: `<span class="st-top"><span class="avatar av-${i % 4}">${c.esc(st.initials || st.name.split(' ').map((w) => w[0]).join(''))}</span>`
+            + `<span class="st-who"><b>${c.esc(st.name)}</b><small>Age ${st.age} · ${c.esc(st.education)}</small></span></span>`
+            + (cur ? '<span class="pill green st-cur"><span class="dot"></span>Currently viewing</span>' : '')
+            + `<span class="st-tags"><span class="pill blue">Month ${st.month} · Week ${st.week}</span><span class="pill violet">${c.esc(fieldLabel(st))}</span></span>`
+            + `<span class="st-year" aria-hidden="true"><i style="width:${Math.round((st.month / 12) * 100)}%"></i></span>`
+            + `<span class="st-now"><small>Now</small>Lecture ${l.id}: ${c.esc(l.topic)}</span>`
+            + `<span class="st-story">${c.esc(st.story || st.tagline || '')}</span>`
+            + `<span class="st-stats"><span><b class="num">${Number(st.xp).toLocaleString('en-IN')}</b> XP</span><span><b class="num">${nCert}</b> certificate${nCert === 1 ? '' : 's'}</span><span><b class="num">${st.streak}</b>-day streak</span></span>`
+            + (st.consent ? `<span class="st-minor">${icon('shield')}Under 18 · parent consent on file</span>` : '')
+            + `<span class="go">${cur ? 'Continue' : 'Log in'} as ${c.esc(st.name.split(' ')[0])} →</span>` });
+      }
+
+      // Short login step: masked contact, demo code fills itself in, then the whole demo reloads as that student.
+      function openLogin(st) {
+        const cur = st.id === S.id;
+        const L = LOGIN[st.id] || { mobile: '9800000000', email: 'student@example.com', otp: '123456' };
+        let filled = false, loading = false;
+        const lt = new Set();
+        const wait = (fn, ms) => { const t = setTimeout(() => { lt.delete(t); fn(); }, ms); lt.add(t); };
+        const boxes = h('div', { class: 'wl-otp', role: 'group', 'aria-label': '6-digit demo code' },
+          Array.from({ length: 6 }, (_, k) => h('input', { type: 'text', readonly: true, tabindex: '-1', 'aria-label': `Digit ${k + 1}`, value: '' })));
+        const status = h('div', { class: 'small muted', 'aria-live': 'polite' }, 'Sending a demo code…');
+        const goBtn = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: () => doLogin() }, cur ? `Continue as ${st.name.split(' ')[0]}` : 'Log in');
+        const l = data.lectures.find((x) => x.id === st.lecture) || data.lectures[0];
+        const body = h('div', { class: 'm-welcome wl-login-modal stack' },
+          h('div', { class: 'row', style: { gap: '12px', flexWrap: 'nowrap', alignItems: 'center' } },
+            h('span', { class: `avatar av-${students.indexOf(st) % 4}`, style: { width: '44px', height: '44px', fontSize: '15px', borderRadius: '12px' } }, st.initials || ''),
+            h('div', { style: { minWidth: 0 } }, h('div', { class: 'eyebrow' }, 'Demo student login'), h('h3', {}, `Log in as ${st.name}`),
+              h('div', { class: 'small muted' }, `Month ${st.month} · ${fieldLabel(st)} · Lecture ${l.id}`))),
+          h('div', { class: 'wl-form' },
+            h('label', { class: 'wl-lbl' }, 'Mobile number', h('div', { class: 'wl-phone' }, h('span', {}, '+91'), h('input', { class: 'field-input', readonly: true, value: maskMobile(L.mobile).replace('+91 ', ''), 'aria-label': 'Mobile number (demo)' }))),
+            h('label', { class: 'wl-lbl' }, 'or email', h('input', { class: 'field-input', readonly: true, value: L.email, 'aria-label': 'Email (demo)' })),
+            h('div', { class: 'wl-lbl' }, 'One-time code', boxes), status),
+          st.consent ? h('div', { class: 'callout small', style: { borderLeftColor: 'var(--green)' } }, h('b', {}, 'Under 18 · parent consent on file. '), `${st.consent.parent} (${st.consent.relation}) confirmed on ${st.consent.recorded} · ${st.consent.ref}. No extra step at login.`) : null,
+          h('p', { class: 'tiny muted' }, 'Demo only: no message is sent. The page reloads so every screen starts fresh for this student.'),
+          h('div', { class: 'wl-actions' }, h('button', { class: 'btn', type: 'button', onclick: () => close() }, 'Cancel'), h('span', { class: 'sp' }), goBtn));
+        const md = c.modal(body);
+        md.box.style.maxWidth = '480px'; md.box.setAttribute('aria-label', `Log in as ${st.name}`);
+        const ins = [...boxes.querySelectorAll('input')];
+        function close() { lt.forEach((t) => clearTimeout(t)); lt.clear(); md.close(); }
+        function fillAll() { ins.forEach((x, k) => { x.value = L.otp[k]; }); boxes.classList.add('ok'); filled = true; status.textContent = 'Demo code filled in automatically.'; goBtn.disabled = false; goBtn.focus(); }
+        function doLogin() {
+          if (loading) return;
+          if (!filled) fillAll();
+          if (cur) { close(); c.go('home'); return; }
+          loading = true; goBtn.disabled = true; goBtn.textContent = ''; goBtn.append(h('span', { class: 'spin' }), 'Logging in');
+          wait(() => { c.toast(`Logged in as ${st.name}`, 'green'); if (typeof c.setStudent === 'function') c.setStudent(st.id, 'home'); else if (window.NM && NM.setStudent) NM.setStudent(st.id, 'home'); }, 550);
+        }
+        body.addEventListener('keydown', (e) => { if (e.key === 'Enter' && filled) { e.preventDefault(); doLogin(); } });
+        if (reduced()) wait(fillAll, 200);
+        else { wait(() => { status.textContent = 'Code received. Filling it in…'; }, 350); ins.forEach((x, k) => wait(() => { x.value = L.otp[k]; }, 450 + k * 90)); wait(fillAll, 450 + 6 * 90); }
+        goBtn.focus();
+      }
+      loginOpener = openLogin;
 
       /* ---------- a student's week ---------- */
       const week = [
         ['play', '2 lectures', 'Two 40-minute recorded lessons, with quick questions inside the video', 'lecture', 'See a lecture'],
-        ['code', '20-minute practical', `A hands-on task after each lecture, on ${field.company} data`, 'practical', 'Try a practical'],
+        ['code', '20-minute practical', `A hands-on task after each lecture, on ${commonPrac ? data.common.company : field.company} data`, 'practical', 'Try a practical'],
         ['check', 'Instant auto-check', 'Automatic checks mark the work within a minute', 'practical', 'Run the checks'],
         ['spark', 'AI tutor hints', 'Stuck? The tutor gives hints, never the graded answer', 'practical', 'Ask the tutor'],
         ['github', 'Projects to GitHub', 'Work goes to the student’s own GitHub and portfolio site', 'projects', 'See projects'],
@@ -329,7 +457,7 @@
             h('button', { class: 'btn sm ghost', style: { justifySelf: 'start' }, onclick: () => { SIM = blank(); ERR = {}; cleanup(); pendingFocus = true; draw(); c.toast('Sign-up restarted', ''); }, html: `${icon('login')}Start over` })),
           simMain));
 
-      wrap.append(hero, weekSec, numSec, roleSec, sim,
+      wrap.append(hero, loginSec, weekSec, numSec, roleSec, sim,
         h('p', { class: 'wl-foot tiny muted' }, h('span', { class: 'pill amber' }, 'Demo data'), 'All people and companies are fictional. Numbers describe the planned course and lab, not real results.'));
 
       function scrollToSim(smooth) {
@@ -664,9 +792,14 @@
             h('div', { class: 'wl-done-badge', html: icon('check') }),
             h('div', { style: { minWidth: 0 } }, h('div', { class: 'eyebrow' }, 'Step 5 of 5 · Ready'), h('h3', { tabindex: '-1' }, `Welcome to batch ${s.batch}`))),
           h('div', { class: 'wl-sum' }, rows.map((t) => h('div', { class: 'check pass' }, h('span', { class: 'ic', html: icon('check') }), h('span', {}, t)))),
-          h('p', { class: 'small muted' }, `For the rest of the demo you will see ${s.name}, a student already in Month ${s.month} of this batch.`),
+          h('p', { class: 'small muted' }, `A new account starts at Month 1. The dashboard shows ${s.name}, a student already in Month ${s.month} of this batch.`),
+          h('div', { class: 'wl-or' },
+            h('b', { class: 'small' }, 'Or log in as one of the 4 demo students'),
+            h('div', { class: 'wl-quick' }, (c.students || []).slice().sort((x, y) => x.month - y.month).map((st) =>
+              h('button', { class: 'btn sm' + (st.id === s.id ? ' cur' : ''), type: 'button', 'data-k': 'login-' + st.id, onclick: () => loginOpener && loginOpener(st) },
+                `${st.name.split(' ')[0]} · Month ${st.month}`)))),
           h('div', { class: 'wl-actions' },
-            btn('Go to my dashboard', { primary: true, key: 'dash', icon: 'home', onclick: () => c.go('home') }),
+            btn(`Go to ${s.name.split(' ')[0]}’s dashboard`, { primary: true, key: 'dash', icon: 'home', onclick: () => c.go('home') }),
             btn('Start the tour', { key: 'tour2', icon: 'play', onclick: () => startTour(c) }),
             h('span', { class: 'sp' }),
             btn('Restart sign-up', { key: 'restart', onclick: () => { SIM = blank(); ERR = {}; go('signin'); } })),

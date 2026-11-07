@@ -4,13 +4,33 @@
   // Demo progress that survives navigation (other screens emit these events while home is not on screen).
   const done = { lecture: false, practical: false, exam: false, milestone: false };
   const myDoubts = [];
-  let workspace = { status: 'stopped', size: 'Small' };
+  let workspace = { status: 'stopped', size: null };
   NM.on('lecture:completed', () => { done.lecture = true; });
   NM.on('practical:submitted', () => { done.practical = true; });
   NM.on('exam:submitted', () => { done.exam = true; });
   NM.on('milestone:submitted', () => { done.milestone = true; });
   NM.on('forum:asked', (p) => { if (p && p.title) myDoubts.unshift(p.title); });
   NM.on('workspace:state', (p) => { if (p) workspace = Object.assign({}, workspace, p); });
+
+  // Doubt-forum examples per demo student, about what each one is studying right now.
+  const FORUM = {
+    S1002: [
+      ['Why does my Claude call stop with stop_reason "max_tokens"?', 'The reply hit the max_tokens limit, so the JSON is cut off. Raise max_tokens or ask for a shorter answer, and check stop_reason before you parse.', 'ok', 'Confirmed by mentor'],
+      ['Can I still change my field after picking Cybersecurity?', 'Yes, until the end of Month 3. After that the field locks in so your next three capstones line up.', 'pending', 'Mentor reply pending'],
+    ],
+    S1003: [
+      ['Why does my container stop right after docker run?', 'The command in your Dockerfile finishes and the container exits. Start the server in the foreground with uvicorn and --host 0.0.0.0.', 'ok', 'Confirmed by mentor'],
+      ['Should the database port be published in docker-compose?', 'No. Keep db on the internal network; only web needs a published port. The Month 5 milestone checks this.', 'pending', 'Mentor reply pending'],
+    ],
+    S1001: [
+      ['Why does my Router send everything to the fallback branch?', 'The condition compares text "true" with a true/false value. Change the Code step to return a boolean, then retest the step with the sample data.', 'ok', 'Confirmed by mentor'],
+      ['Can I use my own dataset for the Month 9 project?', 'Projects use the lab datasets so the automatic checks can grade them. You can add your own data as an extra, shown in your README.', 'pending', 'Mentor reply pending'],
+    ],
+    S1004: [
+      ['Does an injection hidden in a retrieved document count as a finding?', 'Yes. Log it as an indirect prompt injection with the document, the payload and what the model did. Test only the authorised practice targets.', 'ok', 'Confirmed by mentor'],
+      ['Can I present Capstone 4 at Demo Day with a recorded backup video?', 'Yes. Present live, and upload a 3-minute recording in case the network drops.', 'pending', 'Mentor reply pending'],
+    ],
+  };
 
   const CSS = `
 .m-home { display: grid; gap: 20px; min-width: 0 }
@@ -70,6 +90,7 @@
 .m-home .lb ol { display: grid }
 .m-home .lb li { padding: 0; border-top: 1px solid var(--line); display: block }
 .m-home .lb li:first-child { border-top: 0 }
+.m-home .lb li.gap { border-top: 1px dashed var(--line-strong); margin-top: 4px }
 .m-home .lb-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 9px 6px; cursor: pointer; color: inherit; font: inherit; border-radius: 8px }
 .m-home .lb-row:hover { background: var(--surface-2) }
 .m-home .lb-row .rk { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--muted) }
@@ -92,6 +113,27 @@
 .m-home-modal .proj { display: grid; gap: 4px; border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: var(--radius-sm); padding: 10px 12px }
 .m-home-modal .proj.cap { border-left-color: var(--violet) }
 .m-home-modal .acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap }
+
+.m-home .who-line { display: flex; gap: 8px; align-items: center; margin-top: 8px; min-width: 0 }
+.m-home .who-line .avatar { width: 24px; height: 24px; font-size: 10.5px; border-radius: 7px }
+.m-home .who-line .small { min-width: 0 }
+.m-home .today > *, .m-home .prog-card > * { min-width: 0 }
+.m-home .today .eyebrow { overflow-wrap: anywhere }
+.m-home .note-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 12px }
+.m-home .note-chip { display: flex; gap: 10px; align-items: center; text-align: left; border: 1px dashed color-mix(in srgb, var(--violet) 45%, var(--line)); background: var(--violet-soft); color: var(--fg); border-radius: 11px; padding: 10px 12px; cursor: pointer; font: inherit; min-width: 0 }
+.m-home .note-chip.ok { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); background: var(--green-soft) }
+.m-home .note-chip svg { width: 18px; height: 18px; color: var(--violet); flex: none }
+.m-home .note-chip.ok svg { color: var(--green) }
+.m-home .note-chip span { display: grid; min-width: 0 }
+.m-home .note-chip b { font-size: 13px }
+.m-home .note-chip small { font-size: 12px; color: var(--muted) }
+.m-home .note-chip:hover { filter: brightness(.98); border-style: solid }
+.m-home .cert-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: var(--fg); font: inherit; font-size: 13px }
+.m-home .cert-line svg { width: 17px; height: 17px; color: var(--brand); flex: none }
+.m-home .cert-line:hover b { color: var(--brand) }
+.m-home .cert-line .tiny { margin-left: auto }
+.m-home-modal .check { align-items: center }
+.m-home-modal .check .ic svg { width: 12px; height: 12px; stroke-width: 3 }
 @media (max-width: 1100px) { .m-home .trio { grid-template-columns: repeat(2, minmax(0, 1fr)) } .m-home .trio > :last-child { grid-column: 1 / -1 } }
 @media (max-width: 640px) { .m-home .trio { grid-template-columns: minmax(0, 1fr) } .m-home .trio > :last-child { grid-column: auto } .m-home .today-top h2 { font-size: 19px } .m-home .today-step .st { display: none } .m-home .day-meter { min-width: 0; width: 100% } }
 `;
@@ -103,11 +145,24 @@
       if (!document.getElementById('m-home')) document.head.append(h('style', { id: 'm-home' }, CSS));
       const s = data.demo_student;
       const lec = data.lectures.find((l) => l.id === s.lecture);
-      const prev = data.lectures.find((l) => l.id === s.lecture - 1) || lec;
       const nextLec = data.lectures.find((l) => l.id === s.lecture + 1) || lec;
       const P = state.progress;
       const capFor = (m) => (m <= 3 ? data.common.capstone : field.capstones.find((cp) => cp.milestones.some((x) => x.month === m)));
-      const curCap = capFor(s.month);
+      // Everything below follows the active demo student; the field only supplies company, datasets and practicals.
+      const curCap = s.capstone === 'C1' ? data.common.capstone : (field.capstones.find((cp) => cp.slot === s.capstone) || capFor(s.month));
+      const capMonth = s.capstone_month || s.month;
+      const capMsIx = curCap ? Math.max(0, curCap.milestones.findIndex((x) => x.month === capMonth)) : 0;
+      const capMs = curCap ? curCap.milestones[capMsIx] : null;
+      const capNo = curCap ? curCap.slot.slice(1) : String(s.capstone || 'C1').slice(1);
+      const capShort = curCap ? curCap.title.split(':')[0] : 'Capstone';
+      const commonPrac = s.practical_company === 'common';
+      const pracCo = commonPrac ? data.common.company : field.company;
+      const nx = s.next_exam || { month: s.month, title: `Month ${s.month} assessment`, due: 'Friday' };
+      const ws = s.workspace || { env: 'Cloud workspace', hours_used_min: 0, size: 'Small 2 GB' };
+      const budget = s.ai_budget || { used: 0, cap: 120 };
+      const first = s.name.split(' ')[0];
+      const clip = (t, n) => { t = String(t || '').replace(/\s*\([^)]*\)/g, '').trim(); return t.length <= n ? t : t.slice(0, t.lastIndexOf(' ', n - 1) > 20 ? t.lastIndexOf(' ', n - 1) : n - 1) + '…'; };
+      const sField = data.fields.find((f) => f.id === s.field) || field;
       const chev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
       const openLecture = (id) => { if (id) state.openLecture = id; c.go('lecture'); };
       const hr = new Date().getHours();
@@ -117,24 +172,29 @@
       const lecDone = done.lecture || P.lecturesWatched >= lec.id;
       const pracDone = done.practical || P.practicalScore != null;
       const examDone = done.exam || P.examScore != null;
+      const msDone = done.milestone || P.milestoneStatus === 'submitted' || P.milestoneStatus === 'approved';
       const steps = [
-        { go: () => openLecture(prev.id), ic: 'check', t: `Revision quiz: Lecture ${prev.id}`, sub: `${prev.topic} · 4 of 5 correct`, st: 'done' },
         { go: () => openLecture(lec.id), ic: 'play', t: `Watch Lecture ${lec.id}: ${lec.topic}`, sub: '40-minute recorded lesson with 4 quick questions inside the video', st: lecDone ? 'done' : 'next' },
-        { go: () => c.go('practical'), ic: 'code', t: `Practical: ${lec.practical}`, sub: `20 minutes on ${field.company} data, checked automatically`, st: pracDone ? 'done' : lecDone ? 'next' : 'today' },
-        { go: () => c.go('exam'), ic: 'exam', t: 'Month 7 assessment', sub: 'Timed, in lockdown mode, answers saved as you go', st: examDone ? 'done' : 'due' },
+        { go: () => c.go('practical'), ic: 'code', t: `Practical: ${lec.practical}`, sub: `20 minutes on ${pracCo} data${commonPrac ? ', in Python in the browser' : ''}, checked automatically`, st: pracDone ? 'done' : lecDone ? 'next' : 'today' },
+        { go: () => c.go('exam'), ic: 'exam', t: nx.title, sub: 'Timed, in lockdown mode, answers saved as you go', st: examDone ? 'done' : 'due', due: nx.due },
+        { go: () => c.go('projects'), ic: 'project', t: `Capstone ${capNo}: ${capShort}`, sub: `Month ${capMonth} milestone${capMs && capMs.deliverables ? ' · ' + clip(capMs.deliverables[0], 78) : ''}`, st: msDone ? 'done' : 'week' },
       ];
       // Only the first unfinished step is "up next".
       let seenNext = false;
       steps.forEach((x) => { if (x.st === 'next') { if (seenNext) x.st = 'today'; seenNext = true; } });
-      const ST = { done: ['green', 'Done'], next: ['blue', 'Up next'], today: ['violet', 'Today'], due: ['amber', 'Due Friday'] };
+      const ST = { done: ['green', 'Done'], next: ['blue', 'Up next'], today: ['violet', 'Today'], due: ['amber', `Due ${nx.due || 'Friday'}`], week: ['violet', 'This week'] };
       const nDone = steps.filter((x) => x.st === 'done').length;
+      const profileLine = h('div', { class: 'who-line' },
+        h('span', { class: 'avatar' }, s.initials || s.name.split(' ').map((w) => w[0]).join('')),
+        h('span', { class: 'small muted' }, `${s.name} · ${s.age} · ${s.education} · Batch ${s.batch}`));
       const fieldSel = () => { const sel = document.getElementById('fieldSel'); if (sel) { sel.focus(); try { sel.showPicker && sel.showPicker(); } catch (e) {} } };
       const today = h('section', { class: 'card today', 'aria-labelledby': 'homeTodayH' },
         h('div', { class: 'today-top' },
           h('div', {},
             h('div', { class: 'eyebrow' }, `Month ${s.month} · Week ${s.week} · ${data.months[s.month]}`),
-            h('h2', { id: 'homeTodayH' }, `${greet}, ${s.name.split(' ')[0]}`),
-            h('p', {}, nDone === steps.length ? 'All done for today. Nice work.' : `${steps.length - nDone} things left today. About 1 hour 20 minutes.`)),
+            h('h2', { id: 'homeTodayH' }, `${greet}, ${first}`),
+            h('p', {}, nDone === steps.length ? 'All done for today. Nice work.' : `${steps.length - nDone} things left this week. About 1 hour 20 minutes today.`),
+            profileLine),
           h('div', { class: 'day-meter' },
             h('div', { class: 'small' }, h('span', { class: 'muted' }, 'Today'), h('b', { class: 'num' }, `${nDone} of ${steps.length} done`)),
             h('div', { class: 'progress green' }, h('i', { style: { width: `${(nDone / steps.length) * 100}%` } })),
@@ -142,7 +202,46 @@
         h('div', { class: 'today-steps' }, steps.map((x) => h('button', {
           class: `today-step is-${x.st}`, type: 'button', onclick: x.go,
           html: `<span class="ix">${icon(x.st === 'done' ? 'check' : x.ic)}</span><span class="tx"><b>${esc(x.t)}</b><span>${esc(x.sub)}</span></span><span class="pill ${ST[x.st][0]} st">${ST[x.st][1]}</span>${chev.replace('<svg', '<svg class="arrow"')}`,
-        }))));
+        }))),
+        notes());
+
+      // Foundation months: the field is chosen but locks in after Month 3. Under 18: consent on file.
+      function notes() {
+        const items = [];
+        if (s.month <= 3) items.push(h('button', { class: 'note-chip', type: 'button', onclick: openFieldNote,
+          html: `${icon('project')}<span><b>Field choice: ${esc(sField.name)}</b><small>Locks in after Month 3 · opens in Month 4 with ${esc(sField.company)}</small></span>` }));
+        if (s.consent) items.push(h('button', { class: 'note-chip ok', type: 'button', onclick: openConsent,
+          html: `${icon('shield')}<span><b>Parent consent on file</b><small>${esc(s.consent.parent)} (${esc(s.consent.relation)}) · ${esc(s.consent.ref)}</small></span>` }));
+        return items.length ? h('div', { class: 'note-row' }, items) : null;
+      }
+      function openFieldNote() {
+        const caps = (sField.capstones || []).map((cp) => h('div', { class: 'proj cap' }, h('span', { class: 'eyebrow' }, `Capstone ${cp.slot.slice(1)} · Months ${cp.milestones.map((x) => x.month).join(', ')}`), h('b', {}, cp.title)));
+        const md = c.modal(h('div', { class: 'm-home-modal stack' },
+          h('div', { class: 'eyebrow' }, 'Career field'),
+          h('h2', {}, `${sField.name}, from Month 4`),
+          h('p', { class: 'small muted' }, `${first} picked ${sField.name}. Months 1 to 3 are the same for every student, so the choice can still change until the end of Month 3. After that it locks in, so the next three capstones line up with ${sField.company}, a fictional company.`),
+          h('div', { class: 'stack', style: { gap: '8px' } }, caps),
+          h('div', { class: 'acts' },
+            h('button', { class: 'btn', type: 'button', onclick: () => md.close() }, 'Close'),
+            h('button', { class: 'btn primary', type: 'button', onclick: () => { md.close(); fieldSel(); } }, 'Preview another field'))));
+        md.box.style.maxWidth = '560px'; md.box.setAttribute('aria-label', 'Career field choice');
+      }
+      function openConsent() {
+        const k = s.consent;
+        const row = (a, b) => h('div', { class: 'check pass' }, h('span', { class: 'ic', html: icon('check') }), h('span', {}, h('b', { class: 'small' }, a), ' ', h('span', { class: 'small muted' }, b)));
+        const md = c.modal(h('div', { class: 'm-home-modal stack' },
+          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', { class: 'eyebrow' }, 'Under 18 · DPDP Act, 2023'), h('span', { class: 'pill green' }, 'On file')),
+          h('h2', {}, 'Parent consent'),
+          h('p', { class: 'small muted' }, `${first} is ${s.age}, so a parent confirmed with their own phone before ${first} could use the lab.`),
+          h('div', { class: 'stack', style: { gap: '6px' } },
+            row('Given by', `${k.parent} (${k.relation})`),
+            row('Recorded', k.recorded),
+            row('Reference', k.ref),
+            row('Covers', 'Course data, lockdown exams and AI tutor questions')),
+          h('p', { class: 'tiny muted' }, 'The parent can withdraw consent at any time. Demo data.'),
+          h('div', { class: 'acts' }, h('button', { class: 'btn primary', type: 'button', onclick: () => md.close() }, 'Close'))));
+        md.box.style.maxWidth = '520px'; md.box.setAttribute('aria-label', 'Parent consent');
+      }
 
       // ---------- Progress ----------
       const xpStat = h('b', { class: 'num' }, state.xp.toLocaleString('en-IN'));
@@ -154,11 +253,12 @@
           statBtn(h('b', { class: 'num' }, `${P.lecturesWatched}/104`), 'lectures completed', 'Open lectures', 'lecture'),
           statBtn(xpStat, 'XP earned', 'See how XP works', 'achievements'),
           statBtn(h('b', { class: 'num' }, `${s.streak} days`), 'learning streak', 'Streak rewards', 'achievements'),
-          statBtn(h('b', { class: 'num' }, `#${(NM.myRank && NM.myRank()) || s.rank}`), 'in batch leaderboard', 'Full leaderboard', 'achievements')),
+          statBtn(h('b', { class: 'num' }, `#${(NM.myRank && NM.myRank()) || s.rank}`), 'in the batch this week', 'Full leaderboard', 'achievements')),
         h('div', { class: 'meter' },
           h('div', { class: 'row small' }, h('span', { class: 'muted' }, 'Year progress'), h('b', { class: 'num' }, `${pct}%`)),
           h('div', { class: 'progress green' }, h('i', { style: { width: `${pct}%` } })),
-          h('span', { class: 'tiny muted' }, `${P.certificates} certificates earned · batch ${s.batch}`)));
+          h('button', { class: 'cert-line', type: 'button', onclick: () => c.go('achievements'),
+            html: `${icon('cert')}<span>${P.certificates ? `<b>${P.certificates} certificate${P.certificates > 1 ? 's' : ''}</b> earned` : '<b>No certificates yet</b> · the first comes after Month 3'}</span><span class="tiny muted">Quiz avg ${s.quiz_avg}% · attendance ${s.attendance}%</span>` })));
       const offs = [c.on('xp', ({ xp }) => { xpStat.textContent = xp.toLocaleString('en-IN'); })];
 
       // ---------- Continue / My lab / Deadlines ----------
@@ -172,37 +272,47 @@
           h('button', { class: 'btn sm', type: 'button', onclick: () => c.go('practical'), html: icon('code') + 'Open practical' })));
 
       const wsPill = h('span', { class: 'pill' });
+      const browserOnly = /browser/i.test(ws.size || '') && !/cloud/i.test(ws.env || '');
       const paintWs = () => {
         const run = /run|start|on/i.test(workspace.status || '');
-        wsPill.className = 'pill ' + (run ? 'green' : '');
-        wsPill.textContent = run ? 'Running' : 'Stopped';
+        wsPill.className = 'pill ' + (run ? 'green' : browserOnly ? 'blue' : '');
+        wsPill.textContent = run ? 'Running' : browserOnly ? 'In the browser' : 'Stopped';
       };
       paintWs();
       offs.push(c.on('workspace:state', (p) => { if (p) workspace = Object.assign({}, workspace, p); paintWs(); }));
       const meter = (label, val, pctv, cls) => h('div', { class: 'meter' },
         h('div', { class: 'row small' }, h('span', { class: 'muted' }, label), h('b', { class: 'num' }, val)),
         h('div', { class: 'progress ' + (cls || '') }, h('i', { style: { width: pctv + '%' } })));
+      const hm = (min) => `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} m`;
+      const usedMin = Math.max(0, Math.round(ws.hours_used_min || 0));
+      const sizeLabel = workspace.size && !browserOnly ? (/large/i.test(workspace.size) ? 'Large 6 GB' : 'Small 2 GB') : ws.size;
+      const bPct = budget.cap ? Math.round((budget.used / budget.cap) * 100) : 0;
       const lab = h('section', { class: 'card stack' },
         h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'My lab'), wsPill),
         h('button', { class: 'lrow', type: 'button', onclick: () => c.go('workspace'),
-          html: `<span class="day">${icon('terminal').replace('<svg', '<svg style="width:20px;height:20px;color:var(--brand)"')}</span><span class="lt"><b>Cloud workspace · ${esc(workspace.size || 'Small')} (2 GB)</b><span>VS Code, terminal and Docker in the browser</span></span>${chev}` }),
-        meter('Workspace hours this week', '3 h 40 m of 12 h', 31),
-        meter('Lab AI key budget this month', '38% used', 38),
-        h('p', { class: 'tiny muted' }, 'Your workspace shuts down after 20 idle minutes, so unused time is never lost.'),
+          html: `<span class="day">${icon(browserOnly ? 'code' : 'terminal').replace('<svg', '<svg style="width:20px;height:20px;color:var(--brand)"')}</span><span class="lt"><b>${esc(ws.env)}</b><span>${esc(sizeLabel)}${browserOnly ? '' : ' · VS Code, terminal and Docker'}</span></span>${chev}` }),
+        meter(browserOnly ? 'Coding time this week' : 'Workspace hours this week', `${hm(usedMin)} of 12 h`, Math.min(100, Math.round((usedMin / 720) * 100))),
+        meter('Lab AI key budget this month', `₹${budget.used} of ₹${budget.cap} · ${bPct}%`, Math.min(100, bPct), bPct >= 75 ? 'amber' : ''),
+        h('p', { class: 'tiny muted' }, browserOnly
+          ? 'Months 1 to 3 run Python in the browser. A cloud workspace with VS Code and Docker opens in Month 4.'
+          : bPct >= 75 ? 'AI budget is above 75%. Hints keep working; harder questions slow down near the cap.' : 'Your workspace shuts down after 20 idle minutes, so unused time is never lost.'),
         h('div', { class: 'card-actions' },
-          h('button', { class: 'btn primary sm', type: 'button', onclick: () => c.go('workspace'), html: icon('cloud') + 'Open workspace' })));
+          h('button', { class: 'btn primary sm', type: 'button', onclick: () => c.go(browserOnly ? 'practical' : 'workspace'), html: icon(browserOnly ? 'code' : 'cloud') + (browserOnly ? 'Open browser Python' : 'Open workspace') }),
+          browserOnly ? h('button', { class: 'btn sm', type: 'button', onclick: () => c.go('workspace') }, 'See the Month 4 workspace') : null));
 
-      const capLabel = curCap ? `Capstone ${curCap.slot.slice(1)} milestone: ${curCap.title.split(':')[0]}` : 'Capstone milestone';
+      const capLabel = `Capstone ${capNo} · Month ${capMonth} milestone: ${capShort}`;
+      const dueDay = String(nx.due || 'Friday').slice(0, 3);
       const deadlines = [
-        ['Thu', `Practical ${lec.id}: ${lec.practical}`, 'Auto-checked within a minute', 'practical', pracDone],
-        ['Fri', 'Month 7 assessment', 'Lockdown exam · 45 minutes', 'exam', examDone],
-        ['Sun', capLabel, done.milestone ? 'Submitted · waiting for mentor review' : 'Submit for mentor review', 'projects', done.milestone],
+        ['Thu', `Practical ${lec.id}: ${lec.practical}`, `Auto-checked within a minute · ${pracCo}`, 'practical', pracDone],
+        [dueDay, nx.title, 'Lockdown exam · 30 minutes', 'exam', examDone],
+        ['Sun', capLabel, msDone ? 'Submitted · waiting for mentor review' : 'Submit for mentor review', 'projects', msDone],
         ['Mon', `Lecture ${nextLec.id} unlocks`, nextLec.topic, 'lecture', false],
       ];
+      if (s.month >= 11) deadlines.push(['M12', 'Demo Day booking', 'Pick a 10-minute slot to present Capstone 4', 'projects', false]);
       const dl = h('section', { class: 'card' },
         h('div', { class: 'card-head' }, h('h3', {}, 'Coming up'), h('span', { class: 'small muted' }, 'This week')),
         h('div', {}, deadlines.map(([d, t, sub, r, ok], i) => h('button', { class: 'lrow', type: 'button', onclick: () => (r === 'lecture' ? openLecture(nextLec.id) : c.go(r)),
-          html: `<span class="day ${i < 2 && !ok ? 'hot' : ''}"><small>${ok ? 'Done' : r === 'lecture' ? 'Opens' : 'Due'}</small><b>${d}</b></span><span class="lt"><b>${esc(t)}</b><span>${esc(ok ? 'Done' : sub)}</span></span>${chev}` }))));
+          html: `<span class="day ${i < 2 && !ok ? 'hot' : ''}"><small>${ok ? 'Done' : r === 'lecture' ? 'Opens' : d === 'M12' ? 'Opens' : 'Due'}</small><b>${d}</b></span><span class="lt"><b>${esc(t)}</b><span>${esc(ok ? 'Done' : sub)}</span></span>${chev}` }))));
 
       // ---------- The year at a glance ----------
       const doneMonths = s.month - 1;
@@ -216,7 +326,9 @@
           h('div', {}, h('h3', {}, 'The year at a glance'), h('p', { class: 'small muted', style: { marginTop: '2px' } }, '104 lectures · 12 months · 4 capstones. Click any month to see what it covers.')),
           h('div', { class: 'legend' }, h('span', {}, h('i', { class: 'done' }), 'Completed'), h('span', {}, h('i', { class: 'now' }), 'This month'), h('span', {}, h('i', {}), 'Coming up'))),
         h('div', { class: 'months' }, Array.from({ length: 12 }, (_, i) => monthBtn(i + 1))),
-        h('p', { class: 'small muted' }, `Months 1 to 3 are common for everyone. From Month 4 every practical and project uses ${field.company}, a fictional ${field.short.toLowerCase()} company.`));
+        h('p', { class: 'small muted' }, s.month <= 3
+          ? `Months 1 to 3 are common for everyone and use ${data.common.company}. ${first} is in Month ${s.month}; from Month 4 the practicals use ${field.company}, the fictional company of the ${field.short} track.`
+          : `Months 1 to 3 are common for everyone. From Month 4 every practical and project uses ${field.company}, the fictional company of the ${field.short} track. ${first} has finished ${doneMonths} of 12 months.`));
 
       function openMonth(m) {
         const lecs = data.lectures.filter((l) => l.month === m);
@@ -246,20 +358,20 @@
       }
 
       // ---------- Leaderboard and forum ----------
-      const batch = data.students.filter((x) => x.id !== s.id).slice(0, 6).map((x) => ({ name: x.name, xp: x.xp }));
+      const batch = data.students.filter((x) => x.id !== s.id).map((x) => ({ name: x.name, xp: x.xp }));
       batch.push({ name: s.name, xp: state.xp, me: true });
       batch.sort((a, b) => b.xp - a.xp);
+      batch.forEach((x, i) => { x.rank = i + 1; });
+      const meRow = batch.find((x) => x.me);
+      const shown = meRow.rank <= 6 ? batch.slice(0, 6) : batch.slice(0, 5).concat([meRow]);
       const lb = h('section', { class: 'card lb' },
-        h('div', { class: 'card-head' }, h('h3', {}, 'Batch leaderboard'), h('button', { class: 'btn sm ghost', type: 'button', onclick: () => c.go('achievements') }, 'View all')),
-        h('ol', {}, batch.slice(0, 6).map((x, i) => h('li', { class: x.me ? 'me' : '' },
-          h('button', { class: 'lb-row', type: 'button', onclick: () => c.go('achievements'), 'aria-label': `Rank ${i + 1}, ${x.name}, ${x.xp} XP. Open achievements` },
-            h('span', { class: 'rk num' }, `${i + 1}`), h('span', { class: 'nm' }, x.me ? `${x.name} (you)` : x.name), h('span', { class: 'num small' }, `${x.xp.toLocaleString('en-IN')} XP`))))));
+        h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Batch leaderboard'), h('span', { class: 'small muted' }, `All-time XP · ${batch.length} students in ${s.batch}`)), h('button', { class: 'btn sm ghost', type: 'button', onclick: () => c.go('achievements') }, 'View all')),
+        h('ol', {}, shown.map((x, i) => h('li', { class: (x.me ? 'me' : '') + (i > 0 && x.rank - shown[i - 1].rank > 1 ? ' gap' : '') },
+          h('button', { class: 'lb-row', type: 'button', onclick: () => c.go('achievements'), 'aria-label': `Rank ${x.rank}, ${x.name}, ${x.xp} XP. Open achievements` },
+            h('span', { class: 'rk num' }, `${x.rank}`), h('span', { class: 'nm' }, x.me ? `${x.name} (you)` : x.name), h('span', { class: 'num small' }, `${x.xp.toLocaleString('en-IN')} XP`))))));
 
       const posts = myDoubts.map((q) => [q, 'The AI tutor is writing a first answer. A mentor will confirm it.', 'pending', 'Asked by you · just now'])
-        .concat([
-          ['Why does my Router send everything to the fallback branch?', 'The condition compares text "true" with a true/false value. Change the Code step to return a boolean, then retest the step with the sample data.', 'ok', 'Confirmed by mentor'],
-          ['Can I use my own dataset for the Month 9 project?', 'Projects use the lab datasets so the automatic checks can grade them. You can add your own data as an extra, shown in your README.', 'pending', 'Mentor reply pending'],
-        ]).slice(0, 3);
+        .concat(FORUM[s.id] || FORUM.S1001).slice(0, 3);
       const forum = h('section', { class: 'card' },
         h('div', { class: 'card-head' },
           h('div', {}, h('h3', {}, 'Doubt forum'), h('span', { class: 'small muted' }, 'AI answers first, mentors confirm')),
