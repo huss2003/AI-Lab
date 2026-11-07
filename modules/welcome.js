@@ -80,7 +80,7 @@
 .m-welcome .wl-chk span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
 .m-welcome .wl-chk .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--green-soft); color: var(--green); flex: none }
 .m-welcome .wl-chk .ic svg { width: 12px; height: 12px; stroke-width: 3 }
-.m-welcome .wl-hint { display: grid; gap: 4px; font-size: 13px; padding: 10px 12px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--violet) 45%, var(--line)); background: var(--violet-soft); animation: wl-pop .45s ease both; animation-delay: 1.5s }
+.m-welcome .wl-hint { display: grid; gap: 4px; font-size: 13px; padding: 10px 12px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--violet) 45%, var(--line)); background: var(--violet-soft); animation: wl-pop .45s ease both; animation-delay: 1.2s }
 .m-welcome .wl-hint p { color: var(--fg) }
 .m-welcome .wl-wfoot { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap }
 @keyframes wl-pop { from { opacity: 0; transform: translateY(6px) } }
@@ -191,10 +191,14 @@
   .m-welcome .wl-nums { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .m-welcome .wl-fields { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-welcome .wl-week { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .m-welcome .wl-week li:last-child { grid-column: 1 / -1 }
 }
 @container (min-width: 700px) {
   .m-welcome .wl-roles { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+}
+@container (min-width: 860px) {
   .m-welcome .wl-week { grid-template-columns: repeat(5, minmax(0, 1fr)) }
+  .m-welcome .wl-week li:last-child { grid-column: auto }
   .m-welcome .wl-week .wl-step { flex-direction: column }
   .m-welcome .wl-week li:not(:last-child) .wl-step::after { content: ""; position: absolute; top: 31px; right: -10px; width: 10px; height: 2px; background: var(--line) }
 }

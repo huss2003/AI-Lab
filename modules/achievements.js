@@ -378,7 +378,7 @@
 .m-achievements .ma-medal svg{width:26px;height:26px}
 .m-achievements .ma-medal.lg{width:84px;height:84px} .m-achievements .ma-medal.lg svg{width:38px;height:38px}
 .m-achievements .ma-medal.earned{background:var(--green-soft);color:var(--green);box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--green)}
-.m-achievements .ma-medal.progress{background:var(--brand-soft);color:var(--brand)}
+.m-achievements .ma-medal.inprog{background:var(--brand-soft);color:var(--brand)}
 .m-achievements .ma-medal.locked{background:var(--surface-2);color:var(--faint)}
 .m-achievements .ma-medal .lk{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
 .m-achievements .ma-medal .lk svg{width:12px;height:12px}
@@ -798,7 +798,7 @@
           const items = BADGES.filter((b) => ui.badgeFilter === 'all' || statusOf(b) === ui.badgeFilter).sort((a, b) => order[statusOf(a)] - order[statusOf(b)]);
           items.forEach((b) => {
             const s = statusOf(b);
-            grid.append(h('button', { class: `ma-badge ${s}${bs[b.id].fresh ? ' fresh' : ''}`, 'data-badge': b.id, 'aria-label': `${b.name}: ${s === 'earned' ? 'earned' : s === 'locked' ? 'locked' : 'in progress'}`, onclick: () => openBadge(b) },
+            grid.append(h('button', { class: `ma-badge ${s === 'progress' ? 'inprog' : s}${bs[b.id].fresh ? ' fresh' : ''}`, 'data-badge': b.id, 'aria-label': `${b.name}: ${s === 'earned' ? 'earned' : s === 'locked' ? 'locked' : 'in progress'}`, onclick: () => openBadge(b) },
               h('span', { class: 'cat' }, b.cat),
               medal(b, ''), h('span', { class: 'nm' }, b.name), statusLine(b)));
             bs[b.id].fresh = false;
@@ -810,7 +810,7 @@
       }
       function medal(b, size) {
         const s = statusOf(b);
-        const el = h('span', { class: `ma-medal ${s} ${size || ''}`, html: icon(b.icon) });
+        const el = h('span', { class: `ma-medal ${s === 'progress' ? 'inprog' : s} ${size || ''}`, html: icon(b.icon) });
         if (s === 'locked') el.append(h('span', { class: 'lk', html: icon('lock') }));
         return el;
       }

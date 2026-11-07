@@ -560,6 +560,8 @@
 
     wrap.append(head, h('div', { class: 'flay' }, main, aside(c)));
     root.append(wrap);
+    // Home's "Ask a doubt" button asks the forum to open the question form straight away.
+    if (c.state.forumCompose) { c.state.forumCompose = false; setTimeout(() => openAsk(c), 60); }
     renderMain();
   }
 
