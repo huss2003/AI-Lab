@@ -195,128 +195,174 @@
   function injectCSS() {
     if (document.getElementById('m-' + ID)) return;
     const css = `
-.m-projects{display:grid;gap:20px;min-width:0}
-.m-projects section{scroll-margin-top:96px}
-.m-projects .mp-caps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:6px}
-.m-projects .mp-cap{display:grid;gap:8px;align-content:start;text-align:left;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius);padding:14px;cursor:pointer;min-width:0;position:relative;transition:border-color .2s,box-shadow .2s}
-.m-projects .mp-cap:hover{border-color:var(--brand)}
-.m-projects .mp-cap.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
-.m-projects .mp-cap.cur::before{content:'Now';position:absolute;top:-9px;right:12px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--brand);color:var(--on-brand);padding:2px 8px;border-radius:99px}
-.m-projects .mp-cap-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
-.m-projects .mp-slot{font-family:var(--display);font-weight:700;font-size:12px;background:var(--brand-soft);color:var(--brand);border-radius:6px;padding:2px 7px;flex:none}
-.m-projects .mp-cap-title{font-family:var(--display);font-size:14px;line-height:1.3;overflow-wrap:anywhere}
-.m-projects .mp-mo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:2px}
-.m-projects .mp-mo i{font-style:normal;font-size:11px;font-weight:700;text-align:center;border-radius:5px;padding:3px 0;background:var(--surface-2);color:var(--faint)}
-.m-projects .mp-mo i.done{background:var(--green-soft);color:var(--green)}
-.m-projects .mp-mo i.now{background:var(--brand);color:var(--on-brand)}
-.m-projects .mp-mini{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
-.m-projects .mp-chip{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;border:1px solid var(--line);border-radius:99px;padding:4px 10px;background:var(--surface);color:var(--muted);min-width:0;max-width:100%}
-.m-projects .mp-chip b{color:var(--fg);font-size:11.5px;flex:none}
-.m-projects .mp-chip.done{background:var(--green-soft);border-color:transparent;color:var(--fg)}
-.m-projects .mp-chip.done b{color:var(--green)}
-.m-projects .mp-chip.now{border-color:var(--brand);color:var(--brand)}
-.m-projects .mp-chip svg{width:13px;height:13px;flex:none;color:var(--green)}
-.m-projects .mp-detail{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
-.m-projects .mp-detail p{font-size:13.5px}
-.m-projects .mp-tags{display:flex;flex-wrap:wrap;gap:6px}
-.m-projects .mp-tag{font-size:12px;font-weight:600;background:var(--surface-2);color:var(--fg);border-radius:6px;padding:3px 8px}
-.m-projects details.mp-ms{border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 12px;background:var(--surface)}
-.m-projects details.mp-ms[open]{background:var(--surface-2)}
-.m-projects details.mp-ms summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:700;font-size:13px;list-style:none}
-.m-projects details.mp-ms summary::-webkit-details-marker{display:none}
-.m-projects details.mp-ms summary::after{content:'+';margin-left:auto;color:var(--muted);font-weight:800}
-.m-projects details.mp-ms[open] summary::after{content:'–'}
-.m-projects .mp-ms ul{margin:8px 0 2px;padding-left:18px;display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
-.m-projects .mp-rub{display:grid;gap:7px}
-.m-projects .mp-rub-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(50px,90px) 34px;gap:10px;align-items:center;font-size:12.5px}
-.m-projects .mp-bar{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
-.m-projects .mp-bar i{display:block;height:100%;background:var(--brand);border-radius:inherit;transition:width .6s ease}
-.m-projects .mp-bar.green i{background:var(--green)}
-.m-projects .mp-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 16px;list-style:none;padding:0}
+.m-projects{display:grid;gap:28px;min-width:0}
+.m-projects .card{padding:24px}
+.m-projects .mp-purpose{color:var(--muted);font-size:15px;margin:0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.m-projects .mp-purpose .demo{font-size:12px;color:var(--faint)}
+.m-projects .lnk{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--brand);cursor:pointer;text-align:left}
+.m-projects .lnk:hover{text-decoration:underline}
+/* timeline */
+.m-projects .mp-tl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;position:relative}
+.m-projects .mp-tl li{position:relative;min-width:0}
+.m-projects .mp-tl li::before{content:'';position:absolute;top:17px;left:0;right:0;height:2px;background:var(--line)}
+.m-projects .mp-tl li:first-child::before{left:17px}
+.m-projects .mp-tl li:last-child::before{right:calc(100% - 17px)}
+.m-projects .mp-tl li.done::before{background:var(--green)}
+.m-projects .mp-tl button{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start;width:100%;background:none;border:0;padding:0 12px 0 0;text-align:left;cursor:pointer;color:var(--fg)}
+.m-projects .mp-tl .dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2px solid var(--line);font-weight:800;font-size:13px;color:var(--muted);font-family:var(--display)}
+.m-projects .mp-tl .dot svg{width:16px;height:16px}
+.m-projects .mp-tl li.done .dot{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.m-projects .mp-tl li.now .dot{background:var(--brand);border-color:var(--brand);color:var(--on-brand);box-shadow:0 0 0 4px var(--brand-soft)}
+.m-projects .mp-tl .tx{display:grid;gap:1px;min-width:0;padding-top:1px;background:var(--bg);padding-right:6px}
+.m-projects .mp-tl .tx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects .mp-tl .tx span{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects .mp-tl li.now .tx b{color:var(--brand)}
+.m-projects .mp-tl button:hover .tx b{color:var(--brand)}
+.m-projects .mp-tl li.sel .tx b{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px}
+/* top: milestone + side card */
+.m-projects .mp-top{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:24px;align-items:start}
+.m-projects .mp-main{display:grid;gap:18px}
+.m-projects .mp-main h2{font-size:21px}
+.m-projects .mp-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.m-projects .mp-head > div{min-width:0}
+.m-projects .mp-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0;list-style:none;padding:0}
 .m-projects .mp-steps li{display:grid;gap:6px;font-size:12px;font-weight:700;color:var(--faint);min-width:0;overflow-wrap:anywhere}
-.m-projects .mp-steps li::before{content:'';height:4px;border-radius:99px;background:var(--surface-2)}
+.m-projects .mp-steps li::before{content:'';height:4px;border-radius:99px;background:var(--surface-3)}
 .m-projects .mp-steps li.done{color:var(--green)} .m-projects .mp-steps li.done::before{background:var(--green)}
 .m-projects .mp-steps li.now{color:var(--brand)} .m-projects .mp-steps li.now::before{background:var(--brand)}
 .m-projects .mp-steps li.bad{color:var(--red)} .m-projects .mp-steps li.bad::before{background:var(--red)}
-.m-projects .mp-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
-.m-projects .mp-pane{border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:10px;align-content:start;min-width:0;background:var(--surface)}
 .m-projects .mp-deliv{display:grid}
-.m-projects .mp-deliv label{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:13px;cursor:pointer}
+.m-projects .mp-deliv label{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);font-size:14.5px;cursor:pointer}
 .m-projects .mp-deliv label:first-child{border-top:0}
-.m-projects .mp-deliv input{accent-color:var(--brand);margin-top:2px;width:16px;height:16px;flex:none;cursor:pointer}
-.m-projects .mp-deliv input:disabled{cursor:default}
-.m-projects .mp-deliv span{min-width:0;overflow-wrap:anywhere}
+.m-projects .mp-deliv input{accent-color:var(--brand);margin-top:3px;width:17px;height:17px;flex:none;cursor:pointer}
+.m-projects .mp-deliv span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects .mp-act{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.m-projects .mp-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
 .m-projects .check .ic svg{width:12px;height:12px}
 .m-projects .check .ic .spin{width:11px;height:11px;border-width:2px}
 .m-projects .check.just .ic{animation:mp-pop .35s ease}
 @keyframes mp-pop{from{transform:scale(.3)}60%{transform:scale(1.15)}}
-.m-projects .mp-ct{min-width:0;display:grid;gap:2px;font-size:13px;overflow-wrap:anywhere}
+.m-projects .mp-ct{min-width:0;display:grid;gap:2px;font-size:13.5px}
+.m-projects .mp-ct > span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .m-projects .check.wait .mp-ct{color:var(--muted)}
-.m-projects .mp-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:700}
-.m-projects .mp-review{display:grid;gap:12px;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:16px;background:var(--surface)}
-.m-projects .mp-review.wait{border-left:3px solid var(--amber)}
-.m-projects .mp-review.ok{border-left:3px solid var(--green)}
-.m-projects .mp-review.bad{border-left:3px solid var(--red)}
-.m-projects .mp-review table td{font-size:13px}
-.m-projects .mp-review table .mp-bar{min-width:70px}
-.m-projects .mp-review tfoot td{font-weight:800;background:var(--surface-2)}
-.m-projects .mp-quote{border-left:3px solid var(--brand);background:var(--surface-2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:10px 14px;font-size:13.5px}
-.m-projects .mp-who{display:flex;gap:10px;align-items:center;min-width:0}
-.m-projects .mp-who .avatar{background:var(--green-soft);color:var(--green)}
-.m-projects .mp-row2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
-.m-projects .mp-commits{display:grid;gap:3px;margin-top:6px;font-family:var(--mono);font-size:12px;background:var(--code-bg);color:var(--code-fg);border-radius:var(--radius-sm);padding:10px 12px;overflow-x:auto}
+.m-projects .mp-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;font-weight:700}
+.m-projects .mp-result{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start;border-radius:var(--radius-sm);padding:16px;background:var(--surface-2)}
+.m-projects .mp-result.ok{background:var(--green-soft)}
+.m-projects .mp-result.bad{background:var(--red-soft)}
+.m-projects .mp-result.wait{background:var(--amber-soft)}
+.m-projects .mp-result > div{min-width:0;display:grid;gap:4px}
+.m-projects .mp-score{display:flex;align-items:baseline;gap:2px;font-family:var(--display)}
+.m-projects .mp-score b{font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.m-projects .mp-score span{font-size:13px;color:var(--muted)}
+.m-projects .mp-result.ok .mp-score b{color:var(--green)} .m-projects .mp-result.bad .mp-score b{color:var(--red)}
+.m-projects .mp-result .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--amber)}
+.m-projects .mp-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.m-projects .mp-side{display:grid;gap:14px;align-content:start}
+.m-projects .mp-side h3{font-size:18px;overflow-wrap:anywhere}
+.m-projects .mp-booked{display:grid;gap:2px;border-radius:var(--radius-sm);background:var(--green-soft);padding:12px 14px}
+.m-projects .mp-booked b{color:var(--green)}
+.m-projects .mp-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-projects .mp-kv div{background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 12px;display:grid}
+.m-projects .mp-kv b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.m-projects .mp-kv span{font-size:12.5px;color:var(--muted)}
+/* tabs */
+.m-projects .mp-tabsec{display:grid;gap:0;min-width:0;scroll-margin-top:96px}
+.m-projects .mp-panel{background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 var(--radius) var(--radius);padding:24px;display:grid;gap:16px;min-width:0}
+.m-projects .mp-tabsec .tabs{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0;padding:4px 8px 0}
+.m-projects .mp-phead{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.m-projects .mp-phead > div{min-width:0}
+.m-projects .mp-lede{font-size:15px;max-width:72ch}
+.m-projects details.mp-ms{border-top:1px solid var(--line);padding:10px 0}
+.m-projects details.mp-ms:last-child{border-bottom:1px solid var(--line)}
+.m-projects details.mp-ms summary{cursor:pointer;display:flex;gap:10px;align-items:center;font-weight:700;font-size:14px;list-style:none}
+.m-projects details.mp-ms summary::-webkit-details-marker{display:none}
+.m-projects details.mp-ms summary .st{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted)}
+.m-projects details.mp-ms summary .st.green{color:var(--green)} .m-projects details.mp-ms summary .st.blue{color:var(--brand)} .m-projects details.mp-ms summary .st.amber{color:var(--amber)} .m-projects details.mp-ms summary .st.red{color:var(--red)}
+.m-projects details.mp-ms summary::after{content:'+';color:var(--muted);font-weight:800;width:12px;text-align:center}
+.m-projects details.mp-ms[open] summary::after{content:'–'}
+.m-projects .mp-ms ul{margin:8px 0 2px;padding-left:20px;display:grid;gap:4px;font-size:13.5px;color:var(--muted)}
+.m-projects .mp-rub{display:grid}
+.m-projects details.mp-rrow{border-top:1px solid var(--line);padding:10px 0}
+.m-projects details.mp-rrow:last-child{border-bottom:1px solid var(--line)}
+.m-projects details.mp-rrow summary{cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,140px) 56px;gap:14px;align-items:center;font-size:14px;list-style:none}
+.m-projects details.mp-rrow summary::-webkit-details-marker{display:none}
+.m-projects details.mp-rrow .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects details.mp-rrow .pts{text-align:right;font-weight:700;font-size:13px}
+.m-projects .mp-rx{display:grid;gap:4px;font-size:13.5px;color:var(--muted);padding-top:8px}
+.m-projects .mp-bar{height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden;display:block}
+.m-projects .mp-bar i{display:block;height:100%;background:var(--brand);border-radius:inherit;transition:width .6s ease}
+.m-projects .mp-bar.green i{background:var(--green)}
+.m-projects .mp-quote{border-left:3px solid var(--brand);background:var(--surface-2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;font-size:14px}
+.m-projects .mp-pubrow{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface-2);border-radius:var(--radius-sm);padding:12px 14px}
+.m-projects .mp-pubrow > span{min-width:0;flex:1 1 260px;font-size:14px}
+/* monthly projects */
+.m-projects details.mp-minis summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:16px}
+.m-projects details.mp-minis summary::-webkit-details-marker{display:none}
+.m-projects details.mp-minis summary::after{content:'+';color:var(--muted);font-weight:800}
+.m-projects details.mp-minis[open] summary::after{content:'–'}
+.m-projects details.mp-minis summary .tiny{font-family:var(--body);font-weight:600;margin-left:auto}
+.m-projects .mp-mlist{list-style:none;margin:12px 0 0;padding:0}
+.m-projects .mp-mlist button{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;background:none;border:0;border-top:1px solid var(--line);padding:11px 4px;text-align:left;cursor:pointer;color:var(--fg);font-size:14px}
+.m-projects .mp-mlist li:first-child button{border-top:0}
+.m-projects .mp-mlist button:hover{background:var(--surface-2)}
+.m-projects .mp-mlist .mo{font-weight:800;color:var(--muted);font-size:13px}
+.m-projects .mp-mlist .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.m-projects .mp-mlist .s{font-size:13px;font-weight:700;color:var(--muted)}
+.m-projects .mp-mlist .s.green{color:var(--green)} .m-projects .mp-mlist .s.blue{color:var(--brand)}
+/* publish steps, portfolio, certificates */
+.m-projects .mp-commits{display:grid;gap:3px;margin-top:6px;font-family:var(--mono);font-size:12px;background:var(--code-bg);color:var(--code-fg);border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;overflow-x:auto}
 .m-projects .mp-commits div{white-space:nowrap}
 .m-projects .mp-commits .hx{color:var(--code-num)}
 .m-projects .mp-commits .dm{color:var(--code-muted)}
-.m-projects textarea.mp-readme{min-height:280px;font-family:var(--mono);font-size:12.5px;line-height:1.55;resize:vertical;margin-top:6px}
-.m-projects .mp-sub{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.m-projects textarea.mp-readme{min-height:240px;font-family:var(--mono);font-size:12.5px;line-height:1.55;resize:vertical;margin-top:6px;width:100%}
+.m-projects .mp-sub{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
 .m-projects .mp-mono{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
-.m-projects .mp-browser{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface);min-width:0;box-shadow:var(--shadow)}
+.m-projects .mp-tags{display:flex;flex-wrap:wrap;gap:6px}
+.m-projects .mp-tag{font-size:12px;font-weight:600;background:var(--surface-2);color:var(--fg);border-radius:6px;padding:3px 8px}
+.m-projects .mp-browser{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface);min-width:0}
 .m-projects .mp-bbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface-2);border-bottom:1px solid var(--line)}
 .m-projects .mp-dots{display:flex;gap:6px;flex:none}
-.m-projects .mp-dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
-.m-projects .mp-dots i:nth-child(1){background:var(--red)} .m-projects .mp-dots i:nth-child(2){background:var(--amber)} .m-projects .mp-dots i:nth-child(3){background:var(--green)}
+.m-projects .mp-dots i{width:10px;height:10px;border-radius:50%;background:var(--line-strong)}
 .m-projects .mp-url{flex:1;min-width:0;font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .m-projects .mp-site{padding:28px clamp(16px,4vw,40px);display:grid;gap:22px;background:var(--bg)}
-.m-projects .mp-site h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.m-projects .mp-site h4{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .m-projects .mp-hero{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .m-projects .mp-hero > div{min-width:0;flex:1 1 240px;display:grid;gap:4px}
-.m-projects .mp-av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--violet));color:var(--on-brand);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:22px;flex:none}
+.m-projects .mp-av{width:60px;height:60px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:21px;flex:none}
 .m-projects .mp-pgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.m-projects .mp-pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+.m-projects .mp-pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:grid;gap:6px;align-content:start;min-width:0}
 .m-projects .mp-pcard.dim{border-style:dashed;background:transparent}
 .m-projects .mp-pcard.flash{animation:mp-flash 2s ease}
 @keyframes mp-flash{0%,40%{box-shadow:0 0 0 4px var(--green-soft);border-color:var(--green)}100%{box-shadow:0 0 0 0 transparent}}
 .m-projects .mp-pcard b{font-family:var(--display);font-size:14px;line-height:1.3}
-.m-projects .mp-pcard .mp-sub{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.m-projects .lnk{background:none;border:0;padding:0;font:inherit;text-align:left;cursor:pointer;justify-self:start}
-.m-projects .lnk:hover{text-decoration:underline}
-.m-projects button.mp-chip{cursor:pointer;font:inherit;font-size:12.5px;text-align:left}
-.m-projects button.mp-chip:hover{border-color:var(--brand);color:var(--brand)}
-.m-projects button.mp-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.m-projects .mp-pcard .mp-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.m-projects .mp-pcard .top{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.m-projects .mp-pcard .top .ok{color:var(--green)} .m-projects .mp-pcard .top .wip{color:var(--amber)}
 .m-projects .mp-flashcard{animation:mp-flash 1.6s ease}
-.m-projects .mp-repo{font-family:var(--mono);font-size:12px;color:var(--brand);overflow-wrap:anywhere}
+.m-projects .mp-repo{font-family:var(--mono);font-size:12px;color:var(--brand);overflow-wrap:anywhere;font-weight:500}
 .m-projects .mp-certs{display:grid;gap:8px}
-.m-projects .mp-cert{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;min-width:0}
+.m-projects .mp-cert{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;min-width:0}
 .m-projects .mp-cert:hover:not(:disabled){border-color:var(--brand)}
-.m-projects .mp-cert:disabled{cursor:not-allowed;border-style:dashed}
+.m-projects .mp-cert:disabled{cursor:not-allowed;border-style:dashed;background:transparent}
 .m-projects .mp-cert:disabled .ix{background:var(--surface-2);color:var(--faint)}
 .m-projects .mp-cert .ix{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:var(--amber-soft);color:var(--amber);flex:none}
 .m-projects .mp-cert .ix svg{width:18px;height:18px}
 .m-projects .mp-cert .tx{flex:1;min-width:0;display:grid;gap:1px}
-.m-projects .mp-cert .tx b{font-size:13.5px;overflow-wrap:anywhere}
-.m-projects .mp-cert .tx span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.m-projects .mp-cert .tx b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects .mp-cert .tx span{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-projects .mp-cert .go{font-size:13px;font-weight:700;color:var(--brand);flex:none}
+.m-projects .mp-cert:disabled .go{color:var(--faint)}
 .m-projects.mp-modal{display:grid;gap:14px;min-width:0}
 .m-projects .mp-paper{border:1px solid var(--line);border-radius:12px;padding:6px;background:var(--surface)}
-.m-projects .mp-paper-in{border:2px solid var(--brand);border-radius:8px;padding:20px 18px;display:grid;gap:8px;text-align:center;background:linear-gradient(180deg,var(--brand-soft),var(--surface) 55%)}
+.m-projects .mp-paper-in{border:2px solid var(--brand);border-radius:8px;padding:20px 18px;display:grid;gap:8px;text-align:center;background:var(--brand-softer)}
 .m-projects .mp-paper-in h2{font-size:21px}
 .m-projects .mp-name{font-family:var(--display);font-size:24px;font-weight:700;color:var(--brand);line-height:1.2}
 .m-projects .mp-paper-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;text-align:left;flex-wrap:wrap;margin-top:8px;padding-top:12px;border-top:1px dashed var(--line)}
 .m-projects .mp-paper-foot > div:first-child{min-width:0;flex:1 1 180px;display:grid;gap:2px}
 .m-projects .mp-qrwrap{display:grid;gap:4px;justify-items:center;flex:none}
-.m-projects .mp-qr{width:104px;height:104px;background:var(--code-fg);border-radius:6px;overflow:hidden}
+.m-projects .mp-qr{width:104px;height:104px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .m-projects .mp-qr svg{width:100%;height:100%;display:block}
-.m-projects .mp-qr .qd{fill:var(--code-bg)}
+.m-projects .mp-qr .qd{fill:var(--fg)}
 .m-projects .mp-valid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .m-projects .mp-valid .ok{width:40px;height:40px;border-radius:50%;background:var(--green-soft);color:var(--green);display:grid;place-items:center;flex:none}
 .m-projects .mp-valid .ok svg{width:22px;height:22px}
@@ -331,14 +377,32 @@
 .m-projects .mp-dslot:disabled span{color:var(--faint)}
 .m-projects .mp-dslot.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
 .m-projects .mp-dslot.mine{background:var(--green-soft);border-color:var(--green)}
-@media (max-width:1100px){.m-projects .mp-caps{grid-template-columns:repeat(2,minmax(0,1fr))}.m-projects .mp-row2,.m-projects .mp-body{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:900px){.m-projects .mp-detail,.m-projects .mp-dslots{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:640px){.m-projects .mp-pgrid{grid-template-columns:minmax(0,1fr)}.m-projects .mp-steps li{font-size:10.5px}.m-projects .mp-site{padding:20px 16px}}
-@media (max-width:520px){.m-projects .mp-dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.m-projects .mp-caps{grid-template-columns:minmax(0,1fr)}.m-projects .mp-qr{width:88px;height:88px}}
+@media (max-width:1100px){.m-projects .mp-top{grid-template-columns:minmax(0,1fr)}.m-projects .mp-side{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.m-projects .mp-dslots{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+ .m-projects .mp-tl{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .m-projects .mp-tl button{grid-template-columns:minmax(0,1fr);justify-items:start;padding-right:4px}
+ .m-projects .mp-tl .tx span{display:none}
+ .m-projects .mp-tl .tx b{font-size:12.5px}
+}
+@media (max-width:640px){
+ .m-projects .card,.m-projects .mp-panel{padding:18px}
+ .m-projects .mp-pgrid{grid-template-columns:minmax(0,1fr)}
+ .m-projects .mp-steps li{font-size:10.5px}
+ .m-projects .mp-site{padding:20px 16px}
+ .m-projects .mp-deliv span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .m-projects details.mp-rrow summary{grid-template-columns:minmax(0,1fr) 50px}
+ .m-projects details.mp-rrow .mp-bar{display:none}
+ .m-projects .mp-head{flex-wrap:wrap}
+}
+@media (max-width:520px){.m-projects .mp-dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.m-projects .mp-qr{width:88px;height:88px}}
 @media (prefers-reduced-motion: reduce){.m-projects *,.m-projects *::before{animation:none!important;transition:none!important}}
 `;
     const el = document.createElement('style'); el.id = 'm-' + ID; el.textContent = css; document.head.append(el);
   }
+
+  const clip = (s, n) => { s = String(s || ''); n = n || 70; return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
+  const shortTitle = (t) => String(t || '').split(':')[0].trim();
 
   // ---------- module ----------
   NM.register(ID, {
@@ -350,6 +414,7 @@
       const { h, data, state, icon, field: f } = c;
       const S = data.demo_student, gh = S.github;
       const st = getSt(f, state.progress);
+      if (!st.tab) st.tab = 'about';
       const J = journey(data, f);
       const info = curInfo(data, f), NOW = nowMonth();
       const cap = info.cap, m8 = info.ms, CUR = J[info.idx], CN = info.n, MM = info.month;
@@ -357,17 +422,23 @@
       const first = S.name.split(' ')[0];
       const smooth = () => (reduced() ? 'auto' : 'smooth');
       const mod = this;
+      const isC4 = info.slot === 'C4';
 
       const wrap = h('div', { class: 'm-projects' });
-      const secTimeline = h('section', { class: 'card' });
-      const secMilestone = h('section', { class: 'card', id: 'mp-milestone' });
-      const secDemo = info.slot === 'C4' ? h('section', { class: 'card', id: 'mp-demoday' }) : null;
-      const secPublish = h('section', { class: 'card', id: 'mp-publish' });
-      const secCerts = h('section', { class: 'card' });
-      const secPortfolio = h('section', { class: 'card', id: 'mp-portfolio' });
-      wrap.append(secTimeline, secMilestone);
-      if (secDemo) wrap.append(secDemo);
-      wrap.append(h('div', { class: 'mp-row2' }, secPublish, secCerts), secPortfolio);
+      const secTimeline = h('ol', { class: 'mp-tl', 'aria-label': 'The four capstones' });
+      const secMilestone = h('section', { class: 'card mp-main', id: 'mp-milestone' });
+      const secSide = h('section', { class: 'card mp-side', id: isC4 ? 'mp-demoday' : 'mp-portcard' });
+      const tabBar = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Capstone details' });
+      const tabPanel = h('div', { class: 'mp-panel', role: 'tabpanel', id: 'mp-panel' });
+      const secTabs = h('section', { class: 'mp-tabsec', id: 'mp-tabs' }, tabBar, tabPanel);
+      const secMini = h('details', { class: 'card mp-minis' });
+      let secPublish = h('div');   // the publish steps; shown inside a modal while it is open
+      let pubModal = null;
+      wrap.append(
+        h('p', { class: 'mp-purpose' }, h('span', {}, 'Students build four real projects. A mentor reviews each step, and approved work goes to a public portfolio.'), h('span', { class: 'demo' }, 'Demo data')),
+        secTimeline,
+        h('div', { class: 'mp-top' }, secMilestone, secSide),
+        secTabs, secMini);
       root.append(wrap);
       const fill = (el, ...kids) => { el.textContent = ''; el.append(...kids.flat().filter(Boolean)); };
       const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: smooth(), block: 'start' }); };
@@ -378,76 +449,24 @@
         return ({ draft: { label: 'In progress', cls: 'blue' }, testing: { label: 'Running tests', cls: 'blue' }, review: { label: 'In mentor review', cls: 'amber' },
           changes: { label: 'Changes requested', cls: 'red' }, approved: { label: st.pub.stage === 6 ? 'Approved · published' : 'Approved', cls: 'green' } })[st.phase];
       }
-      const phaseLabel = () => ({ draft: 'In progress', testing: 'Running tests', review: 'Waiting for mentor review', changes: 'Changes requested', approved: 'Approved' })[st.phase];
-
-      // ----- 1. Timeline + capstone detail -----
-      function fillTimeline() {
-        const caps = h('div', { class: 'mp-caps' }, J.map((j) => {
-          const s = capStatus(j);
-          return h('button', { class: 'mp-cap' + (st.selected === j.slot ? ' sel' : '') + (j.current ? ' cur' : ''), 'aria-pressed': st.selected === j.slot ? 'true' : 'false',
-            onclick: () => { st.selected = j.slot; fillTimeline(); } },
-            h('div', { class: 'mp-cap-top' }, h('span', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'mp-slot' }, j.slot), h('span', { class: 'tiny muted' }, `Months ${j.months[0]}–${j.months[2]}`)), h('span', { class: 'pill ' + s.cls }, s.label)),
-            h('b', { class: 'mp-cap-title' }, j.cap.title),
-            h('span', { class: 'tiny muted' }, j.slot === 'C1' ? `${j.company} · common to all fields` : j.company),
-            h('div', { class: 'mp-mo', style: { gridTemplateColumns: `repeat(${j.months.length},minmax(0,1fr))` } }, j.months.map((m) => h('i', { class: m < NOW ? 'done' : m === NOW ? 'now' : '' }, `M${m}`))));
-        }));
-        const minis = h('div', { class: 'mp-mini' }, h('span', { class: 'eyebrow', style: { marginRight: '4px' } }, 'Monthly mini-projects'),
-          COMMON_MINI.concat(f.standalone || []).map((s) => h('button', { class: 'mp-chip ' + (s.month < NOW ? 'done' : s.month === NOW ? 'now' : ''), title: s.month < NOW ? 'Done' : s.month === NOW ? 'This month' : 'Upcoming', onclick: () => openMini(s),
-            html: (s.month < NOW ? icon('check') : '') + `<b>M${s.month}</b><span>${c.esc(s.title)}</span>` })));
-        fill(secTimeline,
-          h('div', { class: 'card-head' },
-            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone journey · ${S.name} · ${NOW <= 3 ? `common foundation, then ${f.name}` : f.name}`), h('h2', {}, 'Four capstones, one public portfolio')),
-            h('span', { class: 'pill blue' }, `Month ${NOW} of 12`)),
-          h('p', { class: 'small muted' }, `Each capstone is a real tool built for a fictional company. Months 1 to 3 are the same for everyone; from Month 4 the work is for ${f.company}. Tap a capstone to see what it involves.`),
-          caps, minis, capDetail(J.find((j) => j.slot === st.selected) || CUR));
-      }
-
-      function openMini(s) {
-        const done = s.month < NOW, now = s.month === NOW;
-        const co = s.common ? data.common.company : f.company;
-        const browser = /browser/i.test((S.workspace && S.workspace.env) || '');
-        const m = c.modal(h('div', { class: 'm-projects mp-modal' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${s.month} mini-project · ${s.common ? 'Common foundation' : f.short}`), h('h3', {}, s.title)),
-            h('span', { class: 'pill ' + (done ? 'green' : now ? 'blue' : '') }, done ? 'Done' : now ? 'This month' : 'Upcoming')),
-          h('p', { class: 'small muted' }, `A short standalone project for Month ${s.month}, "${data.months[s.month]}". It practises the month's skills on ${co} data, next to the capstone work.`),
-          h('div', { class: 'note' }, done ? `Finished in Month ${s.month}. Automatic checks passed and the code is in ${gh}'s GitHub with the rest of the lab work.` : now ? (browser ? 'Open now. It runs in the in-browser Python lab and is checked automatically when submitted.' : 'Open now. It runs in the cloud workspace and is checked automatically when submitted.') : `Opens in Month ${s.month}, after the earlier months are done.`),
-          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, now ? (browser ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('practical'); } }, 'Open the practical') : h('button', { class: 'btn', onclick: () => { m.close(); c.go('workspace'); } }, 'Open the cloud workspace')) : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
-      }
+      const phaseLabel = () => ({ draft: 'In progress', testing: 'Running tests', review: 'In mentor review', changes: 'Changes requested', approved: 'Approved' })[st.phase];
       function flashEl(id) { const el = document.getElementById(id); if (!el) return; el.classList.remove('mp-flashcard'); void el.offsetWidth; el.classList.add('mp-flashcard'); }
 
-      function capDetail(j) {
-        const msState = (m) => {
-          if (j.before) return ['Done', 'green'];
-          if (j.after) return ['Upcoming', ''];
-          if (m.month < MM) return ['Done', 'green'];
-          if (m.month === MM) { const s = capStatus(j); return [phaseLabel(), s.cls]; }
-          return ['Upcoming', ''];
-        };
-        const open = (m) => (j.current ? m.month === MM : m === j.cap.milestones[0]);
-        return h('div', { class: 'mp-detail' },
-          h('div', { class: 'stack' },
-            h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'mp-slot' }, j.slot), h('h3', { style: { minWidth: 0, flex: '1 1 200px' } }, j.cap.title), h('span', { class: 'pill violet' }, j.cap.level)),
-            h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'The problem'), h('p', {}, j.cap.problem)),
-            h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'What students build'), h('p', {}, j.cap.build)),
-            h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Tech stack'), h('div', { class: 'mp-tags' }, j.cap.stack.map((t) => h('span', { class: 'mp-tag' }, t)))),
-            j.current ? h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn primary sm', onclick: () => { scrollTo('mp-milestone'); flashEl('mp-milestone'); } }, `Go to the Month ${MM} milestone`),
-              secDemo ? h('button', { class: 'btn sm', onclick: () => { scrollTo('mp-demoday'); flashEl('mp-demoday'); } }, 'Book your Demo Day slot') : null) : null),
-          h('div', { class: 'stack' },
-            h('div', { class: 'eyebrow' }, 'Milestones'),
-            j.cap.milestones.map((m) => {
-              const [lab, cls] = msState(m);
-              const d = h('details', { class: 'mp-ms' },
-                h('summary', {}, h('span', {}, `Month ${m.month}`), h('span', { class: 'pill ' + (m.type === 'merged' ? 'violet' : '') }, m.type === 'merged' ? 'In-class milestone' : 'Homework milestone'), h('span', { class: 'pill ' + cls }, lab)),
-                h('ul', {}, m.deliverables.map((x) => h('li', {}, x))));
-              if (open(m)) d.open = true;
-              return d;
-            }),
-            h('div', { class: 'eyebrow', style: { marginTop: '4px' } }, 'How the mentor grades it'),
-            h('div', { class: 'mp-rub' }, (j.cap.rubric || []).map((r) => h('div', { class: 'mp-rub-row', title: 'Excellent: ' + r.excellent },
-              h('span', {}, r.criterion), h('div', { class: 'mp-bar' }, h('i', { style: { width: `${Math.min(100, r.weight / 30 * 100)}%` } })), h('span', { class: 'num tiny muted' }, `${r.weight}%`))))));
+      // ----- 1. Slim capstone timeline -----
+      function fillTimeline() {
+        fill(secTimeline, J.map((j) => {
+          const s = capStatus(j);
+          const cls = (j.before ? 'done' : j.current ? 'now' : 'later') + (st.tab === 'about' && st.selected === j.slot ? ' sel' : '');
+          return h('li', { class: cls },
+            h('button', { 'aria-current': j.current ? 'step' : null, title: j.cap.title, 'aria-label': `Capstone ${j.slot.slice(1)}: ${j.cap.title}. ${s.label}. Show details.`,
+              onclick: () => { st.selected = j.slot; showTab('about', true); } },
+              h('span', { class: 'dot', html: j.before ? icon('check') : j.slot.slice(1) }),
+              h('span', { class: 'tx' }, h('b', {}, `C${j.slot.slice(1)} · ${clip(shortTitle(j.cap.title), 34)}`),
+                h('span', {}, `Months ${j.months[0]}–${j.months[j.months.length - 1]} · ${j.current ? 'Now' : j.before ? `${j.score}/100` : 'Upcoming'}`))));
+        }));
       }
 
-      // ----- 2. Current milestone -----
+      // ----- 2. Current milestone (the main card) -----
       function startTests() {
         st.phase = 'testing'; st.testsDone = 0; st.justPassed = -1; st.review = null; st.xpGiven = false;
         state.progress.milestoneStatus = 'submitted';
@@ -474,10 +493,16 @@
           c.emit('milestone:reviewed', { capstone: cap.id, title: cap.title, slot: info.slot, month: MM, decision: 'approved', score: r.total, scores: r.scores.map((s) => s.score), comment: r.comment, mentor: r.mentor, student: S.id, field: f.id });
         }, 1400);
       }
+      function testsModal() {
+        const m = c.modal(h('div', { class: 'm-projects mp-modal' },
+          h('div', {}, h('div', { class: 'eyebrow' }, `Capstone ${CN} · Month ${MM}`), h('h3', {}, 'What gets tested automatically')),
+          h('p', { class: 'small muted' }, 'These acceptance tests run in an isolated lab container as soon as the milestone is submitted. They are the same for every student.'),
+          h('ol', { style: { margin: 0, paddingLeft: '20px', display: 'grid', gap: '8px', fontSize: '14px' } }, m8.tests.map((t) => h('li', {}, t))),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+      }
 
       function fillMilestone() {
         const n = m8.tests.length;
-        const pill = capStatus(CUR);
         const order = ['draft', 'testing', 'review', 'approved'];
         const pi = st.phase === 'changes' ? 2 : order.indexOf(st.phase);
         const published = st.pub.stage === 6;
@@ -488,91 +513,67 @@
           if (st.phase === 'approved' && i === 4 && !published) cls = 'now';
           return h('li', { class: cls }, t);
         });
+        const pill = capStatus(CUR);
+        const head = h('div', { class: 'mp-head' },
+          h('div', {}, h('div', { class: 'eyebrow' }, `Current milestone · Capstone ${CN} · Month ${MM}${info.final ? ' (final)' : ''}`),
+            h('h2', {}, cap.title),
+            h('div', { class: 'small muted', style: { marginTop: '4px' } }, `Due by the end of Month ${MM} · for ${info.company}`)),
+          h('span', { class: 'pill ' + pill.cls }, phaseLabel()));
+        const foot = h('div', { class: 'mp-foot' },
+          h('button', { class: 'lnk small', onclick: testsModal }, `What gets tested (${n})`),
+          h('button', { class: 'btn ghost sm', title: 'Start this demo flow again', onclick: resetDemo }, 'Reset demo'));
 
-        const editable = st.phase === 'draft' || st.phase === 'changes';
-        const submitBtn = h('button', { class: 'btn primary', onclick: startTests }, st.phase === 'changes' ? 'Resubmit milestone' : st.phase === 'draft' ? 'Submit milestone' : 'Submitted');
-        const hint = h('span', { class: 'tiny muted' });
-        const syncSubmit = () => {
-          const all = st.checked.every(Boolean);
-          submitBtn.disabled = !editable || !all;
-          hint.textContent = !editable ? '' : all ? 'Ready. Tests run as soon as you submit.' : `Tick all ${st.checked.length} items to submit.`;
-        };
-        const deliv = h('div', { class: 'mp-deliv' }, m8.deliverables.map((d, i) => {
-          const cb = h('input', { type: 'checkbox', onchange: (e) => { st.checked[i] = e.target.checked; syncSubmit(); } });
-          cb.checked = !!st.checked[i]; cb.disabled = !editable;
-          return h('label', {}, cb, h('span', {}, d));
-        }));
-        syncSubmit();
-
-        const checks = h('div', {}, m8.tests.map((t, i) => {
-          let cls = 'wait', ic = '·', sub = st.phase === 'draft' || st.phase === 'changes' ? 'Runs when you submit' : 'Queued';
-          if (i < st.testsDone) { cls = 'pass' + (i === st.justPassed ? ' just' : ''); ic = icon('check'); sub = `Passed in ${(2 + (parseInt(hash7(t), 16) % 90) / 10).toFixed(1)} s`; }
-          else if (st.phase === 'testing' && i === st.testsDone) { cls = 'run'; ic = '<span class="spin"></span>'; sub = 'Running in an isolated lab container…'; }
-          return h('div', { class: 'check ' + cls }, h('span', { class: 'ic', html: ic }), h('div', { class: 'mp-ct' }, h('span', {}, t), h('span', { class: 'tiny muted' }, sub)));
-        }));
-        let sum;
-        if (st.phase === 'testing') sum = h('div', { class: 'mp-sum' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), `Running test ${Math.min(st.testsDone + 1, n)} of ${n}`);
-        else if (st.testsDone >= n && st.phase !== 'draft') sum = h('div', { class: 'mp-sum', style: { color: 'var(--green)' } }, h('span', { html: icon('check'), style: { width: '16px', height: '16px', display: 'inline-flex' } }), `${n} of ${n} tests passed`);
-        else sum = h('div', { class: 'mp-sum muted' }, `${n} tests · run automatically, the same for every student`);
-
-        fill(secMilestone,
-          h('div', { class: 'card-head' },
-            h('div', { style: { minWidth: 0, flex: '1 1 300px' } }, h('div', { class: 'eyebrow' }, `Current milestone · Capstone ${CN} · Month ${MM}${info.final ? ' (final)' : ''}`), h('h2', {}, cap.title), h('div', { class: 'small muted', style: { marginTop: '4px' } }, `${data.months[MM]} · for ${info.company}`)),
-            h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill ' + pill.cls }, phaseLabel()), h('button', { class: 'btn ghost sm', title: 'Start this demo flow again', onclick: resetDemo }, 'Reset demo'))),
-          h('ol', { class: 'mp-steps', 'aria-label': 'Milestone progress' }, steps),
-          h('div', { class: 'mp-body' },
-            h('div', { class: 'mp-pane' },
-              h('h4', {}, 'What you hand in'),
-              h('p', { class: 'tiny muted' }, 'Tick each item once it is in your project repository.'),
-              deliv,
-              h('div', { class: 'row', style: { gap: '10px' } }, submitBtn, hint)),
-            h('div', { class: 'mp-pane' },
-              h('h4', {}, 'Acceptance tests'),
-              sum, checks)),
-          reviewArea());
-      }
-
-      function reviewArea() {
-        if (st.phase === 'review') {
-          return h('div', { class: 'mp-review wait' },
-            h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-              h('div', { class: 'stack', style: { gap: '4px', minWidth: 0, flex: '1 1 260px' } }, h('h3', {}, 'Waiting for mentor review'),
-                h('p', { class: 'small muted' }, 'Your submission is in your mentor’s queue with the test results attached. The mentor scores it against the rubric and writes feedback.')),
-              h('span', { class: 'pill amber' }, 'In queue')),
-            st.reviewing
-              ? h('div', { class: 'row small' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), `Your mentor, Kavita Rao, is reviewing ${first}'s submission…`)
-              : h('div', { class: 'row' },
-                h('button', { class: 'btn primary', onclick: simulateReview, html: icon('mentor') + '<span>Simulate mentor review</span>' }),
-                h('button', { class: 'btn', onclick: () => c.go('mentor') }, 'Open the mentor console'),
-                h('span', { class: 'tiny muted' }, 'Demo: approve it here, or from the mentor console.')));
+        let bodyEls = [];
+        if (st.phase === 'draft' || st.phase === 'changes') {
+          const submitBtn = h('button', { class: 'btn primary', onclick: startTests }, st.phase === 'changes' ? 'Resubmit milestone' : 'Submit milestone');
+          const hint = h('span', { class: 'small muted' });
+          const syncSubmit = () => {
+            const all = st.checked.every(Boolean);
+            submitBtn.disabled = !all;
+            hint.textContent = all ? 'Ready. Tests run as soon as you submit.' : `Tick all ${st.checked.length} items to submit.`;
+          };
+          const deliv = h('div', { class: 'mp-deliv' }, m8.deliverables.map((d, i) => {
+            const cb = h('input', { type: 'checkbox', onchange: (e) => { st.checked[i] = e.target.checked; syncSubmit(); } });
+            cb.checked = !!st.checked[i];
+            return h('label', { title: d }, cb, h('span', {}, clip(d, 70)));
+          }));
+          syncSubmit();
+          if (st.phase === 'changes' && st.review) {
+            bodyEls.push(h('div', { class: 'mp-result bad' }, h('div', { class: 'mp-score' }, h('b', { class: 'num' }, String(st.review.total)), h('span', {}, '/100')),
+              h('div', {}, h('b', {}, `Changes requested by ${st.review.mentor}`), h('p', { class: 'small mp-clamp' }, st.review.comment), h('button', { class: 'lnk small', onclick: () => showTab('rubric', true) }, 'See rubric scores'))));
+          }
+          bodyEls.push(h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, 'What you hand in'), deliv), h('div', { class: 'mp-act' }, submitBtn, hint));
+        } else if (st.phase === 'testing') {
+          const checks = h('div', {}, m8.tests.map((t, i) => {
+            let cls = 'wait', ic = '·', sub = 'Queued';
+            if (i < st.testsDone) { cls = 'pass' + (i === st.justPassed ? ' just' : ''); ic = icon('check'); sub = `Passed in ${(2 + (parseInt(hash7(t), 16) % 90) / 10).toFixed(1)} s`; }
+            else if (i === st.testsDone) { cls = 'run'; ic = '<span class="spin"></span>'; sub = 'Running in an isolated lab container…'; }
+            return h('div', { class: 'check ' + cls, title: t }, h('span', { class: 'ic', html: ic }), h('div', { class: 'mp-ct' }, h('span', {}, clip(t, 80)), h('span', { class: 'tiny muted' }, sub)));
+          }));
+          bodyEls.push(h('div', { class: 'mp-sum' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), `Running test ${Math.min(st.testsDone + 1, n)} of ${n}`), checks);
+        } else if (st.phase === 'review') {
+          bodyEls.push(h('div', { class: 'mp-result wait' }, h('span', { class: 'ic', html: st.reviewing ? '<span class="spin"></span>' : icon('mentor') }),
+            h('div', {}, h('b', {}, st.reviewing ? `Kavita Rao is reviewing ${first}'s work…` : 'Waiting for mentor review'),
+              h('p', { class: 'small muted' }, `All ${n} automatic tests passed. The mentor scores the work against the rubric and writes feedback.`))),
+          h('div', { class: 'mp-act' },
+            h('button', { class: 'btn primary', disabled: st.reviewing ? true : null, onclick: simulateReview, html: icon('mentor') + '<span>Simulate mentor review</span>' }),
+            h('button', { class: 'btn', onclick: () => c.go('mentor') }, 'Open the mentor console')));
+        } else if (st.phase === 'approved' && st.review) {
+          const r = st.review, stage = st.pub.stage;
+          bodyEls.push(h('div', { class: 'mp-result ok' }, h('div', { class: 'mp-score' }, h('b', { class: 'num' }, String(r.total)), h('span', {}, '/100')),
+            h('div', {}, h('b', {}, `Approved by ${r.mentor}`), h('p', { class: 'small mp-clamp' }, r.comment), h('button', { class: 'lnk small', onclick: () => showTab('rubric', true) }, 'See rubric scores'))));
+          const pubBtn = stage === 6
+            ? h('button', { class: 'btn', onclick: () => showTab('portfolio', true), html: icon('github') + '<span>See it on the portfolio</span>' })
+            : h('button', { class: 'btn primary', onclick: openPublish, html: icon('github') + `<span>${stage === 0 ? 'Publish to GitHub' : 'Continue publishing'}</span>` });
+          bodyEls.push(h('div', { class: 'mp-act' }, pubBtn,
+            h('span', { class: 'small muted' }, stage === 6 ? 'Published to GitHub.' : info.certSlot ? `Capstone ${CN} certificate unlocked.` : isC4 ? 'Final grade at Demo Day in Month 12.' : `Certificate after the Month ${info.last.month} milestone.`)));
         }
-        if ((st.phase === 'approved' || st.phase === 'changes') && st.review) {
-          const r = st.review, ok = st.phase === 'approved';
-          const table = h('div', { class: 'table-wrap' }, h('table', {},
-            h('thead', {}, h('tr', {}, h('th', {}, 'Rubric criterion'), h('th', {}, 'Weight'), h('th', {}, 'Score'), h('th', { style: { textAlign: 'right' } }, 'Points'))),
-            h('tbody', {}, r.scores.map((s) => h('tr', {}, h('td', {}, s.criterion), h('td', { class: 'num muted' }, `${s.weight}`),
-              h('td', {}, h('div', { class: 'mp-bar green' }, h('i', { style: { width: `${s.weight ? s.score / s.weight * 100 : 0}%` } }))),
-              h('td', { class: 'num', style: { textAlign: 'right' } }, `${s.score} / ${s.weight}`)))),
-            h('tfoot', {}, h('tr', {}, h('td', {}, 'Total'), h('td', { class: 'num muted' }, `${r.maxTotal}`), h('td', {}), h('td', { class: 'num', style: { textAlign: 'right' } }, `${r.total} / ${r.maxTotal}`)))));
-          return h('div', { class: 'mp-review ' + (ok ? 'ok' : 'bad') },
-            h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-              h('div', { class: 'mp-who' }, h('span', { class: 'avatar' }, r.mentor.split(' ').map((x) => x[0]).join('').slice(0, 2)),
-                h('div', { style: { minWidth: 0 } }, h('b', { class: 'small' }, `Mentor review · ${r.mentor}`), h('div', { class: 'tiny muted' }, 'Scored against the capstone rubric · demo data'))),
-              h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'stat' }, h('b', { class: 'num', style: { color: ok ? 'var(--green)' : 'var(--red)' } }, `${r.total}/${r.maxTotal}`)), h('span', { class: 'pill ' + (ok ? 'green' : 'red') }, ok ? 'Approved' : 'Changes requested'))),
-            table,
-            h('div', { class: 'mp-quote' }, r.comment),
-            ok
-              ? h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => scrollTo('mp-publish'), html: icon('github') + `<span>${st.pub.stage === 6 ? 'See what was published' : 'Next: publish to GitHub'}</span>` }),
-                secDemo ? h('button', { class: 'btn', onclick: () => { scrollTo('mp-demoday'); flashEl('mp-demoday'); } }, st.demo.booked ? 'See your Demo Day slot' : 'Book your Demo Day slot') : null,
-                h('span', { class: 'tiny muted' }, info.certSlot ? `Capstone ${CN} certificate unlocked.` : info.slot === 'C4' ? 'Capstone 4 and the program certificate follow Demo Day in Month 12.' : `The Capstone ${CN} certificate follows when the Month ${info.last.month} milestone is approved.`))
-              : h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { st.phase = 'changes'; st.testsDone = 0; st.review = r; state.progress.milestoneStatus = 'changes_requested'; fillMilestone(); scrollTo('mp-milestone'); } }, 'Make changes and resubmit')));
-        }
-        if (st.phase === 'draft') return h('p', { class: 'note', style: { marginTop: '16px' } }, 'After you submit: the tests run automatically, then your mentor scores the work with the rubric and approves it or asks for changes.');
-        return null;
+        fill(secMilestone, head, h('ol', { class: 'mp-steps', 'aria-label': 'Milestone progress' }, steps), bodyEls, foot);
       }
 
       function resetDemo() {
         st.phase = 'draft'; st.pub.stage = 0;   // so cleanup does not "finish" anything we are throwing away
+        if (pubModal) { pubModal.close(); pubModal = null; }
         if (live) live.cleanup();
         store[f.id] = freshState(f, { milestoneStatus: 'in_progress', portfolioPublished: false });
         if (info.certSlot) dropLive(info.certSlot);
@@ -583,7 +584,7 @@
         c.toast('Demo flow reset for this field.');
       }
 
-      // ----- 3. Publish to GitHub -----
+      // ----- 3. Publish to GitHub (steps shown in a modal) -----
       function commitsList() {
         const ms7 = cap.milestones.find((m) => m.month === MM - 1) || cap.milestones[0];
         return [
@@ -613,7 +614,7 @@
         ].join('\n');
       }
       function startPublish() {
-        st.pub.stage = 1; st.pub.commits = 0; fillPublish();
+        st.pub.stage = 1; st.pub.commits = 0; fillPublish(); fillMilestone(); fillTabsIf('portfolio');
         later(() => { st.pub.stage = 2; fillPublish();
           later(() => { st.pub.stage = 3; fillPublish();
             const push = () => {
@@ -626,6 +627,17 @@
             later(push, 450);
           }, 900);
         }, 700);
+      }
+      function openPublish() {
+        if (pubModal) pubModal.close();
+        secPublish = h('div', { class: 'stack', id: 'mp-publish' });
+        const m = c.modal(h('div', { class: 'm-projects mp-modal' }, secPublish));
+        pubModal = m;
+        const closeIt = m.close;
+        m.close = () => { closeIt(); if (pubModal === m) { pubModal = null; secPublish = h('div'); } };
+        m.box.parentNode.addEventListener('click', (e) => { if (e.target === m.box.parentNode && pubModal === m) { pubModal = null; secPublish = h('div'); } });
+        fillPublish();
+        if (st.phase === 'approved' && st.pub.stage === 0) startPublish();
       }
       function pubNotify() {
         if (st.pubNotified || !c.notify) return; st.pubNotified = true;
@@ -659,29 +671,24 @@
         else readmeBlock = h('span', { class: 'mp-sub' }, 'You check and edit the AI draft before anything goes public');
 
         fill(secPublish,
-          h('div', { class: 'card-head' },
-            h('div', {}, h('div', { class: 'eyebrow' }, 'Your own GitHub'), h('h3', {}, 'Publish to GitHub')),
-            h('span', { class: 'pill ' + (stage === 6 ? 'green' : ok ? 'blue' : '') }, stage === 6 ? 'Published' : ok ? 'Ready to publish' : 'Locked')),
-          h('p', { class: 'small muted', style: { marginBottom: '8px' } }, 'The project goes to the student’s own GitHub account, so employers can see the real code. The portfolio site then rebuilds itself.'),
+          h('div', { class: 'mp-phead' },
+            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone ${CN} · to ${gh}'s own GitHub`), h('h3', {}, 'Publish to GitHub')),
+            h('span', { class: 'pill ' + (stage === 6 ? 'green' : ok ? 'blue' : '') }, stage === 6 ? 'Published' : ok ? (stage ? 'Publishing' : 'Ready') : 'Locked')),
+          h('p', { class: 'small muted' }, 'The project goes to the student’s own GitHub account, so employers see the real code. The portfolio site then rebuilds itself.'),
           h('div', {},
             step(1, 'Connect the GitHub App', h('span', { class: 'mp-sub' }, `Already connected as ${gh}`)),
             step(2, 'Create the repository', h('span', { class: 'mp-mono muted' }, `github.com/${gh}/${repo}`)),
             step(3, 'Push your commits', stage >= 3
               ? h('div', { class: 'mp-commits' }, commits.slice(0, stage === 3 ? st.pub.commits : 4).map((x) => h('div', { html: `<span class="hx">${x.hash}</span> ${c.esc(x.msg)}` })),
-                stage === 3 && st.pub.commits < 4 ? h('div', { class: 'dm' }, 'pushing…') : h('div', { class: 'dm' }, `4 commits pushed to main`))
+                stage === 3 && st.pub.commits < 4 ? h('div', { class: 'dm' }, 'pushing…') : h('div', { class: 'dm' }, '4 commits pushed to main'))
               : h('span', { class: 'mp-sub' }, '4 commits from your lab work')),
             step(4, 'Review the README', readmeBlock),
             step(5, 'Rebuild the portfolio site', h('span', { class: 'mp-sub' }, stage === 6 ? `Live at https://${gh}.github.io` : stage === 5 ? 'Building the site from your repositories…' : 'Adds this project to your public portfolio'))),
-          stage === 0
-            ? h('div', { class: 'row', style: { marginTop: '12px' } },
-              h('button', { class: 'btn primary', disabled: !ok, onclick: startPublish, html: icon('github') + '<span>Publish to GitHub</span>' }),
-              !ok ? h('span', { class: 'tiny muted' }, `Unlocks when your mentor approves the Month ${MM} milestone.`) : null)
-            : stage === 6
-              ? h('div', { class: 'callout', style: { marginTop: '12px', borderLeftColor: 'var(--green)' } },
-                h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-                  h('span', { class: 'small', style: { minWidth: 0 } }, h('b', {}, 'Published. '), `github.com/${gh}/${repo} is public and your portfolio shows it.`),
-                  h('button', { class: 'btn sm', onclick: () => scrollTo('mp-portfolio') }, 'See portfolio')))
-              : null);
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+            !ok ? h('span', { class: 'tiny muted', style: { marginRight: 'auto' } }, `Unlocks when your mentor approves the Month ${MM} milestone.`) : null,
+            stage === 6 ? h('button', { class: 'btn', onclick: () => { if (pubModal) pubModal.close(); showTab('portfolio', true); } }, 'See portfolio') : null,
+            ok && stage === 0 ? h('button', { class: 'btn primary', onclick: startPublish, html: icon('github') + '<span>Publish to GitHub</span>' }) : null,
+            h('button', { class: stage === 6 || !ok ? 'btn primary' : 'btn', onclick: () => { if (pubModal) pubModal.close(); } }, stage > 0 && stage < 6 ? 'Hide (keeps going)' : 'Close')));
       }
 
       // ----- 4. Certificates (from the student's profile, plus any issued live in this session) -----
@@ -700,28 +707,27 @@
           const score = l && l.score != null ? l.score : slot === info.slot && st.review ? st.review.total : j && j.score != null ? j.score : null;
           out.push(Object.assign({}, defs[slot], { id: `${base}-${slot}`, issued: p ? fmtDate(p.date) : l.date, score: slot === 'F' ? null : score }));
         });
-        // What comes next, so the list never looks finished when it is not.
         const has = (slot) => out.some((x) => x.key === slot);
         if (info.slot !== 'C4' && !has(info.slot)) {
-          out.push(Object.assign({}, defs[info.slot], { id: `${base}-${info.slot}`, locked: true, title: info.certSlot ? `Capstone ${CN} — available after approval` : `Capstone ${CN} — after the Month ${info.last.month} milestone`,
+          out.push(Object.assign({}, defs[info.slot], { id: `${base}-${info.slot}`, locked: true, title: info.certSlot ? `Capstone ${CN}: available after approval` : `Capstone ${CN}: after the Month ${info.last.month} milestone`,
             lockText: info.certSlot ? `Unlocks when your mentor approves the Month ${MM} milestone` : `Unlocks when the final Month ${info.last.month} milestone is approved` }));
         }
         if (!has('F') && NOW <= 3) out.push(Object.assign({}, defs.F, { id: `${base}-F`, locked: true, title: 'Months 1–3 completion', lockText: 'Issued when you pass the Month 3 assessment' }));
-        if (info.slot === 'C4') out.push({ key: 'C4', id: `${base}-C4`, locked: true, title: `Capstone 4 and program completion`, lockText: 'Issued after you present at Demo Day in Month 12', kind: 'Program Completion and Capstone 4' });
+        if (info.slot === 'C4') out.push({ key: 'C4', id: `${base}-C4`, locked: true, title: 'Capstone 4 and program completion', lockText: 'Issued after you present at Demo Day in Month 12', kind: 'Program Completion and Capstone 4' });
         return out;
       }
       function fillCerts() {
         const list = certList(), issued = list.filter((x) => !x.locked);
-        fill(secCerts,
-          h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'QR-verifiable'), h('h3', {}, 'Certificates')), h('span', { class: 'pill' }, `${issued.length} issued`)),
-          h('p', { class: 'small muted', style: { marginBottom: '10px' } }, 'Every certificate has a QR code. Anyone can scan it to check it is genuine.'),
-          issued.length ? null : h('div', { class: 'note', style: { marginBottom: '10px' } }, h('b', {}, 'No certificates yet. '),
-            `${first}'s first certificates arrive at the end of Month 3: Capstone 1 once the mentor approves this milestone, and Months 1–3 completion after the Month 3 assessment is passed.`),
-          h('div', { class: 'mp-certs' }, list.map((x) => h('button', { class: 'mp-cert', disabled: !!x.locked, onclick: () => openCert(x) },
-            h('span', { class: 'ix', html: icon('trophy') }),
+        tabPanel.append(
+          h('div', { class: 'mp-phead' }, h('div', {}, h('div', { class: 'eyebrow' }, 'QR-verifiable'), h('h3', {}, `${issued.length} certificate${issued.length === 1 ? '' : 's'} issued`)),
+            h('button', { class: 'btn sm', onclick: () => c.go('achievements') }, 'All certificates')),
+          h('p', { class: 'small muted' }, 'Every certificate has a QR code. Anyone can scan it to check it is genuine.'),
+          issued.length ? null : h('div', { class: 'note' }, `${first}'s first certificates arrive at the end of Month 3.`),
+          h('div', { class: 'mp-certs' }, list.map((x) => h('button', { class: 'mp-cert', disabled: !!x.locked, onclick: () => openCert(x), title: x.title },
+            h('span', { class: 'ix', html: icon(x.locked ? 'lock' : 'trophy') }),
             h('span', { class: 'tx' }, h('b', {}, x.title), h('span', {}, x.locked ? x.lockText : `Issued ${x.issued} · ${x.id}`)),
-            x.locked ? h('span', { class: 'pill' }, 'Locked') : h('span', { class: 'pill green' }, 'View')))),
-          h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo certificates. Not real credentials.'));
+            h('span', { class: 'go' }, x.locked ? 'Locked' : 'View')))),
+          h('p', { class: 'tiny muted' }, 'Demo certificates. Not real credentials.'));
       }
       function openCert(x) {
         const url = `https://verify.neuronetwrks.com/c/${x.id}`;
@@ -735,20 +741,10 @@
             h('div', { class: 'small muted' }, 'This certifies that'),
             h('div', { class: 'mp-name' }, S.name),
             h('p', { class: 'small' }, x.what),
-            x.score != null ? h('div', {}, h('span', { class: 'pill green' }, `Mentor score ${x.score}/100`)) : null,
+            x.score != null ? h('div', { class: 'small' }, h('b', {}, `Mentor score ${x.score}/100`)) : null,
             h('div', { class: 'mp-paper-foot' },
               h('div', {}, h('span', { class: 'tiny muted' }, 'Issued'), h('b', { class: 'small' }, x.issued), h('span', { class: 'tiny muted', style: { marginTop: '6px' } }, 'Certificate ID'), h('b', { class: 'mp-mono' }, x.id)),
               h('div', { class: 'mp-qrwrap' }, qrBox, qrNote)))),
-          h('div', { class: 'stack', style: { gap: '6px' } },
-            h('div', { class: 'eyebrow' }, 'Verification page (what a scan opens)'),
-            h('div', { class: 'mp-browser' },
-              h('div', { class: 'mp-bbar' }, h('span', { class: 'mp-dots', html: '<i></i><i></i><i></i>' }), h('span', { class: 'mp-url', title: url }, url)),
-              h('div', { class: 'mp-vsite' },
-                h('div', { class: 'mp-valid' }, h('span', { class: 'ok', html: icon('check') }),
-                  h('div', { style: { minWidth: 0 } }, h('b', { style: { color: 'var(--green)' } }, 'Valid'), h('div', { class: 'small' }, `Issued to ${S.name} · ${x.issued}`))),
-                h('div', { class: 'small muted' }, `${x.kind} · ${x.title.replace(' — available after approval', '')}`),
-                h('div', { class: 'tiny muted' }, `Issued by ${data.brand.org} · ID ${x.id}`),
-                h('div', { class: 'note tiny' }, 'Demo page. No real certificate or student exists.')))),
           h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
             h('button', { class: 'btn', onclick: () => m.close() }, 'Close'),
             h('button', { class: 'btn primary', onclick: () => { m.close(); state.verifyCertificate = x.id; c.emit('certificate:verified', { id: x.id }); c.go('achievements'); }, html: icon('shield') + '<span>Verify this certificate</span>' })));
@@ -756,100 +752,211 @@
         drawQR(qrBox, url, qrNote);
       }
 
-      // ----- 5. Portfolio preview (the student's finished projects) -----
+      // ----- 5. Tabs: About · Rubric · Portfolio · Certificates -----
+      const TABS = [['about', 'About this capstone'], ['rubric', 'Rubric'], ['portfolio', 'Portfolio'], ['certs', 'Certificates']];
+      function showTab(id, scroll) {
+        st.tab = id; fillTabs(); fillTimeline();
+        if (scroll) secTabs.scrollIntoView({ behavior: smooth(), block: 'start' });
+      }
+      function fillTabsIf(id) { if (st.tab === id) fillTabs(); }
+      function fillTabs() {
+        fill(tabBar, TABS.map(([id, label]) => h('button', { class: 'tab', role: 'tab', id: 'mp-tab-' + id, 'aria-selected': String(st.tab === id), 'aria-controls': 'mp-panel', onclick: () => showTab(id) }, label)));
+        tabPanel.setAttribute('aria-labelledby', 'mp-tab-' + st.tab);
+        tabPanel.textContent = '';
+        ({ about: fillAbout, rubric: fillRubric, portfolio: fillPortfolio, certs: fillCerts })[st.tab]();
+      }
+
+      function openCapDetail(j) {
+        const m = c.modal(h('div', { class: 'm-projects mp-modal' },
+          h('div', {}, h('div', { class: 'eyebrow' }, `Capstone ${j.slot.slice(1)} · ${j.cap.level} · ${j.company}`), h('h3', {}, j.cap.title)),
+          h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'The problem'), h('p', { class: 'small' }, j.cap.problem)),
+          h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'What students build'), h('p', { class: 'small' }, j.cap.build)),
+          h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Tech stack'), h('div', { class: 'mp-tags' }, j.cap.stack.map((t) => h('span', { class: 'mp-tag' }, t)))),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+      }
+      function fillAbout() {
+        const j = J.find((x) => x.slot === st.selected) || CUR;
+        const s = capStatus(j);
+        const msState = (m) => {
+          if (j.before) return ['Done', 'green'];
+          if (j.after) return ['Upcoming', ''];
+          if (m.month < MM) return ['Done', 'green'];
+          if (m.month === MM) return [phaseLabel(), capStatus(j).cls];
+          return ['Upcoming', ''];
+        };
+        const open = (m) => j.current && m.month === MM;
+        tabPanel.append(
+          h('div', { class: 'mp-phead' },
+            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone ${j.slot.slice(1)} · Months ${j.months[0]}–${j.months[j.months.length - 1]} · ${j.slot === 'C1' ? `${j.company}, same for every field` : j.company}`), h('h3', {}, j.cap.title)),
+            h('span', { class: 'pill ' + s.cls }, s.label)),
+          h('p', { class: 'mp-lede' }, firstSentence(j.cap.problem), ' ', h('button', { class: 'lnk', onclick: () => openCapDetail(j) }, 'Read more')),
+          h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, 'Milestones'),
+            j.cap.milestones.map((m) => {
+              const [lab, cls] = msState(m);
+              const d = h('details', { class: 'mp-ms' },
+                h('summary', {}, h('span', {}, `Month ${m.month}`), h('span', { class: 'tiny muted' }, m.type === 'merged' ? 'In class' : 'Homework'), h('span', { class: 'st ' + cls }, lab)),
+                h('ul', {}, m.deliverables.map((x) => h('li', {}, x))));
+              if (open(m)) d.open = true;
+              return d;
+            })),
+          j.current ? h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { scrollTo('mp-milestone'); flashEl('mp-milestone'); } }, `Go to the Month ${MM} milestone`)) : null);
+      }
+      function fillRubric() {
+        const r = st.review && (st.phase === 'approved' || st.phase === 'changes') ? st.review : null;
+        tabPanel.append(
+          h('div', { class: 'mp-phead' },
+            h('div', {}, h('div', { class: 'eyebrow' }, `Capstone ${CN} · how the mentor grades it`), h('h3', {}, r ? `Mentor score: ${r.total}/${r.maxTotal}` : 'Rubric')),
+            r ? h('span', { class: 'pill ' + (st.phase === 'approved' ? 'green' : 'red') }, st.phase === 'approved' ? 'Approved' : 'Changes requested') : null),
+          h('p', { class: 'small muted' }, r ? `Scored by ${r.mentor}. Open a row to see what excellent work looks like.` : 'Each part has a weight out of 100. Open a row to see what excellent work looks like.'),
+          h('div', { class: 'mp-rub' }, (cap.rubric || []).map((x, i) => {
+            const sc = r ? r.scores[i] : null;
+            return h('details', { class: 'mp-rrow' },
+              h('summary', {}, h('span', { class: 'nm', title: x.criterion }, x.criterion),
+                h('span', { class: 'mp-bar' + (sc ? ' green' : '') }, h('i', { style: { width: sc ? `${sc.weight ? (sc.score / sc.weight) * 100 : 0}%` : `${Math.min(100, (x.weight / 30) * 100)}%` } })),
+                h('span', { class: 'num pts' }, sc ? `${sc.score}/${x.weight}` : `${x.weight}%`)),
+              h('div', { class: 'mp-rx' }, h('p', {}, h('b', {}, 'Excellent: '), x.excellent), h('p', {}, h('b', {}, 'Acceptable: '), x.acceptable)));
+          })),
+          r ? h('div', { class: 'mp-quote' }, r.comment) : null);
+      }
       function fillPortfolio() {
-        const approved = st.phase === 'approved', published = st.pub.stage === 6;
+        const approved = st.phase === 'approved', published = st.pub.stage === 6, stage = st.pub.stage;
         const skills = [];
         J.filter((j) => j.before || j.current).forEach((j) => j.cap.stack.forEach((t) => { const s = cleanTech(t); if (s && !skills.includes(s)) skills.push(s); }));
         const certs = certList().filter((x) => !x.locked);
         const card = (j) => {
           let status, cls, link = null, dim = false, flash = false;
           const n = j.slot.slice(1);
-          if (j.before) { status = `Approved · ${j.score}/100`; cls = 'green'; link = `github.com/${gh}/${kebab(j.cap.title)}`; }
+          if (j.before) { status = `Approved · ${j.score}/100`; cls = 'ok'; link = `github.com/${gh}/${kebab(j.cap.title)}`; }
           else if (j.current) {
-            if (published) { status = 'Approved'; cls = 'green'; link = `github.com/${gh}/${repo}`; flash = st.flash; }
-            else if (approved) { status = 'Approved · publishing soon'; cls = 'blue'; }
-            else { status = 'In progress'; cls = 'amber'; }
+            if (published) { status = 'Approved'; cls = 'ok'; link = `github.com/${gh}/${repo}`; flash = st.flash; }
+            else if (approved) { status = 'Approved · publishing soon'; cls = 'ok'; }
+            else { status = 'In progress'; cls = 'wip'; }
           } else { status = `Coming in Month ${j.months[0]}`; cls = ''; dim = true; }
           return h('div', { class: 'mp-pcard' + (dim ? ' dim' : '') + (flash ? ' flash' : '') },
-            h('div', { class: 'row', style: { justifyContent: 'space-between', gap: '8px' } }, h('span', { class: 'mp-slot' }, `Capstone ${n}`), h('span', { class: 'pill ' + cls }, status)),
+            h('div', { class: 'top' }, h('span', {}, `Capstone ${n}`), h('span', { class: cls }, status)),
             h('b', {}, j.cap.title),
             h('span', { class: 'mp-sub' }, firstSentence(j.cap.build)),
-            h('div', { class: 'mp-tags', style: { marginTop: '2px' } }, j.cap.stack.slice(0, 3).map((t) => h('span', { class: 'mp-tag' }, cleanTech(t)))),
             link ? h('button', { class: 'mp-repo lnk', onclick: () => repoToast(link) }, link) : null);
         };
         const shownCaps = J.filter((j, i) => j.before || j.current || i === info.idx + 1);
         const minisDone = COMMON_MINI.concat(f.standalone || []).filter((x) => x.month < NOW);
-        const lastIssued = certs.length ? certs[certs.length - 1].issued : 'last week';
         const role = NOW <= 3 ? `Common foundation · ${f.name} from Month 4` : `${f.name} · AI-assisted builder`;
         st.flash = false;
-        fill(secPortfolio,
-          h('div', { class: 'card-head' },
-            h('div', {}, h('div', { class: 'eyebrow' }, 'Built automatically'), h('h3', {}, 'Portfolio site preview')),
-            h('span', { class: 'pill ' + (published ? 'green' : '') }, published ? 'Rebuilt just now' : `Last built ${lastIssued}`)),
-          h('p', { class: 'small muted', style: { marginBottom: '12px' } }, 'Every approved project lands on the student’s public portfolio. No web skills needed; it rebuilds whenever they publish.'),
-          h('div', { class: 'mp-browser' },
+        const pubText = published ? [h('b', {}, 'Published. '), `github.com/${gh}/${repo} is public and shown below.`]
+          : approved ? (stage ? 'Publishing to GitHub…' : [h('b', {}, 'Ready. '), `Capstone ${CN} is approved and can go public.`])
+            : `Capstone ${CN} is added here after your mentor approves the Month ${MM} milestone.`;
+        tabPanel.append(
+          h('div', { class: 'mp-pubrow' }, h('span', {}, pubText),
+            approved && stage === 0 ? h('button', { class: 'btn primary sm', onclick: openPublish, html: icon('github') + '<span>Publish to GitHub</span>' })
+              : h('button', { class: 'btn sm', onclick: openPublish }, published ? 'See publish steps' : approved ? 'Show progress' : 'How publishing works')),
+          h('div', { class: 'mp-browser', id: 'mp-portfolio' },
             h('div', { class: 'mp-bbar' }, h('span', { class: 'mp-dots', html: '<i></i><i></i><i></i>' }), h('span', { class: 'mp-url' }, `https://${gh}.github.io`)),
             h('div', { class: 'mp-site' },
               h('div', { class: 'mp-hero' }, h('span', { class: 'mp-av' }, S.initials || S.name.split(' ').map((s) => s[0]).join('')),
                 h('div', {}, h('h2', {}, S.name), h('b', { class: 'small', style: { color: 'var(--brand)' } }, role),
-                  h('p', { class: 'small muted' }, `${S.education ? S.education + '. ' : ''}Student in the Neuromind AI Creator Program, Batch ${S.batch}. I build working tools for ${info.company}, a fictional company used in the course, and every project here was reviewed by a mentor.`),
-                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('button', { class: 'mp-repo lnk', onclick: () => repoToast(`github.com/${gh}`) }, `github.com/${gh}`), h('button', { class: 'lnk muted', onclick: () => c.go('achievements') }, certs.length ? `${certs.length} verified certificate${certs.length === 1 ? '' : 's'}` : 'Badges and progress')))),
-              skills.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Skills'), h('div', { class: 'mp-tags' }, skills.slice(0, 14).map((t) => h('span', { class: 'mp-tag' }, t)))) : null,
+                  h('p', { class: 'small muted' }, `Student in the Neuromind AI Creator Program, Batch ${S.batch}. Every project here was reviewed by a mentor.`),
+                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('button', { class: 'mp-repo lnk', onclick: () => repoToast(`github.com/${gh}`) }, `github.com/${gh}`), h('button', { class: 'lnk', style: { color: 'var(--muted)', fontWeight: 600 }, onclick: () => c.go('achievements') }, certs.length ? `${certs.length} verified certificate${certs.length === 1 ? '' : 's'}` : 'Badges and progress')))),
+              skills.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Skills'), h('div', { class: 'mp-tags' }, skills.slice(0, 8).map((t) => h('span', { class: 'mp-tag' }, t)))) : null,
               h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Capstone projects'), h('div', { class: 'mp-pgrid' }, shownCaps.map(card))),
-              minisDone.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Monthly projects'),
-                h('div', { class: 'mp-tags' }, minisDone.map((x) => h('button', { class: 'mp-chip done', onclick: () => repoToast(`github.com/${gh}/${kebab(x.title)}`), html: icon('check') + `<b>M${x.month}</b><span>${c.esc(x.title)}</span>` })))) : null,
-              h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Certificates'),
-                certs.length ? h('div', { class: 'mp-tags' }, certs.map((x) => h('span', { class: 'pill green', title: x.id }, x.key === 'F' ? 'Months 1–3' : `Capstone ${x.key.slice(1)}`)))
-                  : h('span', { class: 'small muted' }, 'The first certificates appear here at the end of Month 3.')),
+              minisDone.length ? h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, `Monthly projects (${minisDone.length})`),
+                h('div', { class: 'mp-tags' }, minisDone.map((x) => h('button', { class: 'mp-tag', style: { border: 0, cursor: 'pointer' }, onclick: () => repoToast(`github.com/${gh}/${kebab(x.title)}`) }, `M${x.month} · ${clip(x.title, 36)}`)))) : null,
               h('div', { class: 'tiny muted' }, 'Rebuilt automatically from GitHub · Demo data'))));
       }
 
-      // ----- 6. Demo Day booking (Capstone 4 students, Month 12) -----
+      // ----- 6. Side card: Demo Day booking (Capstone 4) or portfolio summary -----
       const DEMO_SLOTS = [
         ['Sat 22 Jan 2028', '10:00'], ['Sat 22 Jan 2028', '10:20'], ['Sat 22 Jan 2028', '10:40'], ['Sat 22 Jan 2028', '11:00'],
         ['Sun 23 Jan 2028', '10:00'], ['Sun 23 Jan 2028', '10:20'], ['Sun 23 Jan 2028', '14:00'], ['Sun 23 Jan 2028', '14:20'],
       ].map(([day, time], i) => ({ id: 'd' + i, day, time, taken: [0, 2, 5, 6].includes(i) }));
-      function fillDemo() {
-        if (!secDemo) return;
-        const d = st.demo, booked = DEMO_SLOTS.find((x) => x.id === d.booked), picked = DEMO_SLOTS.find((x) => x.id === d.picked);
+      function openDemo() {
+        const d = st.demo;
+        d.picked = null;
+        const box = h('div', { class: 'm-projects mp-modal' });
+        const m = c.modal(box);
         const finalMs = cap.milestones[cap.milestones.length - 1];
-        const days = [...new Set(DEMO_SLOTS.map((x) => x.day))];
-        const grid = h('div', { class: 'mp-dslots' }, days.map((day) => h('div', { class: 'stack', style: { gap: '6px' } }, h('b', { class: 'small' }, day),
-          h('div', { class: 'mp-dgrid' }, DEMO_SLOTS.filter((x) => x.day === day).map((x) => {
-            const mine = booked && booked.id === x.id, sel = d.picked === x.id;
-            return h('button', { class: 'mp-dslot' + (sel ? ' sel' : '') + (mine ? ' mine' : ''), disabled: x.taken && !mine, 'aria-pressed': sel ? 'true' : 'false',
-              'aria-label': `${x.day}, ${x.time} IST${x.taken ? ', taken' : mine ? ', your slot' : ''}`, onclick: () => { d.picked = x.id; fillDemo(); } },
-              h('b', { class: 'num' }, x.time), h('span', { class: 'tiny' }, x.taken ? 'Taken' : mine ? 'Your slot' : 'Free'));
-          })))));
-        const book = () => {
-          if (!picked) return;
-          const was = booked;
-          d.booked = picked.id; d.picked = null;
-          fillDemo();
-          c.toast(was ? `Demo Day slot changed to ${picked.day}, ${picked.time}.` : `Demo Day slot booked: ${picked.day}, ${picked.time}.`, 'green');
-          if (c.notify) c.notify(was ? 'Demo Day slot changed' : 'Demo Day slot booked', `${picked.day} at ${picked.time} IST. You present "${cap.title}" for 10 minutes, then 5 minutes of questions from mentors and guests.`, 'projects');
-          c.emit('demoday:booked', { student: S.id, day: picked.day, time: picked.time, capstone: cap.id });
+        const paint = () => {
+          const booked = DEMO_SLOTS.find((x) => x.id === d.booked), picked = DEMO_SLOTS.find((x) => x.id === d.picked);
+          const days = [...new Set(DEMO_SLOTS.map((x) => x.day))];
+          const book = () => {
+            if (!picked) return;
+            const was = booked;
+            d.booked = picked.id; d.picked = null;
+            m.close(); fillSide();
+            c.toast(was ? `Demo Day slot changed to ${picked.day}, ${picked.time}.` : `Demo Day slot booked: ${picked.day}, ${picked.time}.`, 'green');
+            if (c.notify) c.notify(was ? 'Demo Day slot changed' : 'Demo Day slot booked', `${picked.day} at ${picked.time} IST. You present "${cap.title}" for 10 minutes, then 5 minutes of questions from mentors and guests.`, 'projects');
+            c.emit('demoday:booked', { student: S.id, day: picked.day, time: picked.time, capstone: cap.id });
+          };
+          fill(box,
+            h('div', {}, h('div', { class: 'eyebrow' }, `Month 12 · the Month ${finalMs.month} milestone is graded here`), h('h3', {}, booked ? 'Change your Demo Day slot' : 'Book your Demo Day slot')),
+            h('p', { class: 'small muted' }, 'Pick a free slot. Times are in IST. You can change it until a week before.'),
+            h('div', { class: 'mp-dslots' }, days.map((day) => h('div', { class: 'stack', style: { gap: '6px' } }, h('b', { class: 'small' }, day),
+              h('div', { class: 'mp-dgrid' }, DEMO_SLOTS.filter((x) => x.day === day).map((x) => {
+                const mine = booked && booked.id === x.id, sel = d.picked === x.id;
+                return h('button', { class: 'mp-dslot' + (sel ? ' sel' : '') + (mine ? ' mine' : ''), disabled: x.taken && !mine, 'aria-pressed': sel ? 'true' : 'false',
+                  'aria-label': `${x.day}, ${x.time} IST${x.taken ? ', taken' : mine ? ', your slot' : ''}`, onclick: () => { d.picked = x.id; paint(); } },
+                  h('b', { class: 'num' }, x.time), h('span', { class: 'tiny' }, x.taken ? 'Taken' : mine ? 'Your slot' : 'Free'));
+              }))))),
+            h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+              h('span', { class: 'tiny muted', style: { marginRight: 'auto' } }, picked ? `Selected: ${picked.day}, ${picked.time} IST` : ''),
+              h('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'),
+              h('button', { class: 'btn primary', disabled: !picked || (booked && picked.id === booked.id), onclick: book }, booked ? 'Move to this slot' : 'Book this slot')));
         };
-        fill(secDemo,
-          h('div', { class: 'card-head' },
-            h('div', { style: { minWidth: 0, flex: '1 1 260px' } }, h('div', { class: 'eyebrow' }, 'Next step · Month 12'), h('h3', {}, 'Book your Demo Day slot'),
-              h('p', { class: 'small muted', style: { marginTop: '4px' } }, `Capstone 4 ends at Demo Day. ${first} presents "${cap.title}" live: 10 minutes of demo and 5 minutes of questions from mentors and invited guests. The Month ${finalMs.month} milestone is graded there.`)),
-            h('span', { class: 'pill ' + (booked ? 'green' : 'amber') }, booked ? 'Booked' : 'Not booked yet')),
-          booked
-            ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--green)', marginBottom: '12px' } },
-              h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-                h('span', { class: 'small', style: { minWidth: 0 } }, h('b', {}, `Booked: ${booked.day}, ${booked.time} IST. `), 'Online stage in the lab, with a tech check 30 minutes before.'),
-                h('button', { class: 'btn sm', onclick: () => c.toast(`Added to your lab calendar: Demo Day, ${booked.day} at ${booked.time} IST.`, 'green') }, 'Add to calendar')))
-            : null,
-          grid,
-          h('div', { class: 'row', style: { marginTop: '12px', gap: '10px' } },
-            h('button', { class: 'btn primary', disabled: !picked || (booked && picked.id === booked.id), onclick: book }, booked ? 'Move to this slot' : 'Book this slot'),
-            h('span', { class: 'tiny muted' }, picked ? `Selected: ${picked.day}, ${picked.time} IST` : booked ? 'You can change the slot until a week before Demo Day.' : 'Pick a free slot. Times are in IST.')));
+        paint();
+      }
+      function fillSide() {
+        if (isC4) {
+          const booked = DEMO_SLOTS.find((x) => x.id === st.demo.booked);
+          fill(secSide,
+            h('div', {}, h('div', { class: 'eyebrow' }, 'Next step · Month 12'), h('h3', {}, 'Demo Day')),
+            h('p', { class: 'small muted' }, `${first} presents "${clip(shortTitle(cap.title), 40)}" live: 10 minutes of demo, then 5 minutes of questions from mentors and guests.`),
+            booked
+              ? h('div', { class: 'mp-booked' }, h('b', {}, `Booked: ${booked.day}, ${booked.time} IST`), h('span', { class: 'tiny muted' }, 'Online stage in the lab. Tech check 30 minutes before.'))
+              : h('div', { class: 'small', style: { color: 'var(--amber)', fontWeight: 700 } }, `Not booked yet · ${DEMO_SLOTS.filter((x) => !x.taken).length} slots free`),
+            booked
+              ? h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn sm', onclick: openDemo }, 'Change slot'),
+                h('button', { class: 'btn sm ghost', onclick: () => c.toast(`Added to your lab calendar: Demo Day, ${booked.day} at ${booked.time} IST.`, 'green') }, 'Add to calendar'))
+              : h('div', { class: 'row' }, h('button', { class: 'btn', onclick: openDemo }, 'Choose a slot')));
+          return;
+        }
+        const published = st.pub.stage === 6;
+        const live = J.filter((j) => j.before).length + (published ? 1 : 0);
+        const certs = certList().filter((x) => !x.locked).length;
+        fill(secSide,
+          h('div', {}, h('div', { class: 'eyebrow' }, 'Public portfolio'), h('h3', {}, `${gh}.github.io`)),
+          h('div', { class: 'mp-kv' },
+            h('div', {}, h('b', {}, String(live)), h('span', {}, `capstone${live === 1 ? '' : 's'} live`)),
+            h('div', {}, h('b', {}, String(certs)), h('span', {}, `certificate${certs === 1 ? '' : 's'}`))),
+          h('p', { class: 'small muted' }, published ? 'Rebuilt just now with your latest capstone.' : st.phase === 'approved' ? `Capstone ${CN} is approved and ready to publish.` : `Capstone ${CN} is added once your mentor approves it.`),
+          h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => showTab('portfolio', true) }, 'View portfolio')));
+      }
+
+      // ----- 7. Monthly mini-projects (collapsed) -----
+      function openMini(s) {
+        const done = s.month < NOW, now = s.month === NOW;
+        const co = s.common ? data.common.company : f.company;
+        const browser = /browser/i.test((S.workspace && S.workspace.env) || '');
+        const m = c.modal(h('div', { class: 'm-projects mp-modal' },
+          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${s.month} mini-project · ${s.common ? 'Common foundation' : f.short}`), h('h3', {}, s.title)),
+            h('span', { class: 'pill ' + (done ? 'green' : now ? 'blue' : '') }, done ? 'Done' : now ? 'This month' : 'Upcoming')),
+          h('p', { class: 'small muted' }, `A short standalone project for Month ${s.month}, "${data.months[s.month]}". It practises the month's skills on ${co} data, next to the capstone work.`),
+          h('div', { class: 'note' }, done ? `Finished in Month ${s.month}. Automatic checks passed and the code is in ${gh}'s GitHub with the rest of the lab work.` : now ? (browser ? 'Open now. It runs in the in-browser Python lab and is checked automatically when submitted.' : 'Open now. It runs in the cloud workspace and is checked automatically when submitted.') : `Opens in Month ${s.month}, after the earlier months are done.`),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, now ? (browser ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('practical'); } }, 'Open the practical') : h('button', { class: 'btn', onclick: () => { m.close(); c.go('workspace'); } }, 'Open the cloud workspace')) : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+      }
+      function fillMinis() {
+        const all = COMMON_MINI.concat(f.standalone || []);
+        const wasOpen = secMini.open;
+        fill(secMini,
+          h('summary', {}, h('span', {}, `Monthly projects (${all.length})`), h('span', { class: 'tiny muted' }, `${all.filter((x) => x.month < NOW).length} done`)),
+          h('ul', { class: 'mp-mlist' }, all.map((s) => {
+            const done = s.month < NOW, now = s.month === NOW;
+            return h('li', {}, h('button', { onclick: () => openMini(s), title: s.title }, h('span', { class: 'mo' }, `M${s.month}`), h('span', { class: 't' }, s.title),
+              h('span', { class: 's ' + (done ? 'green' : now ? 'blue' : '') }, done ? 'Done' : now ? 'This month' : 'Upcoming')));
+          })));
+        secMini.open = wasOpen;
       }
 
       function repoToast(link) { c.toast(`On the live site this opens ${link} on GitHub. The demo stays offline, so it does not leave this page.`); }
-      function refreshAll() { fillTimeline(); fillMilestone(); fillDemo(); fillPublish(); fillCerts(); fillPortfolio(); }
+      function refreshAll() { fillTimeline(); fillMilestone(); fillSide(); fillPublish(); fillTabs(); fillMinis(); }
 
       // Mentor decisions (from this screen or the mentor console): the store was already updated by the module-level listener.
       const off = c.on('milestone:reviewed', () => {
@@ -863,6 +970,7 @@
       live = {
         cleanup() {
           off(); clearTimers();
+          if (pubModal) { pubModal.close(); pubModal = null; }
           // Finish anything mid-animation so a re-render shows a sensible end state.
           if (st.phase === 'testing') finishTestsQuiet();
           if (st.pub.stage >= 1 && st.pub.stage <= 3) { st.pub.stage = 4; st.pub.commits = 4; if (st.pub.readme == null) st.pub.readme = readmeDraft(); }

@@ -1062,68 +1062,66 @@
 
   /* ---------------- styles ---------------- */
   const CSS = `
-.m-practical { display: grid; gap: 14px; min-width: 0 }
-.m-practical [hidden], .m-practical-grader [hidden] { display: none !important }
-.m-practical .top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; min-width: 0 }
-.m-practical .pickwrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; flex: 1 1 420px }
-.m-practical .pickhead { padding-left: 2px }
-.m-practical .picker { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; padding: 2px }
-@media (max-width: 640px) { .m-practical .picker { flex-wrap: nowrap; overflow-x: auto; scroll-padding-inline: 8px } }
-.m-practical .pk.locked { border-style: dashed; color: var(--faint); background: var(--surface-2) }
-.m-practical .pk.locked:hover { border-color: var(--line); color: var(--muted) }
-.m-practical .pk .done { font-size: 11px; font-weight: 700; color: var(--green) }
-.m-practical .pk .lock { display: inline-flex; gap: 4px; align-items: center; font-size: 11px; font-weight: 600 }
-.m-practical .pk .lock svg { width: 12px; height: 12px }
-.m-practical .pk { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 11px; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center }
-.m-practical .pk:hover { border-color: var(--brand); color: var(--brand) }
-.m-practical .pk[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand); border-color: var(--brand) }
-.m-practical .pk .tag { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; background: var(--brand); color: var(--on-brand); border-radius: 99px; padding: 1px 6px }
-.m-practical .pk .ok { color: var(--green) }
-.m-practical .actions { display: flex; gap: 8px; flex-wrap: wrap }
-.m-practical .ide { display: grid; grid-template-columns: 276px minmax(0, 1fr) 304px; grid-template-areas: "task main tutor" "bar bar bar"; grid-template-rows: minmax(0, 1fr) auto;
-  height: clamp(640px, calc(100vh - 180px), 940px); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface) }
-.m-practical .task { grid-area: task; border-right: 1px solid var(--line); overflow: auto; padding: 14px; display: grid; gap: 14px; align-content: start; min-width: 0; min-height: 0 }
-.m-practical .mainc { grid-area: main; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--code-bg) }
-.m-practical .tutor { grid-area: tutor; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; min-width: 0 }
-.m-practical .bar { grid-area: bar; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; padding: 7px 12px; background: var(--surface-2); border-top: 1px solid var(--line); font-size: 12px; color: var(--muted) }
-.m-practical .bar span { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap }
-.m-practical .bar .barlink { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; background: none; border: 0; padding: 0; font: inherit; color: var(--brand); cursor: pointer; font-weight: 600 }
-.m-practical .bar .barlink:hover { text-decoration: underline }
-.m-practical .forumlink { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 0 14px 10px; flex: none }
-.m-practical .forumlink .btn { padding: 4px 8px }
-.m-practical .bar .dot { width: 7px; height: 7px; color: var(--green) }
-.m-practical .bar .saved { margin-left: auto; color: var(--faint) }
+.m-practical { display: grid; gap: 20px; min-width: 0 }
+.m-practical [hidden], .m-practical-grader [hidden], .m-practical-task [hidden] { display: none !important }
+.m-practical .pr-purpose { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap }
+.m-practical .pr-purpose .demo-tag { font-size: 10px }
 
-.m-practical .timer { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 6px; background: var(--surface-2) }
-.m-practical .timer b { font-family: var(--mono); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1 }
+/* Compact header: title, company, Choose practical, the task in two lines */
+.m-practical .pr-head { display: grid; gap: 12px; padding: 18px 22px; position: relative; z-index: 5 }
+.m-practical .pr-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px 16px; flex-wrap: wrap; position: relative }
+.m-practical .pr-top > div:first-child { min-width: 0; flex: 1 1 320px; display: grid; gap: 3px }
+.m-practical .pr-top h2 { margin: 0; font-size: 21px; line-height: 1.25 }
+.m-practical .pr-co { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; color: var(--muted) }
+.m-practical .pr-co b { color: var(--fg); font-weight: 700 }
+.m-practical .pr-task { display: flex; gap: 6px 14px; align-items: flex-end; min-width: 0; border-top: 1px solid var(--line); padding-top: 12px }
+.m-practical .pr-task p { margin: 0; font-size: 14.5px; line-height: 1.55; flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.m-practical .pr-more { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap }
+.m-practical .pr-more:hover { text-decoration: underline }
+
+/* Choose practical menu */
+.m-practical .pr-choose { position: relative; flex: none }
+.m-practical .pr-choose > .btn svg { width: 15px; height: 15px }
+.m-practical .pr-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: min(400px, calc(100vw - 32px)); max-height: min(520px, 72vh); overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px }
+.m-practical .pr-mgroup { padding: 8px 10px 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.m-practical .pk { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; background: none; color: var(--fg); border-radius: var(--radius-sm); padding: 8px 10px; cursor: pointer; font: inherit }
+.m-practical .pk:hover { background: var(--surface-2) }
+.m-practical .pk[aria-pressed="true"] { background: var(--brand-soft) }
+.m-practical .pk .no { width: 44px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 12.5px }
+.m-practical .pk[aria-pressed="true"] .no { background: var(--brand); color: var(--on-brand) }
+.m-practical .pk .tx { min-width: 0; display: grid; gap: 1px }
+.m-practical .pk b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.m-practical .pk .sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.m-practical .pk.locked { color: var(--muted) }
+.m-practical .pk.locked .no { background: none; border: 1px dashed var(--line-strong) }
+
+/* Work area: editor + terminal on the left, one side panel on the right */
+.m-practical .pr-work { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: stretch; min-width: 0 }
+.m-practical .mainc { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: clamp(520px, calc(100vh - 320px), 780px); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); box-shadow: var(--shadow-xs) }
+.m-practical .pr-actions { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--line); flex: none; flex-wrap: wrap }
+.m-practical .pr-actions .sp { flex: 1 }
+.m-practical .timer { display: flex; align-items: center; gap: 10px; min-width: 0 }
+.m-practical .timer b { font-family: var(--mono); font-size: 18px; font-variant-numeric: tabular-nums; line-height: 1 }
+.m-practical .timer .tl { display: grid; gap: 4px; min-width: 0 }
+.m-practical .timer .progress { height: 5px; width: 120px }
+.m-practical .timer .tiny { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .m-practical .timer.warn b { color: var(--amber) } .m-practical .timer.over b { color: var(--red) }
-.m-practical .timer .progress { height: 6px }
 .m-practical .timer.warn .progress > i { background: var(--amber) } .m-practical .timer.over .progress > i { background: var(--red) }
-.m-practical .sec { display: grid; gap: 6px; min-width: 0 }
-.m-practical .sec > .eyebrow { font-size: 11px }
-.m-practical .task p { font-size: 13.5px }
-.m-practical .files { display: grid; gap: 4px }
-.m-practical .fl { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 2px 8px; text-align: left; border: 1px solid transparent; background: none; border-radius: var(--radius-sm); padding: 6px 8px; cursor: pointer; width: 100% }
-.m-practical .fl:hover { background: var(--surface-2); border-color: var(--line) }
-.m-practical .fl svg { width: 15px; height: 15px; color: var(--muted); margin-top: 2px }
-.m-practical .fl code { font-size: 12px; overflow-wrap: anywhere; color: var(--fg) }
-.m-practical .fl .tiny { grid-column: 2; color: var(--muted) }
-.m-practical .fl .pill { font-size: 10.5px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px }
-.m-practical .checks .check { font-size: 13px; padding: 7px 0 }
-.m-practical .checks .check .ic { width: 18px; height: 18px; font-size: 11px }
-.m-practical .result { border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 8px }
-.m-practical .result.part { border-left-color: var(--amber) }
+.m-practical .pr-fix { background: none; border: 0; padding: 4px 6px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; border-radius: 6px; white-space: nowrap }
+.m-practical .pr-fix:hover { color: var(--brand); background: var(--surface-2) }
+.m-practical .pr-fix:disabled { opacity: .5; cursor: not-allowed }
 
-.m-practical .etabs { display: flex; align-items: stretch; gap: 0; min-width: 0; background: color-mix(in srgb, var(--code-bg) 88%, var(--code-fg)); border-bottom: 1px solid color-mix(in srgb, var(--code-fg) 12%, transparent) }
-.m-practical .etabs .scroll { display: flex; overflow-x: auto; min-width: 0; flex: 1 }
-.m-practical .et { background: none; border: 0; border-top: 2px solid transparent; color: var(--code-muted); font-family: var(--mono); font-size: 12px; padding: 9px 12px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center }
+.m-practical .etabs { display: flex; align-items: stretch; min-width: 0; background: color-mix(in srgb, var(--code-bg) 92%, var(--code-fg)); border-bottom: 1px solid color-mix(in srgb, var(--code-fg) 10%, transparent) }
+.m-practical .etabs .scroll { display: flex; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin }
+.m-practical .et { background: none; border: 0; border-top: 2px solid transparent; border-right: 1px solid color-mix(in srgb, var(--code-fg) 8%, transparent); color: var(--code-muted); font-family: var(--mono); font-size: 12.5px; padding: 9px 12px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center }
+.m-practical .et:hover { color: var(--code-fg) }
 .m-practical .et[aria-selected="true"] { color: var(--code-fg); background: var(--code-bg); border-top-color: var(--brand) }
 .m-practical .et .mod { width: 6px; height: 6px; border-radius: 50%; background: var(--code-num) }
-.m-practical .et .ro { font-family: var(--body); font-size: 10px; color: var(--code-muted); border: 1px solid color-mix(in srgb, var(--code-fg) 25%, transparent); border-radius: 4px; padding: 0 4px }
-.m-practical .fixbtn { display: flex; align-items: center; gap: 8px; padding: 4px 8px; flex: none }
-.m-practical .fixbtn .lbl { font-size: 10.5px; color: var(--code-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700 }
-.m-practical .crumbs { font-family: var(--mono); font-size: 11.5px; color: var(--code-muted); padding: 5px 14px; border-bottom: 1px solid color-mix(in srgb, var(--code-fg) 8%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.m-practical .ed { position: relative; flex: 1 1 auto; min-height: 120px; display: grid; grid-template-columns: auto minmax(0, 1fr); overflow: hidden; background: var(--code-bg) }
+.m-practical .et .ro { font-family: var(--body); font-size: 10px; color: var(--code-muted); border: 1px solid color-mix(in srgb, var(--code-fg) 22%, transparent); border-radius: 4px; padding: 0 4px }
+.m-practical .et .nw { font-family: var(--body); font-size: 10px; color: var(--code-str); font-weight: 700 }
+.m-practical .crumbs { font-family: var(--mono); font-size: 11.5px; color: var(--code-muted); padding: 5px 14px; border-bottom: 1px solid color-mix(in srgb, var(--code-fg) 8%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none }
+.m-practical .ed { position: relative; flex: 1 1 auto; min-height: 140px; display: grid; grid-template-columns: auto minmax(0, 1fr); overflow: hidden; background: var(--code-bg) }
 .m-practical .gut { overflow: hidden; padding: 12px 10px 12px 14px; text-align: right; color: var(--code-muted); user-select: none; font: 13px/1.6 var(--mono); opacity: .7; border-right: 1px solid color-mix(in srgb, var(--code-fg) 8%, transparent) }
 .m-practical .gut div { white-space: pre }
 .m-practical .area { position: relative; overflow: hidden; min-width: 0 }
@@ -1131,16 +1129,15 @@
 .m-practical .area pre { pointer-events: none; color: var(--code-fg); overflow: hidden; background: none }
 .m-practical .area pre code { display: block; font: inherit; will-change: transform }
 .m-practical .area textarea { background: transparent; color: transparent; caret-color: var(--code-fg); resize: none; outline: none; overflow: auto; width: 100%; height: 100% }
-.m-practical .area textarea::selection { background: color-mix(in srgb, var(--brand) 45%, transparent); color: transparent }
+.m-practical .area textarea::selection { background: color-mix(in srgb, var(--brand) 30%, transparent); color: transparent }
 .m-practical .area textarea[readonly] { caret-color: transparent }
 .m-practical .area .k { color: var(--code-key) } .m-practical .area .s { color: var(--code-str) } .m-practical .area .n { color: var(--code-num) } .m-practical .area .c { color: var(--code-muted) }
-.m-practical .area .t { color: color-mix(in srgb, var(--violet) 45%, var(--code-fg)) } .m-practical .area .todo { color: var(--code-num); background: color-mix(in srgb, var(--code-num) 16%, transparent); border-radius: 3px }
+.m-practical .area .t { color: color-mix(in srgb, var(--violet) 70%, var(--code-fg)) } .m-practical .area .todo { color: var(--code-num); background: color-mix(in srgb, var(--code-num) 14%, transparent); border-radius: 3px }
 .m-practical .ed.flash .area pre { animation: m-practical-flash 1.2s ease }
-@keyframes m-practical-flash { 0% { background: color-mix(in srgb, var(--green) 25%, transparent) } 100% { background: transparent } }
+@keyframes m-practical-flash { 0% { background: color-mix(in srgb, var(--green) 22%, transparent) } 100% { background: transparent } }
 
-.m-practical .etabs, .m-practical .crumbs, .m-practical .btabs, .m-practical .thead, .m-practical .ask, .m-practical .chips { flex: none }
-.m-practical .bottom { flex: 0 0 214px; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid color-mix(in srgb, var(--code-fg) 14%, transparent) }
-.m-practical .btabs { display: flex; gap: 2px; align-items: center; padding: 0 8px; background: color-mix(in srgb, var(--code-bg) 88%, var(--code-fg)) }
+.m-practical .bottom { flex: 0 0 190px; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid color-mix(in srgb, var(--code-fg) 12%, transparent) }
+.m-practical .btabs { display: flex; gap: 2px; align-items: center; padding: 0 8px; background: color-mix(in srgb, var(--code-bg) 92%, var(--code-fg)); flex: none }
 .m-practical .bt { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--code-muted); font-size: 12px; font-weight: 700; padding: 7px 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; white-space: nowrap }
 .m-practical .bt[aria-selected="true"] { color: var(--code-fg); border-bottom-color: var(--brand) }
 .m-practical .bt:disabled { opacity: .45; cursor: not-allowed }
@@ -1151,32 +1148,63 @@
 .m-practical .term .pr { color: var(--code-key) }
 .m-practical .term .warn { color: var(--code-num) }
 .m-practical .prev { flex: 1; min-height: 0; overflow: auto; padding: 10px 14px; display: grid; gap: 10px; align-content: start; color: var(--code-fg); font-family: var(--mono); font-size: 12.5px }
-.m-practical .prev .url { display: flex; gap: 8px; align-items: center; background: color-mix(in srgb, var(--code-fg) 8%, transparent); border-radius: 6px; padding: 5px 10px; color: var(--code-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+.m-practical .prev .url { display: flex; gap: 8px; align-items: center; background: color-mix(in srgb, var(--code-fg) 6%, transparent); border-radius: 6px; padding: 5px 10px; color: var(--code-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
 .m-practical .prev .req { display: grid; gap: 4px }
 .m-practical .prev .req b { color: var(--code-str); font-weight: 700 }
 .m-practical .prev pre { margin: 0; white-space: pre; overflow-x: auto; line-height: 1.55 }
 .m-practical .prev .k { color: var(--code-key) } .m-practical .prev .s { color: var(--code-str) } .m-practical .prev .n { color: var(--code-num) }
 
-.m-practical .thead { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 4px }
-.m-practical .thead h3 { display: flex; gap: 8px; align-items: center }
-.m-practical .tbody { flex: 1; min-height: 0; display: flex; flex-direction: column }
-.m-practical .ladder { padding: 10px 14px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); overflow: auto; max-height: 46%; flex: none }
+/* Side panel: Checks and AI tutor */
+.m-practical .pr-side { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: clamp(520px, calc(100vh - 320px), 780px); padding: 0; overflow: hidden }
+.m-practical .pr-side .tabs { padding: 6px 12px 0; flex: none }
+.m-practical .pr-side .tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--violet); margin-left: 6px; vertical-align: 2px }
+.m-practical .spane { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px; display: grid; gap: 14px; align-content: start }
+.m-practical .spane.tut { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden }
+.m-practical .checks .check { font-size: 13.5px; padding: 8px 0 }
+.m-practical .checks .check .ic { width: 18px; height: 18px; font-size: 11px }
+.m-practical .result { border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 8px }
+.m-practical .result.part { border-left-color: var(--amber) }
+.m-practical .failnote { border-radius: var(--radius-sm); background: var(--amber-soft); padding: 10px 12px; display: grid; gap: 8px; font-size: 13.5px }
+.m-practical .failnote .btn { justify-self: start }
+.m-practical .expect { font-size: 13.5px; line-height: 1.5; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 }
+.m-practical .ladder { padding: 12px 16px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); overflow: auto; max-height: 44%; flex: none }
 .m-practical .hint { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; gap: 6px; font-size: 13px }
 .m-practical .hint.open { background: var(--violet-soft); border-color: transparent }
 .m-practical .hint .hh { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 700; font-size: 12.5px }
 .m-practical .hint .hh span { color: var(--muted); font-weight: 600 }
 .m-practical .hint ol { margin: 0; padding-left: 18px; display: grid; gap: 3px }
 .m-practical .hint.locked { color: var(--faint) }
-.m-practical .chat { flex: 1; min-height: 120px; overflow: auto; padding: 10px 14px; display: grid; gap: 8px; align-content: start }
-.m-practical .msg { font-size: 13px; padding: 8px 10px; border-radius: 10px; max-width: 92%; overflow-wrap: anywhere }
+.m-practical .chat { flex: 1; min-height: 100px; overflow: auto; padding: 12px 16px; display: grid; gap: 8px; align-content: start }
+.m-practical .msg { font-size: 13.5px; line-height: 1.5; padding: 8px 10px; border-radius: 10px; max-width: 92%; overflow-wrap: anywhere }
 .m-practical .msg.ai { background: var(--surface-2); justify-self: start; border-top-left-radius: 3px }
 .m-practical .msg.me { background: var(--brand); color: var(--on-brand); justify-self: end; border-top-right-radius: 3px }
 .m-practical .msg.sys { background: var(--amber-soft); color: var(--fg); justify-self: stretch; max-width: none }
-.m-practical .ask { display: flex; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--line) }
-.m-practical .ask .field-input { padding: 8px 10px; font-size: 13px; min-width: 0 }
-.m-practical .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px }
+.m-practical .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 8px; flex: none }
 .m-practical .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; font-size: 12px; padding: 3px 9px; cursor: pointer; color: var(--muted) }
 .m-practical .chip:hover { color: var(--brand); border-color: var(--brand) }
+.m-practical .ask { display: flex; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--line); flex: none }
+.m-practical .ask .field-input { padding: 8px 10px; font-size: 13.5px; min-width: 0; flex: 1 }
+.m-practical .forumlink { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 0 16px 10px; flex: none }
+.m-practical .forumlink .btn { padding: 4px 8px }
+
+/* One-line status */
+.m-practical .bar { display: flex; gap: 6px 14px; align-items: center; font-size: 12.5px; color: var(--muted); min-width: 0; margin-top: -8px; padding: 0 4px; white-space: nowrap; overflow: hidden }
+.m-practical .bar > * { flex: none }
+.m-practical .bar .barlink { display: inline-flex; gap: 6px; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: var(--muted); cursor: pointer; font-weight: 600 }
+.m-practical .bar .barlink:hover { color: var(--brand); text-decoration: underline }
+.m-practical .bar .dot { width: 7px; height: 7px; color: var(--green) }
+.m-practical .bar .sep { color: var(--faint) }
+.m-practical .bar .saved { margin-left: auto; color: var(--faint); flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis }
+
+.m-practical-task { display: grid; gap: 14px; min-width: 0 }
+.m-practical-task p:not(.tiny) { margin: 0; font-size: 15px; line-height: 1.6 }
+.m-practical-task .files { display: grid; gap: 2px }
+.m-practical-task .fl { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 2px 10px; text-align: left; border: 0; background: none; border-radius: var(--radius-sm); padding: 7px 8px; cursor: pointer; width: 100%; font: inherit; color: var(--fg) }
+.m-practical-task .fl:hover { background: var(--surface-2) }
+.m-practical-task .fl svg { width: 15px; height: 15px; color: var(--muted); margin-top: 2px }
+.m-practical-task .fl code { font-size: 12.5px; overflow-wrap: anywhere }
+.m-practical-task .fl .tiny { grid-column: 2; color: var(--muted) }
+.m-practical-task .fl .pill { font-size: 10.5px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px }
 
 .m-practical-grader { display: grid; gap: 12px }
 .m-practical-grader .steps .check { font-size: 13.5px }
@@ -1185,21 +1213,25 @@
 .m-practical-grader .score.full b { color: var(--green) } .m-practical-grader .score.part b { color: var(--amber) }
 .m-practical-grader .hidden-head { display: flex; justify-content: space-between; gap: 8px; align-items: center }
 
-@media (max-width: 1280px) {
-  .m-practical .ide { grid-template-columns: 256px minmax(0, 1fr); grid-template-areas: "task main" "tutor tutor" "bar bar"; grid-template-rows: 620px auto auto; height: auto }
-  .m-practical .tutor { border-left: 0; border-top: 1px solid var(--line) }
-  .m-practical .tbody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) }
-  .m-practical .ladder { max-height: none; border-bottom: 0; border-right: 1px solid var(--line) }
-  .m-practical .chatcol { display: flex; flex-direction: column; min-height: 0; max-height: 380px }
+@media (max-width: 1180px) {
+  .m-practical .pr-work { grid-template-columns: minmax(0, 1fr) }
+  .m-practical .pr-side { height: auto; max-height: none }
+  .m-practical .spane { overflow: visible }
+  .m-practical .spane.tut { overflow: visible }
+  .m-practical .chat { max-height: 320px }
+  .m-practical .ladder { max-height: none }
 }
 @media (max-width: 760px) {
-  .m-practical .ide { grid-template-columns: minmax(0, 1fr); grid-template-areas: "task" "main" "tutor" "bar"; grid-template-rows: auto 560px auto auto }
-  .m-practical .task { border-right: 0; border-bottom: 1px solid var(--line) }
-  .m-practical .tbody { grid-template-columns: minmax(0, 1fr) }
-  .m-practical .ladder { border-right: 0; border-bottom: 1px solid var(--line) }
-  .m-practical .bottom { flex-basis: 200px }
+  .m-practical .pr-head { padding: 16px }
+  .m-practical .pr-top { position: relative }
+  .m-practical .pr-choose { position: static }
+  .m-practical .pr-menu { left: 0; right: 0; width: auto }
+  .m-practical .mainc { height: 620px }
+  .m-practical .timer .progress, .m-practical .timer .tiny { display: none }
+  .m-practical .bottom { flex-basis: 170px }
+  .m-practical .bar { white-space: normal; flex-wrap: wrap; margin-top: -6px }
   .m-practical .bar .saved { margin-left: 0 }
-  .m-practical .fixbtn .lbl { display: none }
+  .m-practical .bar .sep { display: none }
 }
 @media (prefers-reduced-motion: reduce) { .m-practical .ed.flash .area pre { animation: none } }
 `;
@@ -1260,53 +1292,77 @@
       ];
     }
 
-    /* top: picker + actions */
-    const picker = h('div', { class: 'picker', role: 'group', 'aria-label': 'Choose a practical' });
+    /* header: purpose line, title, company, Choose practical, the task in two lines */
+    const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    const picker = h('div', { class: 'pr-menu', hidden: true, role: 'menu', 'aria-label': 'Choose a practical' });
     const counts = { done: 0, today: 0, locked: 0 };
+    const pkRows = { today: [], done: [], locked: [] };
     pids.forEach((id) => {
       const lp = srcFor(field, id, data).practicals[id];
       const lec = data.lectures.find((l) => l.id === lp.lecture) || { month: 0, practical: lp.topic };
       const stt = statusOf(id, field, data); counts[stt]++;
       const sk = srcFor(field, id, data).id + ':' + id;
       const subNow = SESS[sk] && SESS[sk].submitted && !SESS[sk].past;
-      const chip = stt === 'today' ? h('span', { class: 'tag' }, 'Today') : stt === 'done' ? h('span', { class: 'done', html: '&#10003; Done' }) : h('span', { class: 'lock', html: c.icon('lock') + `<span>Opens in Month ${lec.month}</span>` });
-      picker.append(h('button', { class: 'pk ' + stt, 'aria-pressed': String(id === pid), title: `Lecture ${lp.lecture}: ${lp.topic}`, 'data-pid': id, onclick: () => {
-        if (id === pid) { c.toast(`You are on this practical: Lecture ${lp.lecture}, ${lp.topic}.`); return; }
+      const pill = stt === 'today' ? h('span', { class: 'pill ' + (subNow ? 'green' : 'blue') }, subNow ? 'Submitted' : 'Today') : stt === 'done' ? h('span', { class: 'pill green' }, 'Done') : h('span', { class: 'pill' }, `Month ${lec.month}`);
+      pkRows[stt].push(h('button', { class: 'pk ' + stt, role: 'menuitem', 'aria-pressed': String(id === pid), title: `Lecture ${lp.lecture}: ${lp.topic}`, 'data-pid': id, onclick: () => {
+        if (id === pid) { closePicker(); c.toast(`You are on this practical: Lecture ${lp.lecture}, ${lp.topic}.`); return; }
         if (stt === 'locked') { c.toast(`Lecture ${lp.lecture} opens in Month ${lec.month}. ${first} is in Month ${student.month}, so it is locked for now.`, 'amber'); return; }
         if (ss.busy) { c.toast('Wait for the checks to finish, then switch practicals.', 'amber'); return; }
-        selPid = id; mount(root, c);
-      } }, id === pid || stt === 'today' ? `L${lp.lecture} · ${lec.practical}` : `L${lp.lecture}`, chip, subNow && stt === 'today' ? h('span', { class: 'ok', html: '&#10003;', 'aria-label': 'submitted' }) : null));
+        closePicker(); selPid = id; mount(root, c);
+      } }, h('span', { class: 'no' }, `L${lp.lecture}`), h('span', { class: 'tx' }, h('b', {}, lec.practical), h('span', { class: 'sub' }, lp.topic)), pill));
     });
-    const pickHead = h('div', { class: 'pickhead tiny muted' }, `${first}'s practicals · ${counts.done} done · today: Lecture ${student.lecture}${counts.locked ? ` · ${counts.locked} open later in the year` : ''}`);
-    const runBtn = h('button', { class: 'btn', onclick: () => runChecks() }, h('span', { html: c.icon('play') }), 'Run checks');
-    const subBtn = h('button', { class: 'btn primary', onclick: () => submit() }, h('span', { html: c.icon('check') }), ss.submitted ? 'Resubmit' : 'Submit');
-    const top = h('div', { class: 'top' }, h('div', { class: 'pickwrap' }, pickHead, picker), h('div', { class: 'actions' }, runBtn, subBtn));
+    [['today', 'Today'], ['done', `Done (${counts.done})`], ['locked', 'Opens later in the year']].forEach(([k, label]) => {
+      if (!pkRows[k].length) return;
+      picker.append(h('div', { class: 'pr-mgroup' }, label), ...(k === 'done' ? pkRows[k].slice().reverse() : pkRows[k]));
+    });
+    const pickBtn = h('button', { class: 'btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', onclick: (e) => { e.stopPropagation(); picker.hidden ? openPicker() : closePicker(); } }, h('span', {}, 'Choose practical'), h('span', { html: CHEV }));
+    const chooser = h('div', { class: 'pr-choose' }, pickBtn, picker);
+    function onDocClick(e) { if (!chooser.contains(e.target)) closePicker(); }
+    function onDocKey(e) { if (e.key === 'Escape') closePicker(); }
+    function openPicker() { picker.hidden = false; pickBtn.setAttribute('aria-expanded', 'true'); document.addEventListener('click', onDocClick); document.addEventListener('keydown', onDocKey); const cur = picker.querySelector('[aria-pressed="true"]'); if (cur) cur.focus({ preventScroll: true }); }
+    function closePicker() { if (picker.hidden) return; picker.hidden = true; pickBtn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', onDocClick); document.removeEventListener('keydown', onDocKey); }
+    L.offs.push(() => { document.removeEventListener('click', onDocClick); document.removeEventListener('keydown', onDocKey); });
 
-    /* left: task panel */
+    const statusPill = status === 'done' ? h('span', { class: 'pill green' }, 'Done') : h('span', { class: 'pill blue' }, 'Today');
+    const purpose = h('p', { class: 'pr-purpose' }, h('span', {}, 'Build it, run the checks, fix what fails, then submit. The AI tutor gives hints, not answers.'), h('span', { class: 'demo-tag' }, 'Demo data'));
+    const head = h('section', { class: 'card pr-head', 'aria-label': 'Practical' },
+      h('div', { class: 'pr-top' },
+        h('div', {}, h('div', { class: 'eyebrow' }, `Lecture ${p.lecture} · Month ${spec.lecture.month} · 20-minute practical`), h('h2', {}, p.topic),
+          h('div', { class: 'pr-co' }, h('span', {}, 'For ', h('b', {}, co), spec.src.common ? ' · same for every field in Months 1–3' : ''), statusPill)),
+        chooser),
+      h('div', { class: 'pr-task' }, h('p', {}, p.task), h('button', { class: 'pr-more', onclick: () => openTask() }, 'Read full task')));
+
+    /* the full task, expected output and starter files, one click away */
+    function openTask() {
+      let m;
+      const fileRows = spec.listed.map((f) => h('button', { class: 'fl', title: f.code ? 'Open in the editor' : 'Preview this dataset', onclick: () => { m.close(); openFile(f.path); }, html: (isDir(f.path) ? DIR_IC : f.code ? FILE_IC : DATA_IC) + `<span><code>${esc(f.path)}</code>${f.dataset ? `<span class="pill violet">${esc(f.dataset)}</span>` : ''}${f.isNew ? '<span class="pill green">new file</span>' : ''}</span><span class="tiny">${esc(f.desc)}</span>` }));
+      m = c.modal(h('div', { class: 'm-practical-task' },
+        h('div', {}, h('div', { class: 'eyebrow' }, `Lecture ${p.lecture} · ${co}`), h('h3', {}, p.topic)),
+        h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, 'Your task'), h('p', {}, p.task)),
+        h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, 'Expected output'), h('div', { class: 'callout small' }, p.expected)),
+        h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, `Starter files (${spec.listed.length}) · click to open`), h('div', { class: 'files' }, fileRows)),
+        h('p', { class: 'tiny muted', style: { margin: 0 } }, `${spec.visible.length} checks run in your workspace. On submit, a grader runs ${p.checks.length} hidden checks in a fresh container.`),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Back to the code'))));
+      m.box.setAttribute('aria-label', 'Full task');
+    }
+
+    /* action bar above the editor: timer, demo fix, Run checks, Submit */
     const timerB = h('b', { class: 'num' }, mmss(LIMIT_S - ss.elapsed));
     const timerBar = h('i', { style: { width: '100%' } });
-    const timerNote = h('span', { class: 'tiny muted' }, 'Time left · 20-minute practical');
-    const timer = h('div', { class: 'timer', role: 'timer', 'aria-label': 'Time left' }, h('div', { class: 'row', style: { justifyContent: 'space-between' } }, timerB, h('span', { class: 'pill blue' }, 'Auto-checked')), h('div', { class: 'progress' }, timerBar), timerNote);
-    const fileList = h('div', { class: 'files' }, spec.listed.map((f) => h('button', { class: 'fl', title: f.code ? 'Open in the editor' : 'Preview this dataset', onclick: () => openFile(f.path), html: (isDir(f.path) ? DIR_IC : f.code ? FILE_IC : DATA_IC) + `<span><code>${esc(f.path)}</code>${f.dataset ? `<span class="pill violet">${esc(f.dataset)}</span>` : ''}${f.isNew ? '<span class="pill green">new file</span>' : ''}</span><span class="tiny">${esc(f.desc)}</span>` })));
-    const checkRows = spec.visible.map((v) => h('div', { class: 'check wait' }, h('span', { class: 'ic' }, '·'), h('span', {}, v.text)));
-    const resultBox = h('div', {});
-    const taskPanel = h('section', { class: 'task', 'aria-label': 'Task' },
-      timer,
-      h('div', { class: 'sec' }, h('div', { class: 'eyebrow' }, `Lecture ${p.lecture} · Month ${spec.lecture.month} · Practical`), h('h3', {}, p.topic), h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pill' }, co), spec.src.common ? h('span', { class: 'pill blue' }, 'Months 1–3 · same for every field') : null, status === 'done' ? h('span', { class: 'pill green' }, 'Done') : status === 'today' ? h('span', { class: 'pill violet' }, 'Today') : null, h('span', { class: 'pill amber' }, 'Demo data'))),
-      h('div', { class: 'sec' }, h('div', { class: 'eyebrow' }, 'Your task'), h('p', {}, p.task)),
-      h('div', { class: 'sec' }, h('div', { class: 'eyebrow' }, 'Starter files'), fileList),
-      h('div', { class: 'sec' }, h('div', { class: 'eyebrow' }, 'Expected output'), h('div', { class: 'callout small' }, p.expected)),
-      h('div', { class: 'sec' }, h('div', { class: 'eyebrow' }, `Checks you can run (${spec.visible.length})`), h('div', { class: 'checks' }, checkRows),
-        h('p', { class: 'tiny muted' }, `When you submit, a grader runs ${p.checks.length} hidden checks in a fresh container. You see them only after grading.`)),
-      resultBox);
+    const timerNote = h('span', { class: 'tiny muted' }, 'left of 20 minutes');
+    const timer = h('div', { class: 'timer', role: 'timer', 'aria-label': 'Time left' }, timerB, h('div', { class: 'tl' }, timerNote, h('div', { class: 'progress' }, timerBar)));
+    const fixBtn = h('button', { class: 'pr-fix', title: 'Demo shortcut: fills in a finished version of the code, as if the student typed it', onclick: () => applyFix() }, 'Apply my fix (demo)');
+    const runBtn = h('button', { class: 'btn', onclick: () => runChecks() }, h('span', { html: c.icon('play') }), 'Run checks');
+    const subBtn = h('button', { class: 'btn primary', onclick: () => submit() }, h('span', { html: c.icon('check') }), ss.submitted ? 'Resubmit' : 'Submit');
+    const actions = h('div', { class: 'pr-actions' }, timer, h('span', { class: 'sp' }), fixBtn, runBtn, subBtn);
 
-    /* centre: editor + terminal */
+    /* editor + terminal; the starter files are the editor's tabs */
     const allFiles = () => spec.files.map((f) => f.path).concat(spec.data.map((d) => d.path));
+    const tabOrder = () => uniq([spec.gapPath].concat(allFiles()));
     const readonly = (path) => spec.data.some((d) => d.path === path);
     const contentOf = (path) => readonly(path) ? spec.data.find((d) => d.path === path).content : ss.files[path];
-    const tabsScroll = h('div', { class: 'scroll', role: 'tablist', 'aria-label': 'Open files' });
-    const fixBtn = h('button', { class: 'btn sm', title: 'Demo shortcut: fills in a finished version of the code, as if the student typed it', onclick: () => applyFix() }, 'Apply my fix');
-    const fixWrap = h('div', { class: 'fixbtn' }, h('span', { class: 'lbl' }, 'Demo shortcut'), fixBtn);
+    const descOf = (path) => { const x = spec.listed.find((f) => f.path === path) || spec.listed.find((f) => isDir(f.path) && path.startsWith(f.path)) || spec.files.find((f) => f.path === path); return x && x.desc ? x.desc : ''; };
+    const tabsScroll = h('div', { class: 'scroll', role: 'tablist', 'aria-label': 'Starter files' });
     const crumbs = h('div', { class: 'crumbs' });
     const gutInner = h('div', {});
     const gut = h('div', { class: 'gut', 'aria-hidden': 'true' }, gutInner);
@@ -1320,47 +1376,64 @@
     const btPrev = pid === '33' ? h('button', { class: 'bt', role: 'tab', onclick: () => setPane('preview') }, h('span', { class: 'live', hidden: true }), 'Preview :8000') : null;
     const btInfo = h('span', { class: 'tiny' }, '');
     const bottom = h('div', { class: 'bottom' }, h('div', { class: 'btabs', role: 'tablist', 'aria-label': 'Output' }, btTerm, btPrev, h('span', { class: 'sp' }), btInfo), term, prev);
-    const mainc = h('section', { class: 'mainc', 'aria-label': 'Editor' }, h('div', { class: 'etabs' }, tabsScroll, fixWrap), crumbs, ed, bottom);
+    const mainc = h('section', { class: 'mainc', 'aria-label': 'Editor' }, actions, h('div', { class: 'etabs' }, tabsScroll), crumbs, ed, bottom);
 
-    /* right: AI tutor */
+    /* side panel: Checks and AI tutor */
+    const checkRows = spec.visible.map((v) => h('div', { class: 'check wait' }, h('span', { class: 'ic' }, '·'), h('span', {}, v.text)));
+    const resultBox = h('div', {});
+    const failBox = h('div', {});
+    const checksPane = h('div', { class: 'spane', role: 'tabpanel', 'aria-label': 'Checks' },
+      resultBox,
+      h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '2px' } }, `Checks you can run (${spec.visible.length})`), h('div', { class: 'checks' }, checkRows)),
+      failBox,
+      h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '4px' } }, 'Expected output'), h('p', { class: 'expect' }, p.expected), h('button', { class: 'pr-more', style: { fontSize: '13px', marginTop: '4px' }, onclick: () => openTask() }, 'Read full task')),
+      h('p', { class: 'tiny muted', style: { margin: 0 } }, `On submit, a grader runs ${p.checks.length} hidden checks in a fresh container.`));
     const ladder = h('div', { class: 'ladder', 'aria-label': 'Hints' });
     const chat = h('div', { class: 'chat', role: 'log', 'aria-live': 'polite' });
-    const askIn = h('input', { class: 'field-input', type: 'text', placeholder: 'Ask the tutor about this practical', 'aria-label': 'Ask the tutor' });
-    const askBtn = h('button', { class: 'btn sm primary', onclick: () => ask(askIn.value) }, 'Ask');
+    const askIn = h('input', { class: 'field-input', type: 'text', placeholder: 'Ask about this practical', 'aria-label': 'Ask the tutor' });
+    const askBtn = h('button', { class: 'btn sm', onclick: () => ask(askIn.value) }, 'Ask');
     askIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') ask(askIn.value); });
     const chipQs = ['Why did my check fail?', 'What does this error mean?', 'Just give me the answer'];
     const chips = h('div', { class: 'chips' }, chipQs.map((q) => h('button', { class: 'chip', onclick: () => ask(q) }, q)));
-    const tutor = h('section', { class: 'tutor', 'aria-label': 'AI tutor' },
-      h('div', { class: 'thead' }, h('h3', {}, h('span', { class: 'ai-badge' }, 'AI'), 'AI tutor'), h('p', { class: 'tiny muted' }, 'Gives hints one step at a time. It never shows the full solution.')),
-      h('div', { class: 'tbody' }, ladder, h('div', { class: 'chatcol', style: { display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 } }, chat, chips, h('div', { class: 'ask' }, askIn, askBtn),
-        h('div', { class: 'forumlink' }, h('span', { class: 'tiny muted' }, 'Stuck after the hints?'), h('button', { class: 'btn sm ghost', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask in the doubt forum</span>' })))));
+    const tutorPane = h('div', { class: 'spane tut', role: 'tabpanel', 'aria-label': 'AI tutor' }, ladder, chat, chips, h('div', { class: 'ask' }, askIn, askBtn),
+      h('div', { class: 'forumlink' }, h('span', { class: 'tiny muted' }, 'Stuck after the hints?'), h('button', { class: 'btn sm ghost', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask in the doubt forum</span>' })));
+    const tutDot = h('span', { class: 'dot', hidden: true, 'aria-label': 'new message' });
+    const stChecks = h('button', { class: 'tab', role: 'tab', onclick: () => setSide('checks') }, 'Checks');
+    const stTutor = h('button', { class: 'tab', role: 'tab', onclick: () => setSide('tutor') }, 'AI tutor', tutDot);
+    const side = h('section', { class: 'card pr-side', 'aria-label': 'Checks and AI tutor' }, h('div', { class: 'tabs', role: 'tablist' }, stChecks, stTutor), checksPane, tutorPane);
+    function setSide(k) {
+      ss.side = k;
+      stChecks.setAttribute('aria-selected', String(k === 'checks')); stTutor.setAttribute('aria-selected', String(k === 'tutor'));
+      checksPane.hidden = k !== 'checks'; tutorPane.hidden = k !== 'tutor';
+      if (k === 'tutor') { tutDot.hidden = true; chat.scrollTop = chat.scrollHeight; }
+    }
 
-    /* status bar */
+    /* one-line status */
     const saved = h('span', { class: 'saved' }, ss.savedAt ? `Last saved ${ss.savedAt}` : 'All changes saved');
     const budget = student.ai_budget || { used: 0, cap: 120 };
     const toLab = (tab) => () => { NM.state.labTab = tab; c.go('workspace'); };
+    const sep = () => h('span', { class: 'sep', 'aria-hidden': 'true' }, '·');
     const bar = h('footer', { class: 'bar', 'aria-label': 'Workspace status' },
       env.cloud
-        ? [h('button', { class: 'barlink', title: 'Open My lab', onclick: toLab('ws') }, h('i', { class: 'dot' }), env.label),
-          h('button', { class: 'barlink', title: 'See lab hours in My lab', onclick: toLab('ws') }, `Lab time this week: ${fmtMin(wsp.hours_used_min || 0)} of 12 h`),
-          h('span', {}, 'Auto-saves every 5 minutes'),
-          h('span', {}, 'Shuts down after 20 minutes idle')]
-        : [h('button', { class: 'barlink', title: 'Open My lab', onclick: toLab('ws') }, h('i', { class: 'dot' }), `${env.label} · runs in this page`),
-          h('span', {}, 'No cloud workspace or Docker needed'),
-          student.month < 4 ? h('button', { class: 'barlink', title: 'Preview the cloud workspace in My lab', onclick: toLab('ws') }, 'Cloud workspace unlocks in Month 4') : h('span', {}, 'Months 1–3 run in the browser'),
-          pid === '26' || pid === '5' ? h('button', { class: 'barlink', title: 'See the lab AI key in My lab', onclick: toLab('key') }, `Lab AI key: ₹${budget.used} of ₹${budget.cap} this month`) : h('span', {}, 'Saves to your lab account')],
+        ? [h('button', { class: 'barlink', title: 'Open My lab', onclick: toLab('ws') }, h('i', { class: 'dot' }), env.label), sep(),
+          h('button', { class: 'barlink', title: 'See lab hours in My lab', onclick: toLab('ws') }, `${fmtMin(wsp.hours_used_min || 0)} of 12 h this week`), sep(),
+          h('span', {}, 'Auto-saves every 5 min')]
+        : [h('button', { class: 'barlink', title: 'Open My lab', onclick: toLab('ws') }, h('i', { class: 'dot' }), `${env.label} · runs in this page`), sep(),
+          pid === '26' || pid === '5' ? h('button', { class: 'barlink', title: 'See the lab AI key in My lab', onclick: toLab('key') }, `Lab AI key ₹${budget.used} of ₹${budget.cap}`) : h('span', {}, 'Saves to your lab account'), sep(),
+          student.month < 4 ? h('button', { class: 'barlink', title: 'Preview the cloud workspace in My lab', onclick: toLab('ws') }, 'Cloud workspace from Month 4') : h('span', {}, 'No install needed')],
       saved);
 
-    root.append(h('div', { class: 'm-practical' }, top, h('div', { class: 'ide' }, taskPanel, mainc, tutor, bar)));
+    root.append(h('div', { class: 'm-practical' }, purpose, head, h('div', { class: 'pr-work' }, mainc, side), bar));
 
     /* ---------- editor behaviour ---------- */
     function renderTabs() {
       tabsScroll.textContent = '';
-      ss.open.forEach((path) => {
+      tabOrder().forEach((path) => {
         const dirty = !readonly(path) && ss.files[path] !== (spec.files.find((f) => f.path === path) || {}).content;
-        tabsScroll.append(h('button', { class: 'et', role: 'tab', 'aria-selected': String(path === ss.active), title: path, onclick: () => openFile(path) }, base(path), readonly(path) ? h('span', { class: 'ro' }, 'read-only') : null, dirty ? h('span', { class: 'mod', title: 'Edited' }) : null));
+        const isNew = (spec.files.find((f) => f.path === path) || {}).isNew;
+        tabsScroll.append(h('button', { class: 'et', role: 'tab', 'aria-selected': String(path === ss.active), title: path + (descOf(path) ? ' · ' + descOf(path) : ''), onclick: () => openFile(path) }, base(path), readonly(path) ? h('span', { class: 'ro' }, 'data') : null, isNew ? h('span', { class: 'nw' }, 'new') : null, dirty ? h('span', { class: 'mod', title: 'Edited' }) : null));
       });
-      const at = tabsScroll.querySelector('[aria-selected="true"]'); if (at && at.scrollIntoView) try { at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
+      const at = tabsScroll.querySelector('[aria-selected="true"]'); if (at) { const r = at.getBoundingClientRect(), pr = tabsScroll.getBoundingClientRect(); if (r.right > pr.right) tabsScroll.scrollLeft += r.right - pr.right + 8; else if (r.left < pr.left) tabsScroll.scrollLeft -= pr.left - r.left + 8; }
     }
     function paint() {
       const src = ta.value;
@@ -1373,7 +1446,7 @@
     function loadActive() {
       ta.value = contentOf(ss.active) || '';
       ta.readOnly = readonly(ss.active);
-      crumbs.textContent = `practical-${pid} / ${ss.active}` + (readonly(ss.active) ? '  ·  dataset preview, read-only' : '');
+      crumbs.textContent = `practical-${pid} / ${ss.active}` + (readonly(ss.active) ? '  ·  dataset preview, read-only' : descOf(ss.active) ? `  ·  ${descOf(ss.active)}` : '');
       ta.scrollTop = 0; ta.scrollLeft = 0; paint(); renderTabs();
     }
     function openFile(path) {
@@ -1425,7 +1498,7 @@
     const isFixed = () => spec.fixTest(ss.files[spec.gapPath] || '');
     function runChecks() {
       if (ss.busy) { c.toast('Checks are already running.', 'amber'); return; }
-      setBusy(true); setPane('terminal'); save();
+      setBusy(true); setPane('terminal'); setSide('checks'); failBox.textContent = ''; save();
       const fixedNow = isFixed();
       say(`${prompt()} nm check`);
       say('<span class="dim">Files saved. Running ' + spec.visible.length + ' visible checks ' + (env.cloud ? 'in your workspace' : 'in the browser') + '...</span>');
@@ -1454,7 +1527,10 @@
         say(prompt());
         c.emit('practical:run', { passed, total, field: field.id, lecture: p.lecture });
         setBusy(false); refreshPreviewTab();
-        if (passed < total) { tutorSay(`Your check "${spec.visible[results.indexOf(false)].text}" failed. I will not fix it for you, but Hint ${Math.min(3, ss.hints + 1)} is ready if you want it.`, 'sys'); }
+        if (passed < total) {
+          const fv = spec.visible[results.indexOf(false)];
+          failBox.append(h('div', { class: 'failnote' }, h('b', {}, `${total - passed} check${total - passed > 1 ? 's' : ''} failed`), h('span', {}, (fv.err || []).slice(-1)[0] || 'See the terminal for what went wrong.'), h('button', { class: 'btn sm', onclick: () => { setSide('tutor'); if (ss.hints < spec.hints.length) { const b = ladder.querySelector('.hint .btn'); if (b) b.focus({ preventScroll: true }); } } }, h('span', { html: c.icon('spark') }), `Get Hint ${Math.min(3, ss.hints + 1)} from the tutor`)));
+          tutorSay(`Your check "${spec.visible[results.indexOf(false)].text}" failed. I will not fix it for you, but Hint ${Math.min(3, ss.hints + 1)} is ready if you want it.`, 'sys'); }
         else {
           tutorSay(pid === '33' ? 'All visible checks pass. Open the Preview tab to see what your API answers, then submit.' : 'All visible checks pass. Submit when you are ready: the grader runs the hidden checks.', 'sys');
           if (pid === '33') { setPane('preview'); c.toast('Checks passed. Preview is live on port 8000.', 'green'); }
@@ -1493,7 +1569,7 @@
       ss.chat.forEach((m) => chat.append(h('div', { class: 'msg ' + (m.who === 'me' ? 'me' : m.kind === 'sys' ? 'sys' : 'ai') }, m.text)));
       chat.scrollTop = chat.scrollHeight;
     }
-    function tutorSay(text, kind) { ss.chat.push({ who: 'ai', text, kind }); paintChat(); }
+    function tutorSay(text, kind) { ss.chat.push({ who: 'ai', text, kind }); paintChat(); if (ss.side !== 'tutor') tutDot.hidden = false; }
     function answerFor(q) {
       const hiddenMsg = `Visible checks run in your workspace. When you submit, the grader copies your files into a fresh container with no network and runs ${p.checks.length} hidden checks. Pass the visible ones first.`;
       if (/why.*fail|failing|fail/i.test(q) && ss.last && ss.last.passed < ss.last.total) { const v = spec.visible[ss.last.results.indexOf(false)]; return `The check "${v.text}" failed: ${(v.err || [])[1] || (v.err || [])[0] || 'see the terminal'}. ${(v.err || []).slice(-1)[0] || ''} Open Hint ${Math.min(3, ss.hints + 1)} if you want a nudge.`; }
@@ -1558,7 +1634,7 @@
         c.emit('practical:submitted', { score, field: field.id, lecture: p.lecture, practical: pid, passed, total: n, seconds: took });
         if (c.notify) c.notify('Practical graded', `Lecture ${p.lecture} · ${p.topic}: ${score}/100, ${passed} of ${n} hidden checks passed.${score < 100 ? ' You can fix it and resubmit.' : ''}`, 'practical');
         setBusy(false); subBtn.lastChild.textContent = 'Resubmit'; paintResult();
-        const pk = picker.querySelector(`[data-pid="${pid}"]`); if (pk && status === 'today' && !pk.querySelector('.ok')) pk.append(h('span', { class: 'ok', html: '&#10003;' }));
+        const pk = picker.querySelector(`[data-pid="${pid}"] .pill`); if (pk && status === 'today') { pk.className = 'pill green'; pk.textContent = 'Submitted'; }
       });
     }
     function paintResult() {
@@ -1576,20 +1652,14 @@
       timerB.textContent = mmss(left);
       timerBar.style.width = `${Math.max(0, left) / LIMIT_S * 100}%`;
       timer.classList.toggle('warn', left <= 300 && left > 0); timer.classList.toggle('over', left <= 0);
-      timerNote.textContent = ss.past ? `Done in Week ${ss.submitted.week} · took ${mmss(ss.submitted.took)}` : left <= 0 ? "Time's up. You can still submit." : ss.submitted ? 'Submitted · you can keep improving' : 'Time left · 20-minute practical';
+      timerNote.textContent = ss.past ? `Done in Week ${ss.submitted.week} · took ${mmss(ss.submitted.took)}` : left <= 0 ? "Time's up. You can still submit." : ss.submitted ? 'Submitted · keep improving' : 'left of 20 minutes';
     }
     L.tick = setInterval(() => { if (document.hidden || ss.past) return; ss.elapsed++; paintTimer(); }, 1000);
 
     /* ---------- first paint ---------- */
-    const activePk = picker.querySelector('[aria-pressed="true"]');
-    if (activePk) requestAnimationFrame(() => {
-      // Scroll only when the selected practical is cut off on the right; measure relative to the picker itself.
-      const pr = picker.getBoundingClientRect(), ar = activePk.getBoundingClientRect();
-      if (picker.scrollWidth <= picker.clientWidth) return;
-      if (ar.right > pr.right) picker.scrollLeft += ar.right - pr.right + 8; else picker.scrollLeft = 0;
-    });
     loadActive(); paintTerm(); paintChecks(); paintLadder(); paintChat(); paintResult(); paintTimer(); refreshPreviewTab();
     setPane(ss.pane === 'preview' && ss.last && ss.last.passed === ss.last.total ? 'preview' : 'terminal');
+    setSide(ss.side === 'tutor' ? 'tutor' : 'checks');
   }
 
   NM.register('practical', {

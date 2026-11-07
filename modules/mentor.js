@@ -12,7 +12,7 @@
   const profileOf = (id) => (window.NM_DATA.demo_students || []).find((p) => p.id === id) || null;
 
   const STORE = {
-    ui: { tab: 'students', status: 'all', field: 'all', q: '', sort: 'status', dir: 1 },
+    ui: { tab: 'students', status: 'all', field: 'all', q: '', sort: 'status', dir: 1, page: 0, actAll: false },
     aarav: { lecturesDone: 0, practicals: {}, practicalSubs: 0, exam: null, milestone: null, portfolio: null, lastTs: 0, activity: [] },
     bonus: {},   // student id -> extra lab hours granted this week
     vivas: {},   // student id -> true
@@ -230,41 +230,55 @@
   function injectStyles() {
     if (document.getElementById('m-mentor')) return;
     const css = `
-.m-mentor { display: grid; gap: 20px; min-width: 0 }
-.m-mentor .head { display: flex; justify-content: space-between; gap: 12px; align-items: end; flex-wrap: wrap }
-.m-mentor .head > div { min-width: 0 }
-.m-mentor .sum { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px }
-.m-mentor .sum .card { padding: 14px 16px }
-.m-mentor .sum .stat b { font-size: 22px }
-.m-mentor .sum .card.alert { border-color: color-mix(in srgb, var(--red) 45%, var(--line)) }
-.m-mentor .sum .card.alert b { color: var(--red) }
-.m-mentor .top2 { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: stretch }
-.m-mentor .attn { border-left-color: var(--red); display: grid; gap: 8px; align-content: start }
-.m-mentor .attn-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line) }
-.m-mentor .attn-item:first-of-type { border-top: 0 }
+.m-mentor { display: grid; gap: 24px; min-width: 0 }
+.m-mentor .purpose { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; flex-wrap: wrap }
+.m-mentor .purpose p { color: var(--muted); font-size: 15px; margin: 0; min-width: 0; flex: 1 1 360px; line-height: 1.5 }
+.m-mentor .purpose .demo { font-size: 12.5px; color: var(--faint); white-space: nowrap }
+.m-mentor .linkbtn { background: none; border: 0; padding: 0; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13.5px; display: inline-flex; gap: 6px; align-items: center; font-family: inherit }
+.m-mentor .linkbtn svg { width: 15px; height: 15px }
+.m-mentor .linkbtn:hover { text-decoration: underline }
+.m-mentor .sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.m-mentor .sum .tile { padding: 18px 20px; text-align: left; cursor: pointer; font: inherit; color: var(--fg); width: 100% }
+.m-mentor .sum .tile:hover { border-color: var(--brand) }
+.m-mentor .sum .stat b { font-size: 26px }
+.m-mentor .sum .tile.alert b { color: var(--red) }
+.m-mentor .top2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start }
+.m-mentor .top2 > .card { padding: 20px 22px; display: grid; gap: 10px; align-content: start }
+.m-mentor .top2 .card-head { margin-bottom: 0 }
+.m-mentor .attn-item { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line) }
+.m-mentor .card-head + .attn-item { border-top: 0; padding-top: 4px }
 .m-mentor .attn-item > div { min-width: 0 }
-.m-mentor .livebox { display: grid; gap: 8px; align-content: start; border-left-color: var(--green) }
-.m-mentor .livebox.idle { border-left-color: var(--brand) }
+.m-mentor .attn-item .sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px }
+.m-mentor .attn-item .sub.risk { color: var(--red) }
+.m-mentor .attn-item .acts { align-items: center; gap: 12px; flex-wrap: nowrap }
+.m-mentor .kind { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand) }
+.m-mentor .kind.risk { background: var(--red-soft); color: var(--red) }
+.m-mentor .kind svg { width: 16px; height: 16px }
 .m-mentor .feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
-.m-mentor .feed li { display: flex; gap: 8px; font-size: 13px; min-width: 0 }
+.m-mentor .feed li { display: flex; gap: 8px; font-size: 13.5px; min-width: 0 }
 .m-mentor .feed li span:last-child { min-width: 0 }
-.m-mentor .feed .t { color: var(--muted); flex: none; min-width: 64px }
+.m-mentor .feed .t { color: var(--muted); flex: none; min-width: 72px }
 .m-mentor .livepill .dot { animation: m-mentor-pulse 1.6s ease-in-out infinite }
-.m-mentor .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px }
-.m-mentor .facts li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; min-width: 0 }
-.m-mentor .facts li span:first-child { color: var(--muted); font-size: 12px; padding-top: 1px }
+.m-mentor .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px }
+.m-mentor .facts li { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; min-width: 0 }
+.m-mentor .facts li span:first-child { color: var(--muted); font-size: 12.5px; padding-top: 1px }
 .m-mentor .facts li span:last-child { min-width: 0; overflow-wrap: anywhere }
 .m-mentor .dfacts { display: grid; gap: 8px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px 14px }
-.m-mentor .others { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px }
-.m-mentor .olist { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
-.m-mentor .ostu { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 8px; align-items: center; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 7px 8px; cursor: pointer; color: var(--fg); min-width: 0; font: inherit }
-.m-mentor .ostu:hover { border-color: var(--brand) }
-.m-mentor .ostu:hover .ogo { color: var(--brand) }
-.m-mentor .ostu .oav { grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; background: var(--brand-soft); color: var(--brand) }
-.m-mentor .ostu .otx { display: grid; min-width: 0 }
-.m-mentor .ostu .otx b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.m-mentor .ostu .otx span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.m-mentor .ostu .ogo { grid-column: 2; font-size: 11.5px; font-weight: 700; color: var(--muted) }
+.m-mentor .others { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 2px }
+.m-mentor .tabcard { padding-top: 8px }
+.m-mentor .tab .ct { font-size: 12px; font-weight: 700; color: var(--faint); margin-left: 6px }
+.m-mentor .tab[aria-selected="true"] .ct { color: var(--brand) }
+.m-mentor .pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap }
+.m-mentor .pager:empty { display: none }
+.m-mentor .actlist { list-style: none; margin: 0; padding: 0; display: grid }
+.m-mentor .actlist li { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13.5px }
+.m-mentor .actlist li:first-child { border-top: 0 }
+.m-mentor .actlist .t { color: var(--muted); font-size: 12.5px }
+.m-mentor .actlist .tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-mentor.drawer { gap: 18px }
+.m-mentor .dsec { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line) }
+.m-mentor .dsec h4 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.m-mentor .dsec .dfacts { background: none; padding: 0 }
 @keyframes m-mentor-pulse { 50% { opacity: .35 } }
 .m-mentor .panel { display: grid; gap: 14px; min-width: 0; padding-top: 4px }
 .m-mentor .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
@@ -339,18 +353,23 @@
 .m-mentor textarea.field-input { min-height: 132px; resize: vertical; line-height: 1.5 }
 .m-mentor .sheet-foot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap }
 .m-mentor ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px }
-@media (max-width: 1250px) { .m-mentor .sum { grid-template-columns: repeat(3, minmax(0, 1fr)) } }
-@media (max-width: 1000px) { .m-mentor .top2 { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 1100px) { .m-mentor .top2 { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 640px) {
   .m-mentor .sum { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-mentor .kv { grid-template-columns: repeat(2, minmax(0, 1fr)) }
-  .m-mentor .olist { grid-template-columns: minmax(0, 1fr) }
+  .m-mentor .actlist li { grid-template-columns: minmax(0, 1fr) auto }
+  .m-mentor .actlist .t { grid-column: 1 / -1 }
+  .m-mentor .actlist .tx { white-space: normal }
+  .m-mentor .attn-item .sub { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+  .m-mentor .sum .tile { padding: 14px 16px }
   .m-mentor .facts li { grid-template-columns: minmax(0, 1fr); gap: 0 }
   .m-mentor .lab-row { grid-template-columns: minmax(0, 1fr) 84px }
   .m-mentor .lab-row .lab-track { grid-column: 1 / -1; grid-row: 2 }
   .m-mentor .lab-scale { display: none }
   .m-mentor .crit { grid-template-columns: minmax(0, 1fr) }
-  .m-mentor .qitem, .m-mentor .attn-item { grid-template-columns: minmax(0, 1fr) }
+  .m-mentor .qitem { grid-template-columns: minmax(0, 1fr) }
+  .m-mentor .attn-item { grid-template-columns: 30px minmax(0, 1fr); }
+  .m-mentor .attn-item .acts { grid-column: 2 }
 }
 @media (prefers-reduced-motion: reduce) { .m-mentor .livepill .dot { animation: none } .m-mentor .lab-track > i { transition: none } }
 `;
@@ -381,76 +400,104 @@
         wrap.textContent = '';
         const studs = allStudents(c);
         const queue = queueItems(c);
-        const pending = queue.filter((q) => !q.placeholder && !STORE.reviews[q.key]).length;
+        const pendingQ = queue.filter((q) => !q.placeholder && !STORE.reviews[q.key]);
+        const pending = pendingQ.length;
         const atRisk = studs.filter((s) => s.status === 'at_risk');
         const P = ME(), B = batchNow(), me = studs.find((s) => s.id === P.id) || studs[0];
-        const his = pr(P.id, 1), he = pr(P.id, 0);
+        const his = pr(P.id, 1);
 
-        /* header */
-        wrap.append(h('div', { class: 'head' },
-          h('div', {}, h('div', { class: 'eyebrow' }, `Batch ${P.batch} · as at Month ${B.month}, Week ${B.week} · ${c.data.months[B.month]}`),
-            h('h2', {}, 'Your batch at a glance'),
-            h('p', { class: 'small muted' }, `24 students across 9 career fields, shown as at Month ${B.month}, Week ${B.week}: where ${first(P.name)} is in the year. Sorted so the students who need you come first.`)),
-          h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill amber' }, 'Demo data · fictional students'),
-            h('button', { class: 'btn sm', onclick: () => c.go('admin'), html: icon('settings') + '<span>Admin console</span>' }))));
+        /* purpose line */
+        wrap.append(h('div', { class: 'purpose' },
+          h('p', {}, `See who needs help, review capstones and follow one student live. Batch ${P.batch}, as at Month ${B.month}, Week ${B.week}. `, h('span', { class: 'demo' }, 'Demo data · fictional students')),
+          h('button', { class: 'linkbtn', onclick: () => c.go('admin'), html: icon('settings') + '<span>Admin console</span>' })));
 
-        /* summary */
-        const stat = (val, label, cls) => h('div', { class: 'card ' + (cls || '') }, h('div', { class: 'stat' }, h('b', { class: 'num' }, val), h('span', {}, label)));
+        /* summary: 4 tiles */
+        const stat = (val, label, cls, go) => h('button', { class: 'card tile ' + (cls || ''), type: 'button', onclick: go }, h('div', { class: 'stat' }, h('b', { class: 'num' }, val), h('span', {}, label)));
         wrap.append(h('div', { class: 'sum' },
-          stat(String(studs.length), 'students in the batch'),
-          stat(`${Math.round(avg(studs.map((s) => s.attendance)))}%`, 'average attendance'),
-          stat(`${Math.round(avg(studs.map((s) => s.practicals_passed)))}%`, 'practicals passed'),
-          stat(`${Math.round(avg(studs.map((s) => s.quiz_avg)))}%`, 'quiz average'),
-          stat(String(atRisk.length), 'students at risk', atRisk.length ? 'alert' : ''),
-          stat(String(pending), 'capstone reviews waiting')));
+          stat(String(studs.length), 'students in the batch', '', () => { ui.tab = 'students'; ui.status = 'all'; draw(); scrollTabs(); }),
+          stat(`${Math.round(avg(studs.map((s) => s.attendance)))}%`, 'average attendance', '', () => { ui.tab = 'students'; ui.sort = 'attendance'; ui.dir = 1; draw(); scrollTabs(); }),
+          stat(String(atRisk.length), 'students at risk', atRisk.length ? 'alert' : '', () => { ui.tab = 'students'; ui.status = 'at_risk'; ui.page = 0; draw(); scrollTabs(); }),
+          stat(String(pending), 'capstone reviews waiting', '', () => { ui.tab = 'queue'; draw(); scrollTabs(); })));
 
-        /* needs attention + live feed */
-        const attn = h('section', { class: 'callout attn' },
-          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('h3', {}, 'Needs attention'), h('span', { class: 'small muted' }, `${atRisk.length} at risk`)));
-        if (!atRisk.length) attn.append(h('p', { class: 'small muted' }, 'No student is at risk this week.'));
-        atRisk.forEach((s) => attn.append(h('div', { class: 'attn-item' },
-          h('div', {}, h('button', { class: 'lnk small', onclick: () => openStudent(s.id) }, s.name), h('span', { class: 'small muted' }, ` · ${fieldShort(s.field)}`), h('div', { class: 'small', style: { color: 'var(--red)' } }, reasons(s).join(' · ') || 'Several warning signs')),
-          h('div', { class: 'acts' }, h('button', { class: 'btn sm', onclick: () => openStudent(s.id) }, 'Open'),
-            h('button', { class: 'btn sm', onclick: () => c.toast(`Check-in message sent to ${first(s.name)}.`, 'green') }, 'Send a check-in')))));
+        /* needs your attention: review queue first, then at-risk students (max 5) */
+        const items = pendingQ.map((q) => ({ kind: 'review', q, s: studs.find((x) => x.id === q.sid) }))
+          .concat(atRisk.map((s) => ({ kind: 'risk', s })));
+        const attn = h('section', { class: 'card attn' },
+          h('div', { class: 'card-head' }, h('h3', {}, 'Needs your attention'),
+            items.length ? h('button', { class: 'linkbtn', onclick: () => { ui.tab = pending ? 'queue' : 'students'; if (!pending) { ui.status = 'at_risk'; ui.page = 0; } draw(); scrollTabs(); } }, `Show all (${items.length})`) : null));
+        if (!items.length) attn.append(h('p', { class: 'small muted' }, 'Nothing waiting. No reviews are due and no student is at risk this week.'));
+        items.slice(0, window.innerWidth <= 640 ? 3 : 5).forEach((it) => {
+          const s = it.s;
+          if (it.kind === 'review') {
+            const cap = capFor(s.field, it.q.slot);
+            attn.append(h('div', { class: 'attn-item' },
+              h('span', { class: 'kind review', 'aria-hidden': 'true', html: icon('project') }),
+              h('div', {}, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name),
+                h('div', { class: 'sub' }, `Capstone ${it.q.slot} Month ${it.q.month}${it.q.resub ? ' (resubmitted)' : ''} · ${it.q.live ? rel(A.milestone.ts).toLowerCase() : it.q.when.toLowerCase()} · ${cap.title}`)),
+              h('div', { class: 'acts' }, h('button', { class: 'btn sm', onclick: () => openReview(it.q, s, cap) }, 'Review'))));
+          } else {
+            attn.append(h('div', { class: 'attn-item' },
+              h('span', { class: 'kind risk', 'aria-hidden': 'true', html: icon('bell') }),
+              h('div', {}, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name),
+                h('div', { class: 'sub risk' }, `At risk · ${reasons(s).join(' · ') || 'Several warning signs'}`)),
+              h('div', { class: 'acts' },
+                h('button', { class: 'linkbtn', onclick: () => c.toast(`Check-in message sent to ${first(s.name)}.`, 'green') }, 'Check in'),
+                h('button', { class: 'btn sm', onclick: () => openStudent(s.id) }, 'Open'))));
+          }
+        });
 
+        /* watch a student live */
         const lec = lectureOf(P.lecture);
         const myCap = capFor(me.field, me.ms.slot);
         const others = (c.students || []).filter((x) => x.id !== P.id);
-        const otherList = others.length ? h('div', { class: 'others' },
-          h('div', { class: 'tiny muted' }, 'Other demo students · each at a different point of the year'),
-          h('div', { class: 'olist' }, others.map((o) => h('button', { class: 'ostu', type: 'button', title: `Follow ${o.name} instead (the page reloads)`, onclick: () => c.setStudent(o.id, 'mentor') },
-            h('span', { class: 'oav' }, o.initials || o.name.split(' ').map((w) => w[0]).join('')),
-            h('span', { class: 'otx' }, h('b', {}, o.name), h('span', {}, `Month ${o.month} · ${fieldShort(o.field)}`)),
-            h('span', { class: 'ogo' }, 'Follow'))))) : null;
-        const liveBox = h('section', { class: 'callout livebox' + (A.activity.length ? '' : ' idle') });
-        const actions = h('div', { class: 'row' },
+        const liveBox = h('section', { class: 'card livebox' });
+        const actions = h('div', { class: 'row', style: { gap: '8px' } },
           h('button', { class: 'btn sm primary', onclick: () => c.go('practical') }, `Go to ${his} practical`),
           h('button', { class: 'btn sm', onclick: () => openStudent(P.id) }, `Open ${his} record`));
+        const otherList = others.length ? h('div', { class: 'others' },
+          h('span', { class: 'tiny muted' }, 'Follow another demo student:'),
+          others.map((o) => h('button', { class: 'linkbtn', type: 'button', title: `Month ${o.month} · ${fieldShort(o.field)}. The page reloads and the demo follows ${first(o.name)}.`, onclick: () => c.setStudent(o.id, 'mentor') }, `${first(o.name)} (M${o.month})`))) : null;
         if (A.activity.length) {
-          liveBox.append(h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('h3', {}, `Live: ${P.name}`), livePill(A.lastTs)),
-            h('ul', { class: 'feed' }, A.activity.slice(0, 4).map((a) => h('li', {}, h('span', { class: 't', 'data-ts': a.t }, rel(a.t)), h('span', {}, a.text)))),
-            actions, otherList);
+          liveBox.append(h('div', { class: 'card-head' }, h('h3', {}, `Live: ${P.name}`), livePill(A.lastTs)),
+            h('ul', { class: 'feed' }, A.activity.slice(0, 3).map((a) => h('li', {}, h('span', { class: 't', 'data-ts': a.t }, rel(a.t)), h('span', {}, a.text)))),
+            actions, otherList || '');
         } else {
           liveBox.append(
-            h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('h3', {}, 'Watch a student live'), h('span', { class: 'pill blue' }, `Month ${P.month} · Week ${P.week}`)),
+            h('div', { class: 'card-head' }, h('h3', {}, 'Watch a student live'), h('span', { class: 'pill blue' }, `Month ${P.month} · Week ${P.week}`)),
             h('p', { class: 'small' }, h('b', {}, P.name), ` · ${P.age} · ${fieldShort(me.field)}${P.month <= 3 ? ' (from Month 4)' : ''}`),
             h('ul', { class: 'facts' },
               h('li', {}, h('span', {}, 'Lecture'), h('span', {}, `L${lec.id}: ${lec.topic}`)),
               h('li', {}, h('span', {}, 'Practical'), h('span', {}, `"${lec.practical}" for ${P.practical_company === 'common' ? c.data.common.company : c.field.company}`)),
               h('li', {}, h('span', {}, 'Capstone'), h('span', {}, `${me.ms.slot} Month ${me.ms.month}: ${myCap.title} · ${msStatus(me.ms)}`))),
-            h('p', { class: 'tiny muted' }, `Finish a lecture, submit a practical, the exam or the capstone milestone in the Student view, then come back. ${first(P.name)}'s row updates straight away, and ${he} is highlighted in the table.`),
-            actions, otherList);
+            h('p', { class: 'tiny muted' }, `Do something as ${first(P.name)} in the Student view, then come back: ${his} row updates here straight away.`),
+            actions, otherList || '');
         }
         wrap.append(h('div', { class: 'top2' }, attn, liveBox));
 
-        /* tabs */
+        /* tabs: everything else, one click away */
         const flaggedCount = examRows(c, studs).filter((x) => !x.pending && flagWeight(x) >= 3).length;
-        const tabs = [['students', 'Students', studs.length], ['queue', 'Review queue', pending], ['exam', 'Exam flags', flaggedCount], ['lab', 'Lab usage', null]];
+        const tabs = [['students', 'All students', studs.length], ['queue', 'Review queue', pending], ['exam', 'Exam flags', flaggedCount], ['lab', 'Lab usage', null], ['activity', 'Activity', A.activity.length || null]];
         const panel = h('div', { class: 'panel', role: 'tabpanel' });
         const tabBar = h('div', { class: 'tabs', role: 'tablist' }, tabs.map(([id, label, n]) =>
-          h('button', { class: 'tab', role: 'tab', 'aria-selected': String(ui.tab === id), onclick: () => { ui.tab = id; draw(); } }, label, n != null ? h('span', { class: 'pill', style: { marginLeft: '6px', padding: '1px 8px' } }, String(n)) : null)));
-        wrap.append(h('section', { class: 'card', style: { paddingTop: '6px' } }, tabBar, panel));
-        ({ students: drawStudents, queue: drawQueue, exam: drawExam, lab: drawLab })[ui.tab](panel, studs, queue);
+          h('button', { class: 'tab', role: 'tab', 'aria-selected': String(ui.tab === id), onclick: () => { ui.tab = id; draw(); } }, label, n != null ? h('span', { class: 'ct num' }, String(n)) : null)));
+        wrap.append(h('section', { class: 'card tabcard' }, tabBar, panel));
+        ({ students: drawStudents, queue: drawQueue, exam: drawExam, lab: drawLab, activity: drawActivity })[ui.tab](panel, studs, queue);
+      }
+      function scrollTabs() { const el = wrap.querySelector('.tabcard'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+
+      /* ----- Activity tab: what the batch did lately ----- */
+      function drawActivity(panel, studs) {
+        const rows = [];
+        A.activity.forEach((a) => rows.push({ s: studs.find((x) => x.id === SID()), when: rel(a.t), text: a.text, live: true, d: -1 }));
+        studs.filter((s) => !(s.id === SID() && A.activity.length)).forEach((s) => { const a = activityFor(s, c).find((x) => !x.live); if (a) rows.push({ s, when: a.when, text: a.text, d: s.days_inactive }); });
+        rows.sort((a, b) => a.d - b.d);
+        const show = STORE.ui.actAll ? rows : rows.slice(0, 8);
+        panel.append(h('p', { class: 'small muted' }, `The latest thing each student did. ${first(ME().name)}'s actions in the Student view appear here live.`),
+          h('ul', { class: 'actlist' }, show.map((r) => h('li', {},
+            h('span', { class: 't' }, r.when),
+            h('span', { class: 'tx' }, h('button', { class: 'lnk', onclick: () => openStudent(r.s.id) }, r.s.name), ` · ${r.text}`),
+            r.live ? h('span', { class: 'pill green' }, 'Live') : null))),
+          rows.length > show.length ? h('button', { class: 'linkbtn', onclick: () => { STORE.ui.actAll = true; draw(); } }, `Show all (${rows.length})`) : '');
       }
 
       /* ----- Students tab ----- */
@@ -459,11 +506,11 @@
         const tbody = h('tbody');
         const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter by status' });
         [['all', 'All'], ['on_track', 'On track'], ['watch', 'Watch'], ['at_risk', 'At risk']].forEach(([id, t]) =>
-          seg.append(h('button', { 'aria-pressed': String(ui.status === id), onclick: (e) => { ui.status = id; seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); fill(); } }, t)));
-        const fsel = h('select', { class: 'field-input', 'aria-label': 'Filter by career field', onchange: (e) => { ui.field = e.target.value; fill(); } },
+          seg.append(h('button', { 'aria-pressed': String(ui.status === id), onclick: (e) => { ui.status = id; ui.page = 0; seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); fill(); } }, t)));
+        const fsel = h('select', { class: 'field-input', 'aria-label': 'Filter by career field', onchange: (e) => { ui.field = e.target.value; ui.page = 0; fill(); } },
           h('option', { value: 'all' }, 'All fields'), c.data.fields.map((f) => h('option', { value: f.id }, f.short)));
         fsel.value = ui.field;
-        const search = h('input', { class: 'field-input', type: 'search', placeholder: 'Search by name', 'aria-label': 'Search students by name', value: ui.q, oninput: (e) => { ui.q = e.target.value; fill(); } });
+        const search = h('input', { class: 'field-input', type: 'search', placeholder: 'Search by name', 'aria-label': 'Search students by name', value: ui.q, oninput: (e) => { ui.q = e.target.value; ui.page = 0; fill(); } });
 
         const cols = [['name', 'Student'], ['status', 'Status'], ['attendance', 'Attendance'], ['practicals_passed', 'Practicals'], ['quiz_avg', 'Quiz avg'], ['lab_hours_week', 'Lab / week'], ['days_inactive', 'Inactive'], ['milestone', 'Milestone']];
         const thead = h('thead', {}, h('tr', {}, cols.map(([k, t]) => h('th', { 'aria-sort': ui.sort === k ? (ui.dir > 0 ? 'ascending' : 'descending') : null },
@@ -478,30 +525,42 @@
           if (k === 'milestone') return msRank[s.ms.status] ?? 9;
           return s[k];
         }
+        const pager = h('div', { class: 'pager' });
+        const PER = 10;
         function fill() {
           const q = ui.q.trim().toLowerCase();
           const rows = studs.filter((s) => (ui.status === 'all' || s.status === ui.status) && (ui.field === 'all' || s.field === ui.field) && (!q || s.name.toLowerCase().includes(q)));
           rows.sort((a, b) => { const x = sortVal(a, ui.sort), y = sortVal(b, ui.sort); const r = typeof x === 'string' ? x.localeCompare(y) : x - y; return (r || a.name.localeCompare(b.name)) * ui.dir; });
+          const pages = Math.max(1, Math.ceil(rows.length / PER));
+          ui.page = clamp(ui.page || 0, 0, pages - 1);
+          const slice = rows.slice(ui.page * PER, ui.page * PER + PER);
           tbody.textContent = '';
-          count.textContent = `Showing ${rows.length} of ${studs.length}`;
+          count.textContent = `${rows.length} of ${studs.length} students`;
           if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: String(cols.length) }, h('div', { class: 'empty' }, 'No students match these filters.'))));
-          rows.forEach((s) => {
+          slice.forEach((s) => {
             const isLive = s.id === SID() && A.lastTs && Date.now() - A.lastTs < 30 * 60 * 1000;
             const tr = h('tr', { class: 'clickable' + (isLive || s.active ? ' is-live' : ''), tabindex: '0', 'aria-label': `Open ${s.name}`, onclick: () => openStudent(s.id), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openStudent(s.id); } } },
-              h('td', {}, h('div', { class: 'nm' }, h('div', {}, h('b', {}, s.name), h('span', { class: 'tiny muted' }, `${s.id} · ${fieldShort(s.field)}${s.demo ? ` · demo, Month ${s.month}` : ''}`)))),
-              h('td', {}, h('div', { class: 'stk' }, statusPill(s.status), isLive ? livePill(A.lastTs) : s.active ? h('span', { class: 'pill blue', title: 'The demo follows this student' }, 'Following') : null)),
+              h('td', {}, h('div', { class: 'nm' }, h('div', {}, h('b', {}, s.name), h('span', { class: 'tiny muted' }, `${fieldShort(s.field)}${s.active ? ' · following' + (isLive ? ', live now' : '') : s.demo ? ` · demo, Month ${s.month}` : ''}`)))),
+              h('td', {}, statusPill(s.status)),
               h('td', { class: 'n' }, h('span', { class: tone(s.attendance, 70, 75) }, `${s.attendance}%`)),
-              h('td', { class: 'n' }, h('span', { class: tone(s.practicals_passed, 55, 60) }, `${s.practicals_passed}%`), h('span', { class: 'bar' }, h('i', { style: { width: s.practicals_passed + '%' } }))),
+              h('td', { class: 'n' }, h('span', { class: tone(s.practicals_passed, 55, 60) }, `${s.practicals_passed}%`)),
               h('td', { class: 'n' }, h('span', { class: tone(s.quiz_avg, 55, 60) }, `${s.quiz_avg}%`)),
-              h('td', { class: 'n' }, `${s.lab_hours_week.toFixed(1)} h`, STORE.bonus[s.id] ? h('span', { class: 'pill green', style: { marginLeft: '6px', padding: '1px 7px' } }, `cap ${s.cap} h`) : null),
+              h('td', { class: 'n' }, `${s.lab_hours_week.toFixed(1)} h`, STORE.bonus[s.id] ? h('span', { class: 'tiny muted' }, ` (cap ${s.cap} h)`) : null),
               h('td', { class: 'n' }, h('span', { class: s.days_inactive >= 5 ? 'lo' : '' }, s.days_inactive === 1 ? '1 day' : `${s.days_inactive} days`)),
               h('td', {}, h('div', { class: 'ms' }, msText(s.ms), h('small', {}, msStatus(s.ms)))));
             tbody.append(tr);
           });
+          pager.textContent = '';
+          if (pages > 1) pager.append(
+            h('span', { class: 'small muted' }, `Showing ${ui.page * PER + 1} to ${ui.page * PER + slice.length} of ${rows.length}`),
+            h('div', { class: 'row', style: { gap: '6px' } },
+              h('button', { class: 'btn sm', disabled: ui.page === 0 || null, onclick: () => { ui.page -= 1; fill(); } }, 'Previous'),
+              h('span', { class: 'small num' }, `Page ${ui.page + 1} of ${pages}`),
+              h('button', { class: 'btn sm', disabled: ui.page >= pages - 1 || null, onclick: () => { ui.page += 1; fill(); } }, 'Next')));
         }
         panel.append(h('div', { class: 'filters' }, search, seg, fsel, count),
-          h('div', { class: 'table-wrap' }, h('table', {}, thead, tbody)),
-          h('p', { class: 'tiny muted' }, `Click a student to see weekly scores, recent activity and actions. Amber and red numbers are below the warning lines. Lab time is capped at 12 hours a week. The 4 demo students each sit at a different point of the year; the batch is shown as at ${first(ME().name)}'s Month ${batchNow().month}.`));
+          h('div', { class: 'table-wrap' }, h('table', {}, thead, tbody)), pager,
+          h('p', { class: 'tiny muted' }, `Batch averages: practicals passed ${Math.round(avg(studs.map((s) => s.practicals_passed)))}%, quiz ${Math.round(avg(studs.map((s) => s.quiz_avg)))}%. Click a student for weekly scores, activity and actions. Amber and red numbers are below the warning lines. The batch is shown as at ${first(ME().name)}'s Month ${batchNow().month}.`));
         fill(); markSort();
       }
 
@@ -556,29 +615,37 @@
         const vivaBtn = h('button', { class: 'btn', onclick: () => { STORE.vivas[s.id] = true; vivaBtn.textContent = 'Viva requested'; c.toast(`Viva request sent to ${first(s.name)} for Thursday, 4:00 pm.`, 'green'); } }, STORE.vivas[s.id] ? 'Viva requested' : 'Schedule a viva');
         const acts = activityFor(s, c);
         const rs = reasons(s);
-        const content = h('div', { class: 'm-mentor sheet' },
+        const sec = (title, ...kids) => h('section', { class: 'dsec' }, h('h4', {}, title), ...kids);
+        const content = h('div', { class: 'm-mentor sheet drawer' },
           h('div', { class: 'sheet-head' },
-            h('div', {}, h('div', { class: 'eyebrow' }, `${s.id} · ${fieldById(s.field).name}`), h('h3', {}, s.name), h('div', { class: 'row', style: { marginTop: '6px', gap: '6px' } }, statusPill(s.status), s.demo ? h('span', { class: 'pill blue' }, s.id === SID() ? 'Demo student · following' : 'Demo student') : null, s.id === SID() && A.lastTs ? livePill(A.lastTs) : null)),
+            h('div', {}, h('div', { class: 'eyebrow' }, `${s.id} · ${fieldById(s.field).name}`), h('h3', {}, s.name),
+              h('div', { class: 'row', style: { marginTop: '6px', gap: '8px' } }, statusPill(s.status),
+                h('span', { class: 'tiny muted' }, s.id === SID() ? (A.lastTs ? `Following · active ${rel(A.lastTs).toLowerCase()}` : 'The demo follows this student') : s.demo ? 'Demo student' : `Batch ${ME().batch}`))),
             h('button', { class: 'x', 'aria-label': 'Close', onclick: () => m.close() }, '×')),
           rs.length ? h('div', { class: 'note', style: { color: s.status === 'at_risk' ? 'var(--red)' : 'var(--muted)' } }, rs.join(' · ')) : null,
-          h('div', { class: 'kv' },
-            h('div', {}, h('b', {}, `${s.attendance}%`), h('span', {}, 'attendance')),
-            h('div', {}, h('b', {}, `${s.practicals_passed}%`), h('span', {}, s.prDone ? `practicals passed (${s.prPassed} of ${s.prDone})` : 'practicals passed')),
-            h('div', {}, h('b', {}, `${s.quiz_avg}%`), h('span', {}, 'quiz average')),
-            h('div', {}, h('b', {}, `${s.lab_hours_week.toFixed(1)} h`), h('span', {}, `lab this week, cap ${s.cap} h`)),
-            h('div', {}, h('b', {}, String(s.days_inactive)), h('span', {}, 'days inactive')),
-            h('div', {}, h('b', { style: { fontSize: '15px' } }, msText(s.ms)), h('span', {}, msStatus(s.ms)))),
-          prof ? demoFacts(s, prof) : null,
-          h('div', { class: 'spark' }, h('div', { class: 'row small', style: { justifyContent: 'space-between', marginBottom: '4px' } }, h('b', {}, 'Weekly scores'), h('span', { class: 'muted tiny' }, 'Dashed line: 60% pass mark')),
-            h('div', { html: svg }), h('div', { class: 'ax' }, h('span', {}, `Week ${wk0}`), h('span', {}, `Week ${wk}: ${vals[vals.length - 1]}%`))),
-          h('div', {}, h('b', { class: 'small' }, 'Recent activity'),
-            h('ul', { class: 'feed', style: { marginTop: '8px' } }, acts.map((a) => h('li', {}, h('span', { class: 't' }, a.when), h('span', { style: a.live ? { color: 'var(--green)', fontWeight: '700' } : null }, a.text))))),
+          sec('This week',
+            h('div', { class: 'kv' },
+              h('div', {}, h('b', {}, `${s.attendance}%`), h('span', {}, 'attendance')),
+              h('div', {}, h('b', {}, `${s.practicals_passed}%`), h('span', {}, s.prDone ? `practicals passed (${s.prPassed} of ${s.prDone})` : 'practicals passed')),
+              h('div', {}, h('b', {}, `${s.quiz_avg}%`), h('span', {}, 'quiz average')),
+              h('div', {}, h('b', {}, `${s.lab_hours_week.toFixed(1)} h`), h('span', {}, `lab this week, cap ${s.cap} h`)),
+              h('div', {}, h('b', {}, String(s.days_inactive)), h('span', {}, 'days inactive')),
+              h('div', {}, h('b', { style: { fontSize: '15px' } }, msText(s.ms)), h('span', {}, msStatus(s.ms))))),
+          prof ? sec('Where this student is', demoFacts(s, prof)) : null,
+          sec('Weekly scores', h('div', { class: 'spark' }, h('div', { class: 'row small', style: { justifyContent: 'flex-end', marginBottom: '4px' } }, h('span', { class: 'muted tiny' }, 'Dashed line: 60% pass mark')),
+            h('div', { html: svg }), h('div', { class: 'ax' }, h('span', {}, `Week ${wk0}`), h('span', {}, `Week ${wk}: ${vals[vals.length - 1]}%`)))),
+          sec('Recent activity',
+            h('ul', { class: 'feed' }, acts.map((a) => h('li', {}, h('span', { class: 't' }, a.when), h('span', { style: a.live ? { color: 'var(--green)', fontWeight: '700' } : null }, a.text))))),
+          prof ? h('div', { class: 'row', style: { gap: '16px' } },
+            s.id !== SID() ? h('button', { class: 'linkbtn', title: 'The page reloads and the whole demo follows this student', onclick: () => { m.close(); c.setStudent(s.id, 'mentor'); } }, `Follow ${first(s.name)} in the demo`) : null,
+            s.id === SID() ? h('button', { class: 'linkbtn', onclick: () => { m.close(); c.go('practical'); } }, `Open ${pr(s.id, 1)} practical`) : null) : null,
           h('div', { class: 'sheet-foot' },
-            prof && s.id !== SID() ? h('button', { class: 'btn ghost', title: 'The page reloads and the whole demo follows this student', onclick: () => { m.close(); c.setStudent(s.id, 'mentor'); } }, `Follow ${first(s.name)} in the demo`) : null,
-            prof && s.id === SID() ? h('button', { class: 'btn ghost', onclick: () => { m.close(); c.go('practical'); } }, `Open ${pr(s.id, 1)} practical`) : null,
-            h('button', { class: 'btn', onclick: () => c.toast(`Message sent to ${first(s.name)}. It appears in their lab inbox.`, 'green') }, 'Message student'),
-            grantBtn, vivaBtn));
-        const m = c.modal(content); m.box.style.maxWidth = '640px';
+            grantBtn, vivaBtn,
+            h('button', { class: 'btn primary', onclick: () => c.toast(`Message sent to ${first(s.name)}. It appears in their lab inbox.`, 'green') }, 'Message student')));
+        const m = c.modal(content);
+        // Show the record as a side drawer on the right.
+        Object.assign(m.box.style, { maxWidth: '560px', height: '100%', maxHeight: '100%', borderRadius: 'var(--radius-lg) 0 0 var(--radius-lg)', alignContent: 'start' });
+        const back = m.box.parentElement; if (back) Object.assign(back.style, { placeItems: 'stretch end', padding: '0' });
       }
 
       /* ----- Review queue ----- */
@@ -589,16 +656,16 @@
           const s = studs.find((x) => x.id === q.sid); const cap = capFor(s.field, q.slot); const rv = STORE.reviews[q.key];
           if (q.placeholder) {
             list.append(h('div', { class: 'qitem' },
-              h('div', {}, h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name), h('span', { class: 'pill blue' }, 'Demo student')),
+              h('div', {}, h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name), h('span', { class: 'tiny muted' }, 'demo student')),
                 h('div', { class: 'small' }, `${cap.slot} · Month ${q.month}: ${cap.title}`),
-                h('div', { class: 'meta' }, h('span', { class: 'pill' }, q.slot === 'C1' ? 'Common capstone' : fieldShort(s.field)), h('span', { class: 'pill amber' }, 'Not submitted yet'), h('span', { class: 'tiny muted' }, `Rubric: ${cap.rubric.length} criteria`))),
+                h('div', { class: 'meta' }, h('span', { class: 'pill amber' }, 'Not submitted yet'), h('span', { class: 'tiny muted' }, `${q.slot === 'C1' ? 'Common capstone' : fieldShort(s.field)} · rubric: ${cap.rubric.length} criteria`))),
               h('div', {}, h('button', { class: 'btn sm', onclick: () => c.go('projects') }, `Go to ${pr(s.id, 1)} capstone`))));
             return;
           }
           list.append(h('div', { class: 'qitem' },
             h('div', {}, h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name), q.live ? livePill(A.milestone.ts) : null),
               h('div', { class: 'small' }, `${cap.slot} · Month ${q.month}: ${cap.title}`),
-              h('div', { class: 'meta' }, h('span', { class: 'pill' }, q.slot === 'C1' ? 'Common capstone' : fieldShort(s.field)), h('span', { class: 'tiny muted' }, `Submitted ${q.live ? rel(A.milestone.ts).toLowerCase() : q.when.toLowerCase()}`), q.resub ? h('span', { class: 'pill violet' }, 'Resubmission') : null,
+              h('div', { class: 'meta' }, h('span', { class: 'tiny muted' }, `${q.slot === 'C1' ? 'Common capstone' : fieldShort(s.field)} · submitted ${q.live ? rel(A.milestone.ts).toLowerCase() : q.when.toLowerCase()}${q.resub ? ' · resubmission' : ''}`),
                 rv ? h('span', { class: 'pill ' + (rv.decision === 'approved' ? 'green' : 'amber') }, `${rv.decision === 'approved' ? 'Approved' : 'Changes requested'} · ${rv.score}/100`) : h('span', { class: 'pill blue' }, 'Waiting for review'))),
             h('div', {}, h('button', { class: 'btn sm' + (rv ? '' : ' primary'), onclick: () => openReview(q, s, cap) }, rv ? 'Review again' : 'Open review'))));
         });

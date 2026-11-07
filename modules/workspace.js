@@ -20,6 +20,9 @@
     vpsPreview: false,
     browser: { lines: [] },
     target: { status: 'running', resets: 0 },
+    more: {},                      // which "Learn more" sections are open
+    filesAll: false,
+    usageAll: false,
   };
   let live = null; // { root, c, timers: Set, intervals: Set, refs }
 
@@ -273,16 +276,42 @@
     if (document.getElementById('m-workspace')) return;
     const st = document.createElement('style'); st.id = 'm-workspace';
     st.textContent = `
-.m-workspace { display: grid; gap: 16px; min-width: 0 }
-.m-workspace .wsx-hero { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: start }
-.m-workspace .wsx-hero > div { min-width: 0 }
-.m-workspace .wsx-sum { display: flex; gap: 8px; flex-wrap: wrap }
-.m-workspace .wsx-sum button { border: 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; line-height: 1.5 }
+.m-workspace { display: grid; gap: 24px; min-width: 0 }
+.m-workspace .wsx-purpose { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap }
+.m-workspace .wsx-purpose .demo-tag { font-size: 10px }
+.m-workspace .wsx-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.m-workspace .wsx-tile { display: grid; gap: 8px; align-content: start; padding: 18px 20px }
+.m-workspace .wsx-tile .lbl { font-size: 13px; font-weight: 700; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.m-workspace .wsx-tile .val { font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; overflow-wrap: anywhere }
+.m-workspace .wsx-tile .val small { font-family: var(--body); font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0 }
+.m-workspace .wsx-tile .foot { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; min-height: 34px }
+.m-workspace .wsx-tile .sub { font-size: 13px; color: var(--muted) }
+.m-workspace .wsx-dotst { display: inline-flex; gap: 6px; align-items: center }
+.m-workspace .wsx-dotst i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint) }
+.m-workspace .wsx-dotst.on i { background: var(--green) } .m-workspace .wsx-dotst.busy i { background: var(--brand) }
+.m-workspace .wsx-link { background: none; border: 0; padding: 0; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--brand); cursor: pointer; white-space: nowrap }
+.m-workspace .wsx-link:hover { text-decoration: underline }
+.m-workspace .wsx-meter.thin { height: 6px }
+.m-workspace details.wsx-more { font-size: 13.5px; line-height: 1.55 }
+.m-workspace details.wsx-more > summary { cursor: pointer; color: var(--brand); font-weight: 700; list-style: none; display: inline-flex; gap: 6px; align-items: center }
+.m-workspace details.wsx-more > summary::-webkit-details-marker { display: none }
+.m-workspace details.wsx-more > summary::after { content: "+"; font-weight: 800 }
+.m-workspace details.wsx-more[open] > summary::after { content: "–" }
+.m-workspace details.wsx-more > :not(summary) { margin: 8px 0 0; color: var(--muted) }
+.m-workspace .wsx-sec { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 4px 0 -8px }
+@media (max-width: 900px) { .m-workspace .wsx-tiles { grid-template-columns: minmax(0, 1fr); gap: 10px } }
+@media (max-width: 600px) {
+  .m-workspace .wsx-tile { padding: 12px 16px; gap: 6px }
+  .m-workspace .wsx-tile .val { font-size: 20px }
+  .m-workspace .wsx-tile .foot { min-height: 0 }
+  .m-workspace .wsx-tile .foot .tiny { display: none }
+  .m-workspace .wsx-big { font-size: 19px }
+}
 .m-workspace .card.stack { align-content: start }
 .m-workspace .wsx-seg { justify-self: start }
-.m-workspace .wsx-sum button:hover { filter: brightness(.97); text-decoration: underline }
 .m-workspace .wsx-panel { display: grid; gap: 16px; min-width: 0 }
 .m-workspace .wsx-panel > * { min-width: 0 }
+.m-workspace .wsx-panel > .grid-2, .m-workspace .wsx-panel > .grid-3 { align-items: start }
 .m-workspace .wsx-status { display: flex; align-items: center; gap: 14px }
 .m-workspace .wsx-orb { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--faint) }
 .m-workspace .wsx-orb svg { width: 24px; height: 24px }
@@ -306,7 +335,7 @@
 .m-workspace .wsx-file:first-child { border-top: 0 }
 .m-workspace .wsx-file:hover { background: var(--surface-2) }
 .m-workspace .wsx-file svg { width: 18px; height: 18px; color: var(--muted) }
-.m-workspace .wsx-file code { overflow-wrap: anywhere; font-size: 13px }
+.m-workspace .wsx-file code { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .m-workspace .wsx-file .meta { font-size: 12px; color: var(--muted); white-space: nowrap; text-align: right }
 .m-workspace .wsx-key { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 10px 12px; font-family: var(--mono); font-size: 13.5px }
 .m-workspace .wsx-key code { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; color: var(--code-str) }
@@ -383,6 +412,14 @@
 @media (prefers-reduced-motion: reduce) { .m-workspace .wsx-orb.busy svg, .m-workspace .wsx-caret { animation: none } }
 `;
     document.head.append(st);
+  }
+
+  // "Learn more": a short explanation one click away. Its open state survives repaints.
+  function more(c, key, ...body) {
+    const d = c.h('details', { class: 'wsx-more' }, c.h('summary', {}, 'Learn more'), ...body);
+    if (S.more[key]) d.open = true;
+    d.addEventListener('toggle', () => { S.more[key] = d.open; });
+    return d;
   }
 
   /* ---------- workspace state machine ---------- */
@@ -508,32 +545,34 @@
     const draw = () => { term.innerHTML = (B.lines.length ? B.lines : ['<span class="dim">&gt;&gt;&gt; Python 3.12 is running inside this page. Click a line to try it.</span>']).slice(-10).join('\n'); term.scrollTop = term.scrollHeight; };
     const TRY = [['import sys; print(sys.version)', ['3.12.7 (in-browser build)']], ['print("Namaste, Sahyadri")', ['Namaste, Sahyadri']], ['from models import TriageResult', ['<span class="ok">ok</span> <span class="dim">(your Lecture 24 model loads)</span>']]];
     const env = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb on', html: icon('code') }),
-          h('div', {}, h('div', { class: 'eyebrow' }, `${first}'s environment`), h('div', { class: 'wsx-big' }, 'In-browser Python'), h('div', { class: 'small muted' }, 'Python 3.12 inside this page · nothing to install · works on a basic laptop'))),
-        h('span', { class: 'pill green' }, h('span', { class: 'dot' }), 'Ready')),
-      h('p', { class: 'small' }, 'Months 1 to 3 need no server. Practicals, the lab AI key and the AI tutor all work right here, so a student can start on day one with any laptop.'),
+      h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb on', html: icon('code') }),
+        h('div', {}, h('div', { class: 'wsx-big' }, 'In-browser Python'), h('div', { class: 'small muted' }, 'Python 3.12 inside this page. Nothing to install.'))),
       h('div', { class: 'row', style: { gap: '6px' } }, TRY.map(([cmd, out]) => h('button', { type: 'button', class: 'btn sm', onclick: () => { B.lines.push(`<span class="dim">&gt;&gt;&gt;</span> ${esc(cmd)}`, ...out); draw(); } }, cmd))),
       term,
-      h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary', onclick: () => c.go('practical'), html: icon('play') + `<span>Open Lecture ${st.lecture} practical</span>` })));
+      h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary', onclick: () => c.go('practical'), html: icon('play') + `<span>Open Lecture ${st.lecture} practical</span>` })),
+      more(c, 'browser', h('p', {}, 'Months 1 to 3 need no server. Practicals, the lab AI key and the AI tutor all work right here, so a student can start on day one with any laptop.')));
     draw();
-    const hrs = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Time this week'), h('span', { class: 'pill' }, 'No weekly cap')),
-      h('div', { class: 'wsx-between' }, h('span', {}, h('b', { class: 'num' }, fmtH((st.workspace || {}).hours_used_min || 0)), h('span', { class: 'muted' }, ' coding in the browser')), h('span', { class: 'small muted' }, 'Costs the lab nothing')),
-      h('p', { class: 'small muted' }, 'Browser time runs on the student\u2019s own laptop, so it has no limit. The 12-hour weekly cap starts with the cloud workspace.'));
+    const files = filesFor(field, true);
+    const view = (f) => { let m; const box = h('div', { class: 'stack' }, h('div', { class: 'eyebrow' }, 'In-browser Python · read-only view'), h('h3', {}, f.path), h('pre', { class: 'code', style: { maxHeight: '340px', overflow: 'auto', margin: 0 }, html: codeHTML(fileBody(f.path, field), esc) }), h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary sm', onclick: () => { m.close(); c.go('practical'); } }, 'Edit it in the practical'), h('button', { type: 'button', class: 'btn sm', onclick: () => m.close() }, 'Close'))); m = c.modal(box); };
+    const filesCard = filesList(c, files, view, `Saved to ${first}’s lab account, so they open on any laptop.`, 'Click a file to view it.');
     const unlock = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('div', { class: 'eyebrow' }, 'Next step'), h('h3', {}, 'Cloud workspace unlocks in Month 4')), h('span', { class: 'pill', html: icon('lock') + '<span>Month 4</span>' })),
-      h('p', { class: 'small' }, `From Lecture ${m4} (Month 4, ${D().months[4]}) ${first} gets VS Code in the browser with a terminal, up to 12 hours a week. Docker and the Large size follow in Month 5.`),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Cloud workspace unlocks in Month 4'), h('span', { class: 'pill', html: icon('lock') + '<span>Month 4</span>' })),
+      h('p', { class: 'small', style: { margin: 0 } }, `From Lecture ${m4}, ${first} gets VS Code in the browser with a terminal, up to 12 hours a week.`),
       h('div', { class: 'row', style: { gap: '8px' } },
         h('button', { type: 'button', class: 'btn', onclick: () => { S.preview = true; paint(); }, html: icon('cloud') + '<span>Preview the cloud workspace</span>' }),
         h('button', { type: 'button', class: 'btn sm ghost', onclick: () => openLecture(c, m4) }, `See Lecture ${m4}`)));
-    const files = filesFor(field, true);
-    const view = (f) => { let m; const box = h('div', { class: 'stack' }, h('div', { class: 'eyebrow' }, 'In-browser Python · read-only view'), h('h3', {}, f.path), h('pre', { class: 'code', style: { maxHeight: '340px', overflow: 'auto', margin: 0 }, html: codeHTML(fileBody(f.path, field), esc) }), h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary sm', onclick: () => { m.close(); c.go('practical'); } }, 'Edit it in the practical'), h('button', { type: 'button', class: 'btn sm', onclick: () => m.close() }, 'Close'))); m = c.modal(box); };
-    const filesCard = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Your files'), h('p', { class: 'small muted' }, `Saved to ${first}\u2019s lab account, so they open on any laptop. ${D().common.company} practicals.`)), h('span', { class: 'pill' }, `${files.length} files`)),
-      h('div', { class: 'wsx-files' }, files.map((f) => h('button', { type: 'button', class: 'wsx-file', title: f.desc || f.path, onclick: () => view(f), html: icon(/\.(py|ts|sh|json|txt)$/.test(f.path) ? 'code' : 'book') }, h('code', {}, f.path), h('span', { class: 'meta num' }, `${f.size} · ${f.when}`)))),
-      h('p', { class: 'tiny muted', style: { marginTop: '8px' } }, 'Click a file to view it.'));
-    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, env, h('div', { class: 'stack', style: { gap: '16px' } }, hrs, unlock)), filesCard);
+    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, env, filesCard), unlock);
+  }
+
+  // A file list that shows the first 5 files and a "Show all" link.
+  function filesList(c, files, onOpen, sub, foot) {
+    const { h, icon } = c;
+    const shown = S.filesAll ? files : files.slice(0, 5);
+    return h('section', { class: 'card stack' },
+      h('div', {}, h('h3', {}, `Your files (${files.length})`), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, sub)),
+      h('div', { class: 'wsx-files' }, shown.map((f) => h('button', { type: 'button', class: 'wsx-file', title: f.desc || f.path, onclick: () => onOpen(f), html: icon(/\.(py|ts|sh|json|http|txt)$|Caddyfile/.test(f.path) ? 'code' : 'book') }, h('code', {}, f.path), h('span', { class: 'meta num' }, `${f.size} · ${f.when}`)))),
+      h('div', { class: 'wsx-between' }, h('span', { class: 'tiny muted' }, foot),
+        files.length > 5 ? h('button', { type: 'button', class: 'wsx-link', onclick: () => { S.filesAll = !S.filesAll; paint(); } }, S.filesAll ? 'Show fewer' : `Show all (${files.length})`) : null));
   }
 
   // Month 11 security labs: deliberately weak lab targets the student is allowed to attack.
@@ -564,29 +603,29 @@
     const label = { stopped: 'Stopped', starting: 'Starting…', running: 'Running', stopping: 'Stopping…' }[w.status];
     const sizeName = (s) => (s === 'large' ? 'Large 6 GB' : 'Small 2 GB');
 
+    // The 3-step start sequence only shows while the workspace starts.
     const steps = START_STEPS();
-    const seq = h('div', { class: 'stack', style: { gap: '0' } }, steps.map((t, i) => {
-      const st = w.status === 'running' ? 'pass' : w.status === 'starting' ? (i < w.step ? 'pass' : i === w.step ? 'run' : 'wait') : 'wait';
+    const seq = w.status === 'starting' ? h('div', { class: 'stack', style: { gap: '0' } }, steps.map((t, i) => {
+      const st = i < w.step ? 'pass' : i === w.step ? 'run' : 'wait';
       return h('div', { class: 'check ' + st }, h('span', { class: 'ic', html: st === 'pass' ? '✓' : st === 'run' ? '<span class="spin" style="width:10px;height:10px;border-width:2px"></span>' : String(i + 1) }), h('span', { class: st === 'wait' ? 'muted' : '' }, t));
-    }));
+    })) : null;
 
     const statusCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb ' + (w.status === 'running' ? 'on' : busy ? 'busy' : ''), html: icon('cloud') }),
-          h('div', {}, h('div', { class: 'eyebrow' }, 'Cloud workspace'), h('div', { class: 'wsx-big', 'data-test': 'ws-status' }, label), h('div', { class: 'small muted' }, `${sizeName(w.size)} · Mumbai · VS Code + terminal + Docker`))),
-        h('span', { class: 'pill ' + (w.status === 'running' ? 'green' : busy ? 'blue' : '') }, h('span', { class: 'dot' }), label)),
+      h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb ' + (w.status === 'running' ? 'on' : busy ? 'busy' : ''), html: icon('cloud') }),
+        h('div', {}, h('div', { class: 'wsx-big' }, 'Cloud workspace'), h('div', { class: 'small muted' }, h('b', { 'data-test': 'ws-status', style: { color: 'var(--fg)' } }, label), ` · ${sizeName(w.size)} · Mumbai · VS Code, terminal and Docker`))),
       seq,
       h('div', { class: 'row', style: { gap: '8px' } },
-        h('button', { type: 'button', class: 'btn primary', disabled: w.status !== 'stopped' || atLimit, onclick: () => startWS(c) }, 'Start'),
-        h('button', { type: 'button', class: 'btn', disabled: w.status !== 'running', onclick: () => stopWS(c) }, 'Stop'),
-        h('button', { type: 'button', class: 'btn' + (w.pending && w.status === 'running' ? ' primary' : ''), disabled: w.status !== 'running', onclick: () => restartWS(c) }, w.pending && w.status === 'running' ? `Restart as ${sizeName(w.pending).split(' ')[0]}` : 'Restart')),
-      h('div', { class: 'row', style: { gap: '8px' } },
-        h('button', { type: 'button', class: 'btn', disabled: atLimit, onclick: () => openVS(c), html: icon('code') + '<span>Open in VS Code</span>' }),
-        h('button', { type: 'button', class: 'btn', onclick: () => c.go('practical'), html: icon('play') + '<span>Open the practical</span>' })),
-      atLimit ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--red)' } }, h('b', {}, 'Limit reached, resets Monday. '), h('span', { class: 'small muted' }, 'Your files are safe. The in-browser tools still work.')) : null);
+        h('button', { type: 'button', class: 'btn primary', disabled: atLimit || busy, onclick: () => openVS(c), html: icon('code') + `<span>${w.status === 'running' ? 'Open in VS Code' : 'Start and open VS Code'}</span>` }),
+        h('button', { type: 'button', class: 'btn', onclick: () => c.go('practical'), html: icon('play') + '<span>Open the practical</span>' }),
+        w.status === 'running' ? h('button', { type: 'button', class: 'btn ghost', onclick: () => restartWS(c) }, w.pending ? `Restart as ${sizeName(w.pending).split(' ')[0]}` : 'Restart') : null),
+      atLimit ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--red)' } }, h('b', {}, 'Limit reached, resets Monday. '), h('span', { class: 'small muted' }, 'Your files are safe. The in-browser tools still work.')) : null,
+      more(c, 'ws', h('p', {}, 'Start and stop are at the top of this page. Hours only count while the workspace runs. Files stay on its disk between sessions, so stopping never loses work.')));
+
+    const files = filesFor(field);
+    const filesCard = filesList(c, files, (f) => openVS(c, f.path), `Set up for ${field.company}. Kept between sessions.`, 'Click a file to open it in VS Code.');
 
     const sizeCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Workspace size'), w.pending ? h('span', { class: 'pill amber' }, 'Restart needed') : h('span', { class: 'pill' }, sizeName(w.size))),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Size'), w.pending ? h('span', { class: 'pill amber' }, 'Restart needed') : null),
       h('div', { class: 'wsx-seg', role: 'group', 'aria-label': 'Workspace size' }, ['small', 'large'].map((s) => {
         const chosen = (w.pending || w.size) === s;
         return h('button', { type: 'button', 'aria-pressed': chosen ? 'true' : 'false', disabled: busy, onclick: () => {
@@ -596,10 +635,8 @@
           paint();
         } }, s === 'small' ? 'Small' : 'Large', h('small', {}, s === 'small' ? '2 GB memory' : '6 GB memory'));
       })),
-      h('p', { class: 'small' }, (w.pending || w.size) === 'large'
-        ? `Large is for Docker lectures (Month 5), monitoring (Month 10) and security labs (Month 11), where several services run at once.${hasCloud() && /Large/.test(ST().workspace.size) ? ` Switched on for ${ST().name.split(' ')[0]} this month.` : ''}`
-        : `Small is enough for most practicals${hasCloud() ? `, including this week’s Lecture ${ST().lecture}` : ''}.`),
-      w.pending && w.status === 'running' ? h('div', { class: 'note' }, `Switching size needs a restart. Your files stay where they are. Press "Restart as ${sizeName(w.pending).split(' ')[0]}".`) : h('div', { class: 'note' }, 'Switching size while it runs needs a restart. Files are kept.'));
+      h('p', { class: 'small muted', style: { margin: 0 } }, w.pending && w.status === 'running' ? `Press "Restart as ${sizeName(w.pending).split(' ')[0]}". Files are kept.` : (w.pending || w.size) === 'large' ? 'For Docker, monitoring and security labs.' : 'Enough for most practicals.'),
+      more(c, 'size', h('p', {}, `Large is switched on for Docker lectures (Month 5), monitoring (Month 10) and security labs (Month 11), where several services run at once.${hasCloud() && /Large/.test(ST().workspace.size) ? ` ${ST().name.split(' ')[0]} has it this month.` : ''} Switching size while the workspace runs needs a restart. Files are kept.`)));
 
     const pct = Math.min(100, (w.usedMin / WEEK_CAP) * 100);
     const meter = h('div', { class: 'wsx-meter ' + (pct >= 100 ? 'full' : pct >= 80 ? 'warn' : ''), role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '720', 'aria-valuenow': String(Math.floor(w.usedMin)), 'aria-label': 'Workspace hours used this week' }, h('i', { style: { width: pct + '%' } }));
@@ -611,15 +648,14 @@
       meter.className = 'wsx-meter ' + (p >= 100 ? 'full' : p >= 80 ? 'warn' : '');
       meter.setAttribute('aria-valuenow', String(Math.floor(w.usedMin)));
       used.textContent = fmtH(w.usedMin);
-      left.textContent = w.usedMin >= WEEK_CAP ? 'Limit reached, resets Monday' : `${fmtH(WEEK_CAP - w.usedMin)} left · resets Monday`;
+      left.textContent = w.usedMin >= WEEK_CAP ? 'Limit reached' : `${fmtH(WEEK_CAP - w.usedMin)} left`;
     }
     drawMeter();
     live.refs.drawMeter = drawMeter;
     const hoursCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Hours this week'), h('span', { class: 'pill ' + (w.status === 'running' ? 'green' : '') }, w.status === 'running' ? 'Counting' : 'Paused')),
-      h('div', { class: 'wsx-between' }, h('span', {}, used, h('span', { class: 'muted' }, ' of 12 h used')), left),
+      h('h3', {}, 'Weekly hours'),
+      h('div', { class: 'wsx-between' }, h('span', {}, used, h('span', { class: 'muted' }, ' of 12 h')), left),
       meter,
-      h('p', { class: 'small muted' }, 'Hours only count while the workspace runs. In this demo the clock is sped up: one minute every three seconds.'),
       h('div', { class: 'row', style: { gap: '8px' } },
         atLimit ? h('button', { type: 'button', class: 'btn sm', onclick: () => { w.usedMin = w.base || 0; w.limitNotified = false; c.toast(`Demo reset to ${fmtH(w.usedMin)} used`); paint(); } }, 'Reset the week (demo)')
           : h('button', { type: 'button', class: 'btn sm', onclick: () => {
@@ -629,37 +665,33 @@
               const was = w.status; w.status = 'stopped'; w.step = -1; w.last = 0; limitReached(); if (was !== 'stopped') emitWS();
             } else c.toast(`${fmtH(w.usedMin)} used this week`);
             paint();
-          } }, 'Add 4 hours (demo)')));
+          } }, 'Add 4 hours (demo)')),
+      more(c, 'hours', h('p', {}, 'Hours only count while the workspace runs. They reset every Monday. In this demo the clock is sped up: one minute every three seconds.')));
 
     const idleCard = h('section', { class: 'card stack' },
-      h('h3', {}, 'Idle auto-shutdown'),
-      h('p', { class: 'small' }, 'If nobody types or runs anything for 20 minutes, the workspace stops by itself. That saves the student’s weekly hours and the lab’s server costs. Files are saved first.'),
+      h('h3', {}, 'Idle shutdown'),
+      h('p', { class: 'small muted', style: { margin: 0 } }, 'Stops by itself after 20 quiet minutes. Files are saved first.'),
       h('div', { class: 'row', style: { gap: '8px' } },
-        h('button', { type: 'button', class: 'btn', disabled: w.status !== 'running', onclick: () => {
+        h('button', { type: 'button', class: 'btn sm', disabled: w.status !== 'running', title: w.status !== 'running' ? 'Start the workspace to try this' : '', onclick: () => {
           if (w.status !== 'running') return;
           accrue(); if (w.status !== 'running') { paint(); return; }
           w.status = 'stopped'; w.step = -1; w.last = 0; emitWS();
           c.notify('Workspace stopped after 20 minutes idle', 'We saved your files and stopped the workspace to save your hours. Start it again any time.', 'workspace');
           c.toast('Idle for 20 minutes: workspace stopped, files saved', 'amber'); paint();
         } }, 'Simulate 20 minutes idle'),
-        w.status !== 'running' ? h('span', { class: 'tiny muted' }, 'Start the workspace to try this.') : null));
-
-    const files = filesFor(field);
-    const filesCard = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Your files'), h('p', { class: 'small muted' }, `Saved between sessions. Stop or restart and they are still here. Set up for ${field.company}${hasCloud() ? '' : ' when Month 4 starts'}.`)), h('span', { class: 'pill' }, `${files.length} files`)),
-      h('div', { class: 'wsx-files' }, files.map((f) => h('button', { type: 'button', class: 'wsx-file', title: f.desc || f.path, onclick: () => openVS(c, f.path), html: icon(/\.(py|ts|sh|json|http)$|Caddyfile/.test(f.path) ? 'code' : 'book') }, h('code', {}, f.path), h('span', { class: 'meta num' }, `${f.size} · ${f.when}`)))),
-      h('p', { class: 'tiny muted', style: { marginTop: '8px' } }, 'Click a file to open it in VS Code.'));
+        w.status !== 'running' ? h('span', { class: 'tiny muted' }, 'Start the workspace first.') : null),
+      more(c, 'idle', h('p', {}, 'If nobody types or runs anything for 20 minutes, the workspace stops. That saves the student’s weekly hours and the lab’s server costs.')));
 
     const first = ST().name.split(' ')[0];
     const banner = !hasCloud() ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--violet)' } },
-      h('div', { class: 'wsx-between' }, h('span', {}, h('b', {}, 'Preview. '), h('span', { class: 'small' }, `${first} gets this cloud workspace in Month 4 (Lecture ${firstOfMonth(4)}). Until then ${his()} practicals run in the browser. Try every button: nothing here touches her real work.`)),
+      h('div', { class: 'wsx-between' }, h('span', {}, h('b', {}, 'Preview. '), h('span', { class: 'small' }, `${first} gets this in Month 4 (Lecture ${firstOfMonth(4)}). Try every button: nothing here touches ${his()} real work.`)),
         h('button', { type: 'button', class: 'btn sm', onclick: () => { stopWS(c, true); S.preview = false; paint(); } }, 'Back to in-browser Python'))) : null;
     return h('div', { class: 'wsx-panel' },
       banner,
-      h('div', { class: 'grid-2' }, statusCard, sizeCard),
-      h('div', { class: 'grid-2' }, hoursCard, idleCard),
+      h('div', { class: 'grid-2' }, statusCard, filesCard),
       ST().month >= 11 ? targetsCard(c) : null,
-      filesCard);
+      h('div', { class: 'wsx-sec' }, 'Settings and limits'),
+      h('div', { class: 'grid-3' }, sizeCard, hoursCard, idleCard));
   }
 
   function keyString() { return `nmk_live_${ST().id}_${hash(ST().id + 'k').toString(16).padStart(8, '0')}${hash(ST().name).toString(16).slice(0, 8)}${S.key.suffix}`; }
@@ -685,23 +717,24 @@
     const pct = Math.min(100, (k.used / BUDGET) * 100);
     const masked = `nmk_live_••••••••••••${k.suffix}`;
     const keyCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('div', { class: 'eyebrow' }, 'Lab AI key'), h('h3', {}, 'Your key for AI models')), h('span', { class: 'pill green' }, 'Active')),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Your lab AI key'), h('span', { class: 'pill green' }, 'Active')),
       h('div', { class: 'wsx-key' }, h('code', { 'data-test': 'key' }, k.reveal ? keyString() : masked),
         h('button', { type: 'button', class: 'btn sm', onclick: () => { k.reveal = !k.reveal; paint(); } }, k.reveal ? 'Hide' : 'Show'),
         h('button', { type: 'button', class: 'btn sm', onclick: () => copyText(c, keyString(), 'Key') }, 'Copy')),
-      h('div', { class: 'callout' }, h('b', {}, 'No personal AI account needed. '), h('span', { class: 'small' }, `The lab gives every student this key. It is already set in ${hasCloud() ? 'the workspace' : 'in-browser Python'}, so code just works. No card, no sign-up with an AI company.`)),
+      h('p', { class: 'small muted', style: { margin: 0 } }, `No personal AI account needed. Already set in ${hasCloud() ? 'the workspace' : 'in-browser Python'}.`),
       k.confirm
         ? h('div', { class: 'wsx-confirm' }, h('b', {}, 'Rotate this key?'), h('p', { class: 'small' }, 'The old key stops working right away. The workspace picks up the new key by itself. Do this if the key was shared by mistake, for example in a GitHub commit.'),
           h('div', { class: 'row', style: { gap: '8px' } },
             h('button', { type: 'button', class: 'btn primary sm', onclick: () => { const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const n = hash(k.suffix + Date.now()); k.suffix = Array.from({ length: 4 }, (_, i) => chars[(n >>> (i * 5)) % chars.length]).join(''); k.confirm = false; k.reveal = false; c.toast(`New key issued, ending ${k.suffix}. The old key no longer works.`, 'green'); paint(); } }, 'Yes, rotate the key'),
             h('button', { type: 'button', class: 'btn sm', onclick: () => { k.confirm = false; paint(); } }, 'Cancel')))
-        : h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn sm', onclick: () => { k.confirm = true; paint(); }, html: icon('key') + '<span>Rotate key</span>' }), h('span', { class: 'tiny muted' }, 'Gives you a new key and turns off the old one.')));
+        : h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn sm ghost', onclick: () => { k.confirm = true; paint(); }, html: icon('key') + '<span>Rotate key</span>' }), h('span', { class: 'tiny muted' }, 'New key, old one stops working.')),
+      more(c, 'key', h('p', {}, 'The lab gives every student this key, so code just works. No card and no sign-up with an AI company. Calls go through the lab gateway, which checks the monthly budget.')));
 
     const budgetCard = h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Monthly budget'), h('span', { class: 'pill ' + (pct >= 100 ? 'red' : pct >= 80 ? 'amber' : 'blue') }, `${Math.round(pct)}% used`)),
       h('div', { class: 'wsx-between' }, h('span', { class: 'wsx-big num' }, rupee(k.used, 0), h('span', { class: 'small muted', style: { fontFamily: 'var(--body)', fontWeight: 600 } }, ` of ${rupee(BUDGET)} used this month`)), h('span', { class: 'small muted num' }, `${rupee(Math.max(0, BUDGET - k.used), 0)} left`)),
       h('div', { class: 'wsx-meter ' + (pct >= 100 ? 'full' : pct >= 80 ? 'warn' : ''), role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(BUDGET), 'aria-valuenow': String(Math.round(k.used)), 'aria-label': 'AI budget used' }, h('i', { style: { width: pct + '%' } }), h('b', { style: { left: '80%' }, title: 'Alert at 80%' })),
-      h('p', { class: 'small muted' }, 'The amber mark is the 80% alert. The budget resets on the 1st of each month.'),
+      h('p', { class: 'tiny muted', style: { margin: 0 } }, 'Amber mark: 80% alert. Resets on the 1st.'),
       pct >= 80 ? h('div', { class: 'callout', style: { borderLeftColor: pct >= 100 ? 'var(--red)' : 'var(--amber)' } }, h('b', {}, pct >= 100 ? 'Budget used up. ' : '80% alert sent. '), h('span', { class: 'small' }, pct >= 100 ? 'AI calls pause until the 1st, or until a mentor tops up the key.' : `${first} and ${his()} mentor were told: ${rupee(Math.round(k.used))} of ${rupee(BUDGET)} used. Requests slow down near the cap. The AI tutor keeps working on the shared local model.`)) : null,
       h('div', { class: 'row', style: { gap: '8px' } },
         h('button', { type: 'button', class: 'btn', disabled: pct >= 85, onclick: () => {
@@ -714,31 +747,32 @@
     const rows = usageRows(c);
     const total = rows.reduce((a, r) => a + r.inr, 0);
     const usageCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Usage by practical'), h('span', { class: 'demo-tag' }, 'Demo data')),
+      h('h3', {}, 'Where the budget went'),
       h('div', { class: 'table-wrap' }, h('table', {},
         h('thead', {}, h('tr', {}, h('th', {}, 'Where'), h('th', {}, 'AI calls'), h('th', {}, 'Cost'), h('th', {}, 'Share'))),
-        h('tbody', {}, rows.map((r) => h('tr', { class: r.lec > 0 ? 'clickable' : '', title: r.lec > 0 ? `Open Lecture ${r.lec}` : null, onclick: r.lec > 0 ? () => openLecture(c, r.lec) : null },
+        h('tbody', {}, (S.usageAll ? rows : rows.slice(0, 5)).map((r) => h('tr', { class: r.lec > 0 ? 'clickable' : '', title: r.lec > 0 ? `Open Lecture ${r.lec}` : null, onclick: r.lec > 0 ? () => openLecture(c, r.lec) : null },
           h('td', {}, r.name), h('td', { class: 'num' }, String(r.calls)), h('td', { class: 'num' }, rupee(r.inr, 2)),
           h('td', { style: { minWidth: '110px' } }, h('div', { class: 'progress' }, h('i', { style: { width: (r.inr / Math.max(total, 1) * 100) + '%' } })))))),
         h('tfoot', {}, h('tr', {}, h('td', {}, h('b', {}, 'Total this month')), h('td', { class: 'num' }, String(rows.reduce((a, r) => a + r.calls, 0))), h('td', { class: 'num' }, h('b', {}, rupee(total, 2))), h('td', {}))))),
-      h('p', { class: 'tiny muted' }, `${D().months[ST().month]} lectures ${first} has done this month. Click a lecture row to open it.`));
+      h('div', { class: 'wsx-between' }, h('span', { class: 'tiny muted' }, `This month’s lectures. Click a row to open it.`), rows.length > 5 ? h('button', { type: 'button', class: 'wsx-link', onclick: () => { S.usageAll = !S.usageAll; paint(); } }, S.usageAll ? 'Show fewer' : `Show all (${rows.length})`) : null));
 
     const modelsCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Models this key can call'), h('span', { class: 'small muted' }, 'All through the lab gateway, Amazon Bedrock in Mumbai')),
+      h('div', {}, h('h3', {}, 'Models this key can call'), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, 'Amazon Bedrock in Mumbai, through the lab gateway')),
       h('div', { class: 'grid-3' }, Object.values(MODELS).map((m) => h('div', { class: 'wsx-model' },
         h('div', { class: 'wsx-between' }, h('b', {}, m.name), h('span', { class: 'pill ' + (m.id === 'oss' ? 'blue' : m.id === 'haiku' ? 'violet' : 'green') }, m.tag)),
         h('p', { class: 'small muted' }, m.blurb),
         h('span', { class: 'tiny muted num' }, `About ${rupee(m.outK, 3)} per 1,000 words out`)))),
-      h('p', { class: 'small muted' }, 'Student data stays in India. Small local models (qwen2.5) also run on a shared lab server for practice that costs nothing per call.'));
+      more(c, 'models', h('p', {}, 'Student data stays in India. Small local models (qwen2.5) also run on a shared lab server for practice that costs nothing per call.')));
 
     const limitsCard = h('section', { class: 'card stack' },
-      h('h3', {}, 'Limits, explained simply'),
+      h('h3', {}, 'Limits'),
       h('div', { class: 'grid-3' },
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, '20 / min'), h('span', {}, 'Requests per minute. A runaway loop cannot burn the budget in seconds.')),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, rupee(BUDGET)), h('span', {}, 'Monthly cap. At the cap, calls pause until the 1st or a mentor tops up.')),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, '80%'), h('span', {}, 'Alert point. The student and their mentor get a notification.'))));
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, '20 / min'), h('span', {}, 'requests per minute')),
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, rupee(BUDGET)), h('span', {}, 'monthly cap')),
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, '80%'), h('span', {}, 'alert point'))),
+      more(c, 'limits', h('p', {}, 'The per-minute limit stops a runaway loop from burning the budget in seconds. At the monthly cap, calls pause until the 1st or until a mentor tops up the key. At 80%, the student and their mentor get a notification.')));
 
-    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, keyCard, budgetCard), usageCard, modelsCard, limitsCard);
+    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, keyCard, budgetCard), usageCard, h('div', { class: 'wsx-sec' }, 'Models and limits'), modelsCard, limitsCard);
   }
 
   function panelPlay(c) {
@@ -816,7 +850,7 @@
     if (P.results[field.id]) runBtn.textContent = 'Run again';
     return h('div', { class: 'wsx-panel' },
       h('section', { class: 'card stack' },
-        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'AI playground'), h('p', { class: 'small muted' }, 'Compare models on the same prompt. Each run is paid from the lab AI key.')), h('span', { class: 'demo-tag' }, 'Scripted answers')),
+        h('div', {}, h('h3', {}, 'AI playground'), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, 'Compare models on the same prompt. Each run is paid from the lab AI key. Answers are scripted for this demo.')),
         ta,
         h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '6px' } }, 'Models (pick 1 to 3)'), chips),
         h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'wsx-between' }, h('span', { class: 'eyebrow' }, 'Temperature'), tl), slider, h('div', { class: 'wsx-between tiny muted' }, h('span', {}, 'Precise, same words each time'), h('span', {}, 'Creative, more varied wording'))),
@@ -840,20 +874,20 @@
     draw();
     const seg = h('div', { class: 'wsx-seg', role: 'group', 'aria-label': 'Sample text' }, [['en', 'English'], ['hi', 'Hinglish']].map(([id, label]) =>
       h('button', { type: 'button', 'data-id': id, 'aria-pressed': T.mode === id && T.text[field.id] === sm[id] ? 'true' : 'false', onclick: () => { T.mode = id; T.text[field.id] = sm[id]; paint(); } }, label)));
-    const ne = tokCount(sm.en), nh = tokCount(sm.hi); const more = Math.round((nh / ne - 1) * 100);
+    const ne = tokCount(sm.en), nh = tokCount(sm.hi); const extraPct = Math.round((nh / ne - 1) * 100);
     const mx = Math.max(ne, nh);
     const compare = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Same message, two languages'), h('span', { class: 'pill amber' }, `Hinglish +${more}% tokens`)),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Same message, two languages'), h('span', { class: 'pill amber' }, `Hinglish +${extraPct}% tokens`)),
       h('div', { class: 'wsx-bars' },
         h('div', { class: 'wsx-bar' }, h('span', {}, 'English'), h('div', { class: 'progress' }, h('i', { style: { width: (ne / mx * 100) + '%' } })), h('span', { class: 'num' }, `${ne} tokens`)),
         h('div', { class: 'wsx-bar alt' }, h('span', {}, 'Hinglish'), h('div', { class: 'progress' }, h('i', { style: { width: (nh / mx * 100) + '%' } })), h('span', { class: 'num' }, `${nh} tokens`))),
-      h('p', { class: 'small' }, `AI models charge per token. Most were trained mostly on English, so Hinglish words get cut into more pieces. The same request costs about ${more}% more. Students learn to write prompts that fit the budget.`));
+      h('p', { class: 'small muted', style: { margin: 0 } }, `The same request costs about ${extraPct}% more in Hinglish, because models charge per token.`));
     return h('div', { class: 'wsx-panel' },
       h('section', { class: 'card stack' },
-        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Tokenizer'), h('p', { class: 'small muted' }, 'AI models read text in small pieces called tokens. Type below to see how text is cut.')), seg),
+        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Tokenizer'), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, 'AI models read text in pieces called tokens. Type to see the cuts.')), seg),
         ta, view,
         h('div', { class: 'grid-3' }, h('div', { class: 'stat' }, count, h('span', {}, 'tokens')), h('div', { class: 'stat' }, chars, h('span', {}, 'characters')), h('div', { class: 'stat' }, ratio, h('span', {}, 'characters per token'))),
-        h('p', { class: 'tiny muted' }, 'Teaching version of a tokenizer: common English words stay whole, other long words are cut into 4-letter pieces, and punctuation is its own token. Real tokenizers work the same way, with a much bigger word list.')),
+        more(c, 'tok', h('p', {}, 'This is a teaching version of a tokenizer: common English words stay whole, other long words are cut into 4-letter pieces, and punctuation is its own token. Real tokenizers work the same way, with a much bigger word list.'))),
       compare);
   }
 
@@ -889,10 +923,11 @@
         h('div', {}, h('span', {}, 'IP address'), h('b', { class: 'num' }, ip)), h('div', {}, h('span', {}, 'User'), h('b', {}, `${user} (not root)`)),
         h('div', {}, h('span', {}, 'Size'), h('b', {}, '1 vCPU · 1 GB')), h('div', {}, h('span', {}, 'Up for'), h('b', { class: 'num' }, resetting ? '—' : upTxt))),
       h('div', {}, h('div', { class: 'eyebrow', style: { marginBottom: '6px' } }, 'Connect with SSH'), h('div', { class: 'wsx-cmd' }, h('code', {}, ssh), h('button', { type: 'button', class: 'btn sm', onclick: () => copyText(c, ssh, 'SSH command') }, 'Copy'))),
-      h('p', { class: 'tiny muted' }, 'Login uses an SSH key set up in Lecture 41. Passwords are switched off.'),
+      h('p', { class: 'tiny muted', style: { margin: 0 } }, 'Login uses an SSH key set up in Lecture 41. Passwords are off.'),
       h('div', { class: 'row', style: { gap: '8px' } },
         h('button', { type: 'button', class: 'btn sm', onclick: () => openLecture(c, 38), html: icon('play') + '<span>Lecture 38: Linux essentials</span>' }),
-        h('button', { type: 'button', class: 'btn sm', onclick: () => openLecture(c, 41), html: icon('play') + '<span>Lecture 41: VPS and SSH</span>' })));
+        h('button', { type: 'button', class: 'btn sm', onclick: () => openLecture(c, 41), html: icon('play') + '<span>Lecture 41: VPS and SSH</span>' })),
+      more(c, 'vps', h('p', {}, 'Jobs ask for Linux and cloud skills. Each student practises on an isolated server on a private lab network. Nothing they do can reach the public internet or other students.')));
 
     const resetSteps = ['Stopping the server', 'Restoring a clean Ubuntu 24.04 image', 'Adding your SSH key and the lab firewall rules'];
     let resetBox;
@@ -911,7 +946,7 @@
     const resetCard = h('section', { class: 'card stack' }, h('h3', {}, 'Start again'), h('p', { class: 'small muted' }, 'Broke something? That is part of learning. One click gives a clean server.'), resetBox);
 
     const fwCard = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Firewall rules'), h('p', { class: 'small muted' }, 'Which doors on the server are open. Turn one off to see what happens.')), h('button', { type: 'button', class: 'btn sm', onclick: () => openLecture(c, 42) }, 'Lecture 42: firewalls')),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Firewall rules'), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, 'Turn a port off to see what happens.')), h('button', { type: 'button', class: 'btn sm ghost', onclick: () => openLecture(c, 42) }, 'Lecture 42: firewalls')),
       h('div', { class: 'table-wrap' }, h('table', {},
         h('thead', {}, h('tr', {}, h('th', {}, 'Port'), h('th', {}, 'Used for'), h('th', {}, 'From'), h('th', {}, 'Allow'))),
         h('tbody', {}, RULES.map(([p, name, use]) => h('tr', {},
@@ -927,7 +962,7 @@
       h('div', { class: 'term', html: ufw.join('\n') }));
 
     const vpsBanner = !hasVPS() ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--violet)' } }, h('div', { class: 'wsx-between' }, h('span', {}, h('b', {}, 'Preview. '), h('span', { class: 'small' }, 'This server opens in Month 5.')), h('button', { type: 'button', class: 'btn sm', onclick: () => { S.vpsPreview = false; paint(); } }, 'Close preview'))) : null;
-    return h('div', { class: 'wsx-panel' }, vpsBanner, h('div', { class: 'grid-2' }, serverCard, h('div', { class: 'stack', style: { gap: '16px' } }, resetCard, h('section', { class: 'card stack' }, h('h3', {}, 'Why a real server?'), h('p', { class: 'small' }, 'Jobs ask for Linux and cloud skills. Here each student practises on an isolated server on a private lab network. Nothing they do can reach the public internet or other students.')))), fwCard);
+    return h('div', { class: 'wsx-panel' }, vpsBanner, h('div', { class: 'grid-2' }, serverCard, resetCard), fwCard);
   }
   function finishReset(c) {
     const V = S.vps; if (V.status !== 'resetting') return;
@@ -951,27 +986,56 @@
       h('p', { class: 'small muted' }, MONTH_NOTE[sel]),
       h('div', { class: 'stack', style: { gap: '8px' } }, ids.map((id) => { const t = TOOLS[id]; return h('div', { class: 'wsx-toolcard' }, h('div', {}, h('b', {}, t.name), h('p', { class: 'small muted' }, t.what)), t.tab ? h('button', { type: 'button', class: 'btn sm', onclick: () => { S.tab = t.tab; paint(true); } }, 'Open here') : h('span', { class: 'pill' }, sel < now ? 'Done' : sel === now ? 'This month' : 'Later')); })));
     return h('div', { class: 'wsx-panel' },
-      h('section', { class: 'card stack' }, h('div', {}, h('h3', {}, 'Which tool when'), h('p', { class: 'small muted' }, 'The lab grows with the student. Simple browser tools first, real servers later. Click a month.')), months),
+      h('section', { class: 'card stack' }, h('div', {}, h('h3', {}, 'Which tool when'), h('p', { class: 'small muted', style: { margin: '2px 0 0' } }, 'Browser tools first, real servers later. Click a month.')), months),
       h('div', { class: 'grid-2' }, detail, h('section', { class: 'card stack' }, h('div', { class: 'eyebrow' }, 'All lab tools'), cloud, h('p', { class: 'tiny muted' }, 'Highlighted: the tools used in the month you picked. Everything opens in a browser on a basic laptop.'))));
   }
 
   /* ---------- shell ---------- */
-  const TABS = [['ws', 'Cloud workspace'], ['key', 'AI key'], ['play', 'AI playground'], ['tok', 'Tokenizer'], ['vps', 'Practice server'], ['when', 'Which tool when']];
+  const TABS = [['ws', 'Workspace'], ['key', 'AI key'], ['play', 'Playground'], ['tok', 'Tokenizer'], ['vps', 'Practice server'], ['when', 'Which tool when']];
   const PANELS = { ws: panelWorkspace, key: panelKey, play: panelPlay, tok: panelTok, vps: panelVPS, when: panelWhen };
 
-  function summary(c) {
-    const { h } = c; const w = S.ws; const k = S.key;
-    const wsLabel = { stopped: 'Stopped', starting: 'Starting…', running: 'Running', stopping: 'Stopping…' }[w.status];
-    const BUDGET = budgetCap(); const kp = k.used / BUDGET;
-    const btn = (tab, cls, text) => h('button', { type: 'button', class: 'pill ' + cls, onclick: () => { S.tab = tab; paint(true); } }, text);
-    const budgetPill = btn('key', kp >= 0.8 ? 'amber' : 'blue', `AI budget: ${rupee(Math.round(k.used))} of ${rupee(BUDGET)}${kp >= 0.8 ? ' · 80% alert' : ''}`);
-    if (!hasCloud()) return h('div', { class: 'wsx-sum' }, btn('ws', 'green', 'Environment: In-browser Python'), btn('ws', '', 'Cloud workspace: Month 4'), budgetPill, btn('vps', '', 'Practice server: Month 5'));
-    return h('div', { class: 'wsx-sum' },
-      btn('ws', w.status === 'running' ? 'green' : w.status === 'stopped' ? '' : 'blue', `Workspace (${w.size === 'large' ? 'Large 6 GB' : 'Small 2 GB'}): ${wsLabel}`),
-      btn('ws', w.usedMin >= WEEK_CAP ? 'red' : '', `${fmtH(w.usedMin)} of 12 h`),
-      budgetPill,
-      hasVPS() ? btn('vps', S.vps.status === 'running' ? 'green' : 'blue', `Practice server: ${S.vps.status === 'running' ? 'Running' : 'Resetting'}`) : null,
-      ST().month >= 11 ? btn('ws', S.target.status === 'running' ? 'green' : 'blue', 'Practice target: Running') : null);
+  // Three calm tiles at the top: workspace status with Start/Stop, hours this week, AI budget.
+  function tiles(c) {
+    const { h } = c; const w = S.ws; const k = S.key; const st = ST();
+    const cloud = hasCloud() || S.preview;
+    const go = (tab) => () => { if (S.tab !== tab) { S.tab = tab; paint(true); } };
+    const label = { stopped: 'Stopped', starting: 'Starting…', running: 'Running', stopping: 'Stopping…' }[w.status];
+    const busy = w.status === 'starting' || w.status === 'stopping';
+    const atLimit = w.usedMin >= WEEK_CAP;
+    let t1;
+    if (cloud) {
+      const action = w.status === 'running' ? h('button', { type: 'button', class: 'btn', onclick: () => stopWS(c) }, 'Stop')
+        : h('button', { type: 'button', class: 'btn primary', disabled: busy || atLimit, onclick: () => startWS(c) }, busy ? label : 'Start');
+      t1 = h('section', { class: 'card wsx-tile', 'aria-label': 'Workspace status' },
+        h('div', { class: 'lbl' }, h('span', {}, hasCloud() ? 'Cloud workspace' : 'Cloud workspace (preview)'), h('span', { class: 'wsx-dotst ' + (w.status === 'running' ? 'on' : busy ? 'busy' : '') }, h('i'))),
+        h('div', { class: 'val' }, label, ' ', h('small', {}, w.size === 'large' ? 'Large 6 GB' : 'Small 2 GB')),
+        h('div', { class: 'foot' }, action, atLimit ? h('span', { class: 'tiny muted' }, 'Limit reached') : h('button', { type: 'button', class: 'wsx-link', onclick: go('ws') }, 'Details')));
+    } else {
+      t1 = h('section', { class: 'card wsx-tile', 'aria-label': 'Environment' },
+        h('div', { class: 'lbl' }, h('span', {}, 'Environment'), h('span', { class: 'wsx-dotst on' }, h('i'))),
+        h('div', { class: 'val' }, 'Ready ', h('small', {}, 'In-browser Python')),
+        h('div', { class: 'foot' }, h('button', { type: 'button', class: 'btn primary', onclick: () => c.go('practical') }, 'Open the practical'), h('button', { type: 'button', class: 'wsx-link', onclick: () => { S.preview = true; S.tab = 'ws'; paint(true); } }, 'Preview cloud')));
+    }
+    const hPct = Math.min(100, (w.usedMin / WEEK_CAP) * 100);
+    const hVal = h('span', { class: 'num' }, fmtH(w.usedMin));
+    const hBar = h('div', { class: 'wsx-meter thin ' + (hPct >= 100 ? 'full' : hPct >= 80 ? 'warn' : '') }, h('i', { style: { width: hPct + '%' } }));
+    if (live) live.refs.tileHours = () => { const p = Math.min(100, (w.usedMin / WEEK_CAP) * 100); hVal.textContent = fmtH(w.usedMin); hBar.firstChild.style.width = p + '%'; hBar.className = 'wsx-meter thin ' + (p >= 100 ? 'full' : p >= 80 ? 'warn' : ''); };
+    const t2 = cloud
+      ? h('section', { class: 'card wsx-tile', 'aria-label': 'Hours this week' },
+        h('div', { class: 'lbl' }, h('span', {}, 'Hours this week')),
+        h('div', { class: 'val' }, hVal, ' ', h('small', {}, 'of 12 h')), hBar,
+        h('div', { class: 'foot' }, h('span', { class: 'tiny muted' }, 'Resets Monday'), h('button', { type: 'button', class: 'wsx-link', onclick: go('ws') }, 'Details')))
+      : h('section', { class: 'card wsx-tile', 'aria-label': 'Time this week' },
+        h('div', { class: 'lbl' }, h('span', {}, 'Time this week')),
+        h('div', { class: 'val' }, h('span', { class: 'num' }, fmtH((st.workspace || {}).hours_used_min || 0)), ' ', h('small', {}, 'in the browser')),
+        h('div', { class: 'foot' }, h('span', { class: 'tiny muted' }, 'No weekly cap'), h('button', { type: 'button', class: 'wsx-link', onclick: go('ws') }, 'Details')));
+    const BUDGET = budgetCap(); const kp = Math.min(100, k.used / BUDGET * 100);
+    const t3 = h('section', { class: 'card wsx-tile', 'aria-label': 'AI budget' },
+      h('div', { class: 'lbl' }, h('span', {}, 'AI budget this month'), kp >= 80 ? h('span', { class: 'pill amber' }, '80% alert') : null),
+      h('div', { class: 'val' }, h('span', { class: 'num' }, rupee(Math.round(k.used))), ' ', h('small', {}, `of ${rupee(BUDGET)}`)),
+      h('div', { class: 'wsx-meter thin ' + (kp >= 100 ? 'full' : kp >= 80 ? 'warn' : '') }, h('i', { style: { width: kp + '%' } })),
+      h('div', { class: 'foot' }, h('span', { class: 'tiny muted' }, 'Resets on the 1st'), h('button', { type: 'button', class: 'wsx-link', onclick: go('key') }, 'Details')));
+    return h('div', { class: 'wsx-tiles' }, t1, t2, t3);
   }
 
   function paint(focusTab) {
@@ -980,17 +1044,15 @@
     if (live.refs.stopStream) { live.refs.stopStream(); live.refs.stopStream = null; }
     const keepY = window.scrollY;
     root.textContent = '';
-    const s = c.data.demo_student;
-    const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'My lab sections' }, TABS.map(([id, label]) => [id, id === 'ws' && !hasCloud() ? 'Workspace' : label]).map(([id, label]) =>
+    const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'My lab sections' }, TABS.map(([id, label]) =>
       h('button', { type: 'button', class: 'tab', role: 'tab', id: `wsx-tab-${id}`, 'aria-selected': S.tab === id ? 'true' : 'false', 'aria-controls': 'wsx-panel', tabindex: S.tab === id ? '0' : '-1',
         onclick: () => { if (S.tab === id) return; S.tab = id; paint(true); },
         onkeydown: (e) => { const i = TABS.findIndex((t) => t[0] === S.tab); if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); S.tab = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0]; paint(true); } } }, label)));
     let panel;
     try { panel = PANELS[S.tab](c); } catch (e) { console.error(e); panel = h('div', { class: 'card' }, 'This section failed to load.'); }
     root.append(h('div', { class: 'm-workspace' },
-      h('section', { class: 'card wsx-hero' },
-        h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, `${s.name} · ${s.batch} · Month ${s.month} · ${s.month < 4 ? 'Common foundation' : c.field.name}`), h('h2', {}, 'My lab'), h('p', { class: 'small muted' }, 'Everything a student needs to code, in the browser. No installs, no personal AI account, works on a basic laptop.')),
-        h('div', { class: 'stack', style: { gap: '8px', justifyItems: 'start' } }, summary(c), h('span', { class: 'demo-tag' }, 'Demo data'))),
+      h('p', { class: 'wsx-purpose' }, h('span', {}, 'Everything a student needs to code, in the browser: a cloud computer, an AI key and practice tools.'), h('span', { class: 'demo-tag' }, 'Demo data')),
+      tiles(c),
       tabs,
       h('div', { id: 'wsx-panel', role: 'tabpanel', 'aria-labelledby': `wsx-tab-${S.tab}` }, panel)));
     if (focusTab) { const t = root.querySelector(`#wsx-tab-${S.tab}`); if (t) { t.focus({ preventScroll: true }); t.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
@@ -1018,7 +1080,7 @@
         const stopped = accrue();
         if (stopped) { paint(); return; }
         if (S.tab === 'ws' && live.refs.drawMeter) live.refs.drawMeter();
-        const sum = live.root.querySelector('.wsx-sum button:nth-child(2)'); if (sum && hasCloud()) sum.textContent = `${fmtH(S.ws.usedMin)} of 12 h`;
+        if (live.refs.tileHours) live.refs.tileHours();
       }, 1000);
     },
     destroy() {

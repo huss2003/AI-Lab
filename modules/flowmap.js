@@ -3,11 +3,11 @@
    cloud computers starting and stopping with a live monthly-cost estimate. All figures are planning estimates. */
 (function () {
   const SVGNS = 'http://www.w3.org/2000/svg';
-  const VB_W = 1040, VB_H = 600, BW = 206, BH = 70;
+  const VB_W = 1040, VB_H = 510, BW = 216, BH = 56;
   const SEATS = 21, CODING_SHARE = 0.3, MAX_ONLINE = 1000;
 
   // Persist across re-renders (field switch) and navigation.
-  const keep = { tech: false, online: 600 };
+  const keep = { tech: false, online: 600, explore: false };
   let cleanup = null;
 
   const ICON = {
@@ -26,47 +26,47 @@
 
   // kind drives the icon tile colour: people (violet), web (brand), compute (green), ai (violet), data (amber), ext (muted)
   const NODES = [
-    { id: 'student', x: 112, y: 170, kind: 'people', icon: 'laptop', title: "Student's laptop", sub: 'Any browser, nothing to install', tag: 'Browser only · basic laptop',
+    { id: 'student', x: 112, y: 150, kind: 'people', icon: 'laptop', title: "Student's laptop", sub: 'Any browser, nothing to install', tag: 'Browser only · basic laptop',
       does: 'Any ordinary laptop with internet. Students open one website to watch lectures, practise, sit exams and ask for help. Nothing to install.',
       runs: 'A modern browser (Chrome, Edge or Firefox). The laptop only draws the screen; code runs in the cloud workspace.',
       saves: 'Families do not need to buy a powerful computer. A basic laptop is enough for the whole year.' },
-    { id: 'mentor', x: 112, y: 450, kind: 'people', icon: 'mentor', title: "Mentor's laptop", sub: 'Reviews work, tracks progress', tag: 'Mentor console · same web app',
+    { id: 'mentor', x: 112, y: 390, kind: 'people', icon: 'mentor', title: "Mentor's laptop", sub: 'Reviews work, tracks progress', tag: 'Mentor console · same web app',
       does: 'Mentors see every student’s attendance, marks and progress on one screen. They review capstone projects with rubrics and follow up on doubts.',
       runs: 'Mentor console inside the same Next.js web app. Access is controlled by role (Cognito groups).',
       saves: 'The lab flags who is falling behind, so one mentor can look after a large batch without checking everyone by hand.' },
-    { id: 'cdn', x: 370, y: 62, kind: 'web', icon: 'video', title: 'Video delivery', sub: 'CloudFront, close to students', tag: 'CloudFront · encrypted HLS',
+    { id: 'cdn', x: 370, y: 52, kind: 'web', icon: 'video', title: 'Video delivery', sub: 'CloudFront, close to students', tag: 'CloudFront · encrypted HLS',
       does: 'Streams the recorded lectures quickly anywhere in India, even on slow connections. Each video carries a faint watermark with the student’s ID.',
       runs: 'Amazon CloudFront with encrypted HLS video, signed short-lived cookies and adaptive quality.',
       saves: 'A flat-rate monthly plan, so more viewers do not mean a bigger bill.' },
-    { id: 'app', x: 370, y: 310, kind: 'web', icon: 'app', title: 'Lab web app & API', sub: 'The coordinator', tag: 'Next.js + FastAPI · EKS',
+    { id: 'app', x: 370, y: 268, kind: 'web', icon: 'app', title: 'Lab web app & API', sub: 'The coordinator', tag: 'Next.js + FastAPI · EKS',
       does: 'The website students and mentors use, and the coordinator that tells every other part what to do: start a computer, grade a task, save a mark.',
       runs: 'Next.js front end and FastAPI back end on Amazon EKS (Graviton ARM servers), Cognito sign-in, Valkey cache.',
       saves: 'Runs on a few small, efficient ARM servers and adds capacity only at busy times, such as exam days.' },
-    { id: 'ws', x: 650, y: 150, kind: 'compute', icon: 'server', title: 'Practice workspaces', sub: 'Cloud computers on demand', tag: 'Coder + Sysbox · Spot nodes',
+    { id: 'ws', x: 650, y: 128, kind: 'compute', icon: 'server', title: 'Practice workspaces', sub: 'Cloud computers on demand', tag: 'Coder + Sysbox · Spot nodes',
       does: 'Cloud computers with VS Code, a terminal and Docker. One starts when a student begins a practical and shuts down when they stop.',
       runs: 'Coder workspaces with Sysbox on EKS Graviton Spot nodes. Small (2 GB) or Large (6 GB) per task. Files saved between sessions.',
       saves: 'They switch off when idle, each student is capped at 12 hours a week, and they run on spare cloud capacity sold at a discount (Spot).' },
-    { id: 'grader', x: 650, y: 310, kind: 'compute', icon: 'check', title: 'Auto-grader', sub: 'Marks work within a minute', tag: 'Grader pods · no internet',
+    { id: 'grader', x: 650, y: 268, kind: 'compute', icon: 'check', title: 'Auto-grader', sub: 'Marks work within a minute', tag: 'Grader pods · no internet',
       does: 'Checks every practical automatically within a minute, including hidden checks students cannot see. Flags copied work.',
       runs: 'Short-lived grader pods with no network access. pytest, Playwright and custom checks from each practical’s spec.',
       saves: 'Each check runs for seconds and then the grading computer is gone. Mentors spend their time on feedback, not marking.' },
-    { id: 'tutor', x: 650, y: 470, kind: 'ai', icon: 'spark', title: 'AI tutor gateway', sub: 'Hints, never the answer', tag: 'LiteLLM · per-student budget',
+    { id: 'tutor', x: 650, y: 410, kind: 'ai', icon: 'spark', title: 'AI tutor gateway', sub: 'Hints, never the answer', tag: 'LiteLLM · per-student budget',
       does: 'Gives hints step by step, never the full graded answer. Sees the task, the student’s code and the error, so the help is specific.',
       runs: 'LiteLLM gateway with a virtual key and monthly budget per student, hint-ladder prompts and logs mentors can read.',
       saves: 'Cheap model first, stronger model only when needed, and a hard monthly AI allowance per student. No personal AI subscriptions.' },
-    { id: 'bedrock', x: 925, y: 470, kind: 'ai', icon: 'chip', title: 'AI models', sub: 'Amazon Bedrock', tag: 'Bedrock · 3 models',
+    { id: 'bedrock', x: 925, y: 410, kind: 'ai', icon: 'chip', title: 'AI models', sub: 'Amazon Bedrock', tag: 'Bedrock · 3 models',
       does: 'The AI models that write the hints and power AI exercises. Students never need their own AI account.',
       runs: 'Amazon Bedrock, called from the Mumbai region: gpt-oss-120b, Claude Haiku 4.5 and Amazon Nova.',
       saves: 'Pay only for what is used. Most questions go to the smallest model that can answer them.' },
-    { id: 'db', x: 370, y: 540, kind: 'data', icon: 'db', title: 'Database', sub: 'Marks, progress, accounts', tag: 'PostgreSQL + pgvector · RDS',
+    { id: 'db', x: 370, y: 470, kind: 'data', icon: 'db', title: 'Database', sub: 'Marks, progress, accounts', tag: 'PostgreSQL + pgvector · RDS',
       does: 'Keeps accounts, marks, progress, exam answers and certificates in one place, with backups.',
       runs: 'PostgreSQL with pgvector on Amazon RDS (Multi-AZ). pgvector also lets the tutor find the right lecture moment.',
       saves: 'One managed database does the job of several separate tools.' },
-    { id: 's3', x: 925, y: 62, kind: 'data', icon: 'bucket', title: 'File storage', sub: 'Amazon S3', tag: 'S3 · lifecycle rules',
+    { id: 's3', x: 925, y: 52, kind: 'data', icon: 'bucket', title: 'File storage', sub: 'Amazon S3', tag: 'S3 · lifecycle rules',
       does: 'Stores lecture videos, each student’s saved files and every project submission.',
       runs: 'Amazon S3 with versioned submissions, workspace snapshots and lifecycle rules.',
       saves: 'Older files move to cheaper storage tiers automatically.' },
-    { id: 'github', x: 925, y: 330, kind: 'ext', icon: 'github', title: 'GitHub', sub: "Student's own portfolio", tag: 'GitHub App + Pages',
+    { id: 'github', x: 925, y: 288, kind: 'ext', icon: 'github', title: 'GitHub', sub: "Student's own portfolio", tag: 'GitHub App + Pages',
       does: 'Each student’s own GitHub account. Finished projects are pushed here with an automatically built portfolio website.',
       runs: 'GitHub App pushes to the student’s repositories; GitHub Actions builds the portfolio site on GitHub Pages.',
       saves: 'Free for students, and their work stays theirs after the course ends.' },
@@ -78,8 +78,8 @@
     ['student', 'cdn'], ['student', 'app'], ['mentor', 'app'], ['student', 'ws'],
     ['app', 'ws'], ['app', 'grader'], ['app', 'tutor'], ['tutor', 'bedrock'], ['app', 'db'],
     ['cdn', 's3'], ['ws', 's3'],
-    ['app', 's3', 'M370,310 C 580,228 780,235 925,62'],
-    ['app', 'github', 'M370,310 C 560,410 780,420 925,330'],
+    ['app', 's3', 'M370,268 C 580,196 780,200 925,52'],
+    ['app', 'github', 'M370,268 C 560,350 780,360 925,288'],
   ].map(([a, b, d]) => ({ a, b, id: a + '-' + b, d: d || `M${NODE[a].x},${NODE[a].y} L${NODE[b].x},${NODE[b].y}` }));
   const findEdge = (from, to) => EDGES.find((e) => (e.a === from && e.b === to) || (e.a === to && e.b === from));
 
@@ -249,20 +249,32 @@
 .m-flowmap[data-sc="green"] { --fm-accent: var(--green); --fm-soft: var(--green-soft) }
 .m-flowmap[data-sc="violet"] { --fm-accent: var(--violet); --fm-soft: var(--violet-soft) }
 .m-flowmap[data-sc="amber"] { --fm-accent: var(--amber); --fm-soft: var(--amber-soft) }
-.m-flowmap .fm-intro { display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap }
-.m-flowmap .fm-intro > div { min-width: 0; flex: 1 1 420px }
-.m-flowmap .fm-intro h2 { margin-top: 4px }
-.m-flowmap .fm-intro p { margin-top: 6px; max-width: 62ch }
-.m-flowmap .fm-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; font-size: 14px; user-select: none; border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px 6px 6px; background: var(--surface) }
+.m-flowmap .fm-purpose p { color: var(--muted); font-size: 15px; margin: 0; line-height: 1.5 }
+.m-flowmap .fm-purpose .demo { font-size: 12.5px; color: var(--faint); white-space: nowrap }
+.m-flowmap .fm-mapcard { padding: 18px 20px 20px }
+.m-flowmap .fm-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 10px }
+.m-flowmap .fm-explore { padding: 18px 22px }
+.m-flowmap .fm-explore > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--display); font-weight: 700; font-size: 16px }
+.m-flowmap .fm-explore > summary::-webkit-details-marker { display: none }
+.m-flowmap .fm-explore > summary > span:first-child::before { content: "+"; display: inline-block; width: 18px; color: var(--muted) }
+.m-flowmap .fm-explore[open] > summary > span:first-child::before { content: "\\2212" }
+.m-flowmap .fm-explore[open] { display: grid; gap: 16px }
+.m-flowmap .fm-exrow { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--line) }
+.m-flowmap .fm-h { font-size: 15px; margin: 0 }
+.m-flowmap .fm-switch { position: relative; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; font-size: 14px; user-select: none; border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px 6px 6px; background: var(--surface) }
 .m-flowmap .fm-switch input { position: absolute; opacity: 0; pointer-events: none }
 .m-flowmap .fm-switch .tr { width: 38px; height: 22px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); position: relative; transition: background .2s; flex: none }
 .m-flowmap .fm-switch .tr::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s }
 .m-flowmap .fm-switch input:checked + .tr { background: var(--brand-soft); border-color: var(--brand) }
 .m-flowmap .fm-switch input:checked + .tr::after { transform: translateX(16px); background: var(--brand) }
 .m-flowmap .fm-switch input:focus-visible + .tr { outline: 2px solid var(--brand); outline-offset: 2px }
-.m-flowmap .fm-scen { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px }
-.m-flowmap .fm-scen .btn[aria-pressed="true"] { border-color: var(--fm-accent); color: var(--fm-accent); background: var(--fm-soft) }
-.m-flowmap .fm-scen .sw { width: 9px; height: 9px; border-radius: 50%; flex: none }
+.m-flowmap .fm-scen { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px }
+.m-flowmap .fm-story { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-pill); padding: 5px 12px 5px 5px; font: inherit; font-weight: 700; font-size: 13px; color: var(--fg); cursor: pointer; white-space: nowrap }
+.m-flowmap .fm-story:hover { border-color: var(--brand) }
+.m-flowmap .fm-story .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--muted) }
+.m-flowmap .fm-story[aria-pressed="true"] { border-color: var(--fm-accent); color: var(--fm-accent); background: var(--fm-soft) }
+.m-flowmap .fm-story[aria-pressed="true"] .n { background: var(--fm-accent); color: var(--surface) }
+.m-flowmap .fm-legend .fm-tap { margin-left: auto }
 .m-flowmap .sw.brand { background: var(--brand) } .m-flowmap .sw.green { background: var(--green) } .m-flowmap .sw.violet { background: var(--violet) } .m-flowmap .sw.amber { background: var(--amber) }
 .m-flowmap .fm-stage { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); overflow: hidden }
 .m-flowmap .fm-scroll { overflow-x: auto; overscroll-behavior-x: contain }
@@ -278,9 +290,9 @@
 .m-flowmap .fm-node { cursor: pointer; transition: opacity .3s; outline: none }
 .m-flowmap .fm-node .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .25s, fill .25s }
 .m-flowmap .fm-node .ghost { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; transition: opacity .35s, transform .35s }
-.m-flowmap .fm-node .t { fill: var(--fg); font-family: var(--display); font-weight: 600; font-size: 15px }
+.m-flowmap .fm-node .t { fill: var(--fg); font-family: var(--display); font-weight: 600; font-size: 16px }
 .m-flowmap .fm-node .s { fill: var(--muted); font-family: var(--body); font-weight: 600; font-size: 12px }
-.m-flowmap .fm-svg.tech .fm-node .s { font-family: var(--mono); font-weight: 500; font-size: 11px }
+.m-flowmap .fm-svg.tech .fm-node .s { font-family: var(--mono); font-weight: 500; font-size: 11.5px }
 .m-flowmap .fm-node .tile { fill: var(--brand-soft) } .m-flowmap .fm-node .ic { stroke: var(--brand); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
 .m-flowmap .fm-node.k-people .tile, .m-flowmap .fm-node.k-ai .tile { fill: var(--violet-soft) } .m-flowmap .fm-node.k-people .ic, .m-flowmap .fm-node.k-ai .ic { stroke: var(--violet) }
 .m-flowmap .fm-node.k-compute .tile { fill: var(--green-soft) } .m-flowmap .fm-node.k-compute .ic { stroke: var(--green) }
@@ -318,9 +330,9 @@
 .m-flowmap .fm-drawer .sec.tech p { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); border-radius: var(--radius-sm); padding: 8px 10px }
 .m-flowmap .fm-drawer .sec.save { border-left: 3px solid var(--green); padding-left: 10px }
 .m-flowmap .fm-drawer .x { position: absolute; top: 10px; right: 10px }
-.m-flowmap .fm-cap { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; border: 1px solid var(--line); border-left: 3px solid var(--fm-accent); border-radius: var(--radius-sm); padding: 14px 16px; background: var(--surface) }
+.m-flowmap .fm-cap { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; border: 1px solid var(--line); border-left: 3px solid var(--fm-accent); border-radius: var(--radius-sm); padding: 14px 16px; background: var(--surface) }
 .m-flowmap .fm-cap .txt { min-width: 0; display: grid; gap: 6px }
-.m-flowmap .fm-cap .plain { font-size: 16.5px; font-weight: 600; line-height: 1.45; min-height: 2.9em }
+.m-flowmap .fm-cap .plain { font-size: 15.5px; font-weight: 600; line-height: 1.5; min-height: 3em; margin: 0 }
 .m-flowmap .fm-cap .tech { font-family: var(--mono); font-size: 12.5px; color: var(--muted); background: var(--surface-2); border-radius: 6px; padding: 6px 9px }
 .m-flowmap .fm-cap .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end }
 .m-flowmap .fm-dots { display: flex; gap: 5px; flex-wrap: wrap }
@@ -350,6 +362,8 @@
   .m-flowmap .fm-drawer { position: relative; top: auto; right: auto; bottom: auto; width: auto; transform: none; display: none; margin: 0 10px 10px; box-shadow: none }
   .m-flowmap .fm-drawer.open { display: grid }
   .m-flowmap .fm-legend .fm-swipe { display: inline-flex }
+  .m-flowmap .fm-legend .fm-tap { margin-left: 0 }
+  .m-flowmap .fm-scen { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px }
   .m-flowmap .fm-cap { grid-template-columns: minmax(0, 1fr) }
   .m-flowmap .fm-cap .ctl { justify-content: flex-start }
   .m-flowmap .fm-cap .plain { font-size: 15.5px }
@@ -388,17 +402,14 @@
       // ---------- Intro ----------
       const techBox = h('input', { type: 'checkbox', 'aria-label': 'Show technical detail' });
       techBox.checked = keep.tech;
-      const intro = h('section', { class: 'card fm-intro' },
-        h('div', {},
-          h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'eyebrow' }, 'How it works'), h('span', { class: 'pill amber' }, 'Demo data · planning estimates')),
-          h('h2', {}, 'One website, any laptop.'),
-          h('p', { class: 'muted' }, 'Heavy work runs in the cloud and switches off when nobody is using it. Pick a story to watch it happen, or tap any box to see what it does.')),
-        h('label', { class: 'fm-switch' }, techBox, h('span', { class: 'tr', 'aria-hidden': 'true' }), h('span', {}, 'Show technical detail')));
+      const techSwitch = h('label', { class: 'fm-switch' }, techBox, h('span', { class: 'tr', 'aria-hidden': 'true' }), h('span', {}, 'Show technical detail'));
+      const intro = h('div', { class: 'fm-purpose' },
+        h('p', {}, 'One website runs the whole lab on any laptop. Pick a story to watch a click travel through it, or tap a box. ', h('span', { class: 'demo' }, 'Demo data · planning estimates')));
 
       // ---------- Map ----------
-      const scenBtns = SC.map((s) => h('button', { class: 'btn sm', 'aria-pressed': 'false', 'data-sc': s.id, onclick: () => startScenario(s.id, true) },
-        h('span', { class: 'sw ' + s.color, 'aria-hidden': 'true' }), s.label));
-      const scenRow = h('div', { class: 'fm-scen', role: 'group', 'aria-label': 'Stories' }, scenBtns);
+      const scenBtns = SC.map((s, i) => h('button', { class: 'fm-story', type: 'button', 'aria-pressed': 'false', 'data-sc': s.id, onclick: () => startScenario(s.id, true) },
+        h('span', { class: 'n ' + s.color, 'aria-hidden': 'true' }, String(i + 1)), h('span', { class: 'l' }, s.label)));
+      const scenRow = h('ol', { class: 'fm-scen', 'aria-label': 'Stories' }, scenBtns.map((b) => h('li', {}, b)));
 
       const svg = svgEl('svg', { viewBox: `0 0 ${VB_W} ${VB_H}`, class: 'fm-svg', role: 'img', 'aria-label': 'System map of the Neuromind AI Lab' });
       const gBg = svgEl('g', { 'aria-hidden': 'true' });
@@ -419,19 +430,20 @@
         }
         g.append(svgEl('rect', { x: x - 4, y: y - 4, width: BW + 8, height: BH + 8, rx: 14, class: 'ring' }));
         g.append(svgEl('rect', { x, y, width: BW, height: BH, rx: 12, class: 'box' }));
-        g.append(svgEl('rect', { x: x + 11, y: y + 18, width: 32, height: 32, rx: 9, class: 'tile' }));
-        const ic = svgEl('g', { class: 'ic', transform: `translate(${x + 15},${y + 22}) scale(1)` }); ic.innerHTML = ICON[n.icon]; g.append(ic);
-        const t = svgEl('text', { x: x + 52, y: y + 31, class: 't' }); t.textContent = n.title; g.append(t);
-        const s = svgEl('text', { x: x + 52, y: y + 50, class: 's' }); s.textContent = n.sub; g.append(s);
+        g.append(svgEl('rect', { x: x + 11, y: y + 12, width: 32, height: 32, rx: 9, class: 'tile' }));
+        const ic = svgEl('g', { class: 'ic', transform: `translate(${x + 15},${y + 16}) scale(1)` }); ic.innerHTML = ICON[n.icon]; g.append(ic);
+        const t = svgEl('text', { x: x + 54, y: y + 34, class: 't' }); t.textContent = n.title; g.append(t);
+        const s = svgEl('text', { x: x + 54, y: y + 44, class: 's' }); s.textContent = n.tag; g.append(s);
         if (n.id === 'ws') {
-          wsBadge = svgEl('g', { class: 'fm-badge', transform: `translate(${x + BW - 30},${y - 11})` });
+          wsBadge = svgEl('g', { class: 'fm-badge', transform: `translate(${x + BW - 34},${y - 12})` });
           wsBadgeRect = svgEl('rect', { x: -14, y: 0, width: 58, height: 22, rx: 11 });
           wsBadgeTxt = svgEl('text', { x: 15, y: 15, 'text-anchor': 'middle' });
           wsBadge.append(wsBadgeRect, wsBadgeTxt); g.append(wsBadge);
         }
+        g.append(svgEl('title', {})); g.lastChild.textContent = `${n.title}: ${n.sub}`;
         g.addEventListener('click', () => openNode(n.id));
         g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openNode(n.id); } });
-        gNodes.append(g); nodeEls[n.id] = { g, sub: s, title: t };
+        gNodes.append(g); nodeEls[n.id] = { g, sub: s, title: t, y };
       });
       svg.addEventListener('click', (ev) => { if (!ev.target.closest('.fm-node')) closeNode(); });
       const pk = svgEl('g', { class: 'fm-pk', opacity: '0' });
@@ -445,7 +457,7 @@
       const stage = h('div', { class: 'fm-stage' }, h('div', { class: 'fm-scroll' }, svg), drawer,
         h('div', { class: 'fm-legend tiny muted' },
           legendBtns,
-          h('span', { class: 'fm-swipe' }, 'Swipe sideways to see the whole map'), h('span', { style: { marginLeft: 'auto' } }, 'Tap a box for details')));
+          h('span', { class: 'fm-swipe' }, 'Swipe sideways to see the whole map'), h('span', { class: 'fm-tap' }, (() => { const W = who(c); return `Following ${W.first}, Month ${W.s.month} · tap a box for details`; })())));
 
       // Caption panel
       const capCount = h('span', { class: 'eyebrow' }, 'Pick a story');
@@ -460,9 +472,7 @@
         h('div', { class: 'txt' }, h('div', { class: 'row', style: { gap: '10px', justifyContent: 'space-between' } }, capCount, dots), capPlain, capTech),
         h('div', { class: 'ctl' }, bBack, bPlay, bNext, bMore));
 
-      const mapCard = h('section', { class: 'card' },
-        h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'System map'), h('h3', {}, 'Follow one click through the lab')),
-          h('span', { class: 'small muted' }, (() => { const W = who(c); return `${W.s.name} · Month ${W.s.month} · ${W.co}`; })())),
+      const mapCard = h('section', { class: 'card fm-mapcard' },
         scenRow, stage, cap);
 
       // ---------- Scale ----------
@@ -476,9 +486,10 @@
       const BAR_MAX = 3.0;
       const srvBar = h('div', { class: 'progress' }, h('i', {}));
       const srvTxt = h('div', { class: 'row small', style: { justifyContent: 'space-between' } });
-      const scaleCard = h('section', { class: 'card' },
-        h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'Scale'), h('h3', {}, 'What happens when more students log in')),
-          h('span', { class: 'pill amber' }, 'Planning estimates')),
+      const scaleCard = h('details', { class: 'card fm-explore', open: keep.explore || null, ontoggle: (e) => { keep.explore = e.currentTarget.open; } },
+        h('summary', {}, h('span', {}, 'Explore: technical detail and scale'), h('span', { class: 'tiny muted' }, 'Planning estimates')),
+        h('div', { class: 'fm-exrow' }, techSwitch, h('span', { class: 'small muted' }, 'Shows the cloud services behind each box and each step.')),
+        h('h3', { class: 'fm-h' }, 'What happens when more students log in'),
         h('div', { class: 'fm-scale' },
           h('div', { class: 'stack', style: { minWidth: 0 } },
             h('label', { class: 'small', style: { fontWeight: 700 } }, 'Students online right now', range),
@@ -509,13 +520,13 @@
       function fitText() {
         Object.values(nodeEls).forEach(({ sub, title }) => {
           [title, sub].forEach((t) => { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust');
-            try { if (t.getComputedTextLength() > BW - 62) { t.setAttribute('textLength', String(BW - 62)); t.setAttribute('lengthAdjust', 'spacingAndGlyphs'); } } catch (e) {} });
+            try { if (t.getComputedTextLength() > BW - 66) { t.setAttribute('textLength', String(BW - 66)); t.setAttribute('lengthAdjust', 'spacingAndGlyphs'); } } catch (e) {} });
         });
       }
       function applyTech() {
         keep.tech = techBox.checked;
         svg.classList.toggle('tech', keep.tech);
-        NODES.forEach((n) => { nodeEls[n.id].sub.textContent = keep.tech ? n.tag : n.sub; });
+        NODES.forEach((n) => { const E = nodeEls[n.id]; E.sub.style.display = keep.tech ? '' : 'none'; E.title.setAttribute('y', String(E.y + (keep.tech ? 26 : 34))); });
         capTech.style.display = keep.tech && run.sc ? '' : 'none';
         fitText();
       }
@@ -528,7 +539,7 @@
         clearTimers(); pk.setAttribute('opacity', '0');
         run.kind = on;
         legendBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === on)));
-        if (!on) { if (curSc()) setActive(curSc().steps[run.step]); else { svg.classList.remove('active'); NODES.forEach((n) => nodeEls[n.id].g.classList.remove('on')); } return; }
+        if (!on) { if (curSc()) { run.playing = false; showStep(run.step); } else { capCount.textContent = 'Pick a story'; capPlain.textContent = 'Choose a story above, then press Play. Each step lights up the parts of the lab that are working.'; svg.classList.remove('active'); NODES.forEach((n) => nodeEls[n.id].g.classList.remove('on')); } return; }
         run.playing = false; bPlay.textContent = 'Play';
         const kinds = LEG.find((x) => x[0] === on)[2];
         const ids = NODES.filter((n) => kinds.includes(n.kind)).map((n) => n.id);

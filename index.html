@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#006DEE">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect width=%2224%22 height=%2224%22 rx=%226%22 fill=%22%23006DEE%22/%3E%3Cg fill=%22none%22 stroke=%22%23fff%22 stroke-width=%222%22%3E%3Ccircle cx=%226%22 cy=%227%22 r=%222%22/%3E%3Ccircle cx=%2218%22 cy=%227%22 r=%222%22/%3E%3Ccircle cx=%2212%22 cy=%2217%22 r=%222%22/%3E%3Cpath d=%22M8 7h8M7 9l4 6M17 9l-4 6%22/%3E%3C/g%3E%3C/svg%3E">
 <style>:root{color-scheme:light}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<script>try{var t=localStorage.getItem('nm-demo-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <title>Neuromind AI Lab Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +25,7 @@
     <nav id="nav" class="side-nav" aria-label="Screens"></nav>
     <div class="side-foot">
       <a class="docs-link" href="docs/">Course documents <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      <div class="demo-note"><span class="dot"></span>Demo data · all fictional</div>
+      <div class="demo-note" title="All people, companies and numbers are fictional"><span class="dot"></span>Demo data · all fictional</div>
     </div>
   </aside>
   <div class="side-backdrop" id="sideBackdrop"></div>
@@ -37,13 +36,12 @@
         <div class="crumb"><small id="crumbGroup">Student view</small><strong id="crumbTitle">Home</strong></div>
       </div>
       <div class="top-tools">
-        <button class="search-btn" id="searchBtn" type="button" aria-label="Search screens, lectures and students" aria-keyshortcuts="Control+K Meta+K"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span class="lbl">Search</span><kbd id="searchKbd">Ctrl K</kbd></button>
-        <button class="btn sm tour-btn" id="tourBtn" type="button" aria-label="Take the guided tour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg><span class="tb-lbl">Take the tour</span></button>
-        <label class="field-pick" for="fieldSel"><span class="fp-lbl">Career field</span> <select id="fieldSel" aria-label="Career field"></select></label>
-        <button class="icon-btn" id="themeBtn" type="button" aria-label="Colour theme" aria-haspopup="menu" aria-expanded="false"></button>
+        <button class="search-btn" id="searchBtn" type="button" title="Search (Ctrl K)" aria-label="Search screens, lectures and students" aria-keyshortcuts="Control+K Meta+K"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span class="lbl">Search</span><kbd id="searchKbd">Ctrl K</kbd></button>
+        <button class="btn sm tour-btn" id="tourBtn" type="button" title="Take the guided tour" aria-label="Take the guided tour"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg><span class="tb-lbl">Tour</span></button>
+        <span class="top-sep" aria-hidden="true"></span>
+        <label class="field-pick" for="fieldSel"><span class="fp-lbl">Field</span> <select id="fieldSel" aria-label="Career field" title="Career field"></select></label>
         <button class="icon-btn" id="bellBtn" type="button" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="badge" id="bellCount" hidden>0</span></button>
         <button class="who" id="roleBtn" type="button" aria-label="Switch view" aria-haspopup="menu" aria-expanded="false"><span class="avatar" id="whoAvatar">AK</span><span class="who-tx"><b id="whoName">Student</b><small id="whoRole">Student</small></span><svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
-        <span class="demo-tag" title="All people, companies and numbers are fictional">Demo</span>
       </div>
     </header>
     <main class="view" id="view"></main>
