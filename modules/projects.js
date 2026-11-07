@@ -877,6 +877,8 @@
       }
 
       refreshAll();
+      // Approved from the mentor console while this screen was closed: give the milestone XP now.
+      if (st.phase === 'approved' && !st.xpGiven) { st.xpGiven = true; c.addXP(120, `Capstone ${CN} milestone approved`); }
     },
 
     destroy() { if (live) live.cleanup(); },
