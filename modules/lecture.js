@@ -1053,7 +1053,7 @@
             h('span', { class: 'no' }, `L${l.id}`),
             h('span', { class: 'tx' }, h('b', {}, l.topic), h('span', { class: 'meta' }, h('span', {}, `Practical: ${l.practical}`), pill), h('span', { class: 'mini' }, h('i', { style: { width: `${Math.round(pct * 100)}%` } }))));
         })),
-        h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo data. Each lecture plays the same player with its own slides and questions.'));
+        h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo data. Earlier lectures play again as rewatches. Later ones show a preview until they open.'));
 
       // ----- Preview for a lecture in a later month -----
       let preview = null;

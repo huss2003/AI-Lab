@@ -1229,6 +1229,8 @@
     const first = student.name.split(' ')[0];
     const pids = allPids(field, data);
     const todayPid = pids.find((x) => statusOf(x, field, data) === 'today') || String(student.lecture);
+    // Deep link from the lecture player: open the practical for the lecture that was just watched.
+    if (state.practicalRequest != null) { const want = String(state.practicalRequest); state.practicalRequest = null; if (pids.includes(want) && statusOf(want, field, data) !== 'locked') selPid = want; }
     if (!selPid || !pids.includes(selPid) || statusOf(selPid, field, data) === 'locked') selPid = pids.includes(todayPid) ? todayPid : pids[0];
     const pid = selPid;
     const spec = buildSpec(field, pid, data);
