@@ -749,7 +749,8 @@
 .m-practical { display: grid; gap: 14px; min-width: 0 }
 .m-practical [hidden], .m-practical-grader [hidden] { display: none !important }
 .m-practical .top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; min-width: 0 }
-.m-practical .picker { display: flex; gap: 6px; overflow-x: auto; min-width: 0; flex: 1 1 420px; padding: 2px }
+.m-practical .picker { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; flex: 1 1 420px; padding: 2px }
+@media (max-width: 640px) { .m-practical .picker { flex-wrap: nowrap; overflow-x: auto; scroll-padding-inline: 8px } }
 .m-practical .pk { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center }
 .m-practical .pk:hover { border-color: var(--brand); color: var(--brand) }
 .m-practical .pk[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand); border-color: var(--brand) }
@@ -763,6 +764,10 @@
 .m-practical .tutor { grid-area: tutor; border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; min-width: 0 }
 .m-practical .bar { grid-area: bar; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; padding: 7px 12px; background: var(--surface-2); border-top: 1px solid var(--line); font-size: 12px; color: var(--muted) }
 .m-practical .bar span { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap }
+.m-practical .bar .barlink { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; background: none; border: 0; padding: 0; font: inherit; color: var(--brand); cursor: pointer; font-weight: 600 }
+.m-practical .bar .barlink:hover { text-decoration: underline }
+.m-practical .forumlink { display: flex; gap: 6px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 0 14px 10px; flex: none }
+.m-practical .forumlink .btn { padding: 4px 8px }
 .m-practical .bar .dot { width: 7px; height: 7px; color: var(--green) }
 .m-practical .bar .saved { margin-left: auto; color: var(--faint) }
 
@@ -916,7 +921,7 @@
       const lp = field.practicals[id]; if (!lp) return;
       const lec = data.lectures.find((l) => l.id === lp.lecture);
       const done = SESS[field.id + ':' + id] && SESS[field.id + ':' + id].best != null;
-      picker.append(h('button', { class: 'pk', 'aria-pressed': String(id === pid), title: lp.topic, onclick: () => { if (id !== pid && !ss.busy) { SEL[field.id] = id; mount(root, c); } } },
+      picker.append(h('button', { class: 'pk', 'aria-pressed': String(id === pid), title: lp.topic, onclick: () => { if (id === pid) { c.toast(`You are on this practical: Lecture ${lp.lecture}, ${lp.topic}.`); return; } if (ss.busy) { c.toast('Wait for the checks to finish, then switch practicals.', 'amber'); return; } SEL[field.id] = id; mount(root, c); } },
         `L${lp.lecture} · ${lec ? lec.practical : lp.topic}`, id === '65' ? h('span', { class: 'tag' }, 'Today') : null, done ? h('span', { class: 'ok', html: '&#10003;', 'aria-label': 'submitted' }) : null));
     });
     const runBtn = h('button', { class: 'btn', onclick: () => runChecks() }, h('span', { html: c.icon('play') }), 'Run checks');
@@ -973,13 +978,14 @@
     const chips = h('div', { class: 'chips' }, chipQs.map((q) => h('button', { class: 'chip', onclick: () => ask(q) }, q)));
     const tutor = h('section', { class: 'tutor', 'aria-label': 'AI tutor' },
       h('div', { class: 'thead' }, h('h3', {}, h('span', { class: 'ai-badge' }, 'AI'), 'AI tutor'), h('p', { class: 'tiny muted' }, 'Gives hints one step at a time. It never shows the full solution.')),
-      h('div', { class: 'tbody' }, ladder, h('div', { class: 'chatcol', style: { display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 } }, chat, chips, h('div', { class: 'ask' }, askIn, askBtn))));
+      h('div', { class: 'tbody' }, ladder, h('div', { class: 'chatcol', style: { display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 } }, chat, chips, h('div', { class: 'ask' }, askIn, askBtn),
+        h('div', { class: 'forumlink' }, h('span', { class: 'tiny muted' }, 'Stuck after the hints?'), h('button', { class: 'btn sm ghost', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask in the doubt forum</span>' })))));
 
     /* status bar */
     const saved = h('span', { class: 'saved' }, ss.savedAt ? `Last saved ${ss.savedAt}` : 'All changes saved');
     const bar = h('footer', { class: 'bar', 'aria-label': 'Workspace status' },
-      h('span', {}, h('i', { class: 'dot' }), 'Cloud workspace · Small · 2 GB'),
-      h('span', {}, 'Lab time this week: 3 h 40 m of 12 h'),
+      h('button', { class: 'barlink', title: 'Open the cloud workspace', onclick: () => c.go('workspace') }, h('i', { class: 'dot' }), 'Cloud workspace · Small · 2 GB'),
+      h('button', { class: 'barlink', title: 'See lab hours in the cloud workspace', onclick: () => c.go('workspace') }, 'Lab time this week: 3 h 40 m of 12 h'),
       h('span', {}, 'Auto-saves every 5 minutes'),
       h('span', {}, 'Shuts down after 20 minutes idle'),
       saved);
@@ -1056,7 +1062,7 @@
     function save() { const t = new Date(); ss.savedAt = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`; saved.textContent = `Last saved ${ss.savedAt}`; renderTabs(); }
     const isFixed = () => spec.fixTest(ss.files[spec.gapPath] || '');
     function runChecks() {
-      if (ss.busy) return;
+      if (ss.busy) { c.toast('Checks are already running.', 'amber'); return; }
       setBusy(true); setPane('terminal'); save();
       const fixedNow = isFixed();
       say(`${prompt()} nm check`);
@@ -1096,7 +1102,7 @@
 
     /* ---------- demo fix ---------- */
     function applyFix() {
-      if (ss.busy) return;
+      if (ss.busy) { c.toast('Checks are running. Try again when they finish.', 'amber'); return; }
       if (isFixed()) { c.toast('This code already has a fix. Run checks to test it.', 'amber'); return; }
       Object.entries(spec.fixed).forEach(([path, txt]) => { ss.files[path] = txt; if (!ss.open.includes(path)) ss.open.push(path); });
       ss.active = spec.gapPath; loadActive();
@@ -1135,7 +1141,7 @@
       return `I can help with this practical's code, its errors and the ideas behind it. Try asking about the failing check, or open Hint ${Math.min(3, ss.hints + 1)}.`;
     }
     function ask(q) {
-      q = (q || '').trim(); if (!q) return;
+      q = (q || '').trim(); if (!q) { askIn.focus(); c.toast('Type a question for the tutor first, or tap one of the suggestions.', 'amber'); return; }
       askIn.value = '';
       ss.chat.push({ who: 'me', text: q }); paintChat();
       const typing = h('div', { class: 'msg ai' }, h('span', { class: 'spin', style: { width: '11px', height: '11px', verticalAlign: '-1px' } }), ' Tutor is typing');
@@ -1145,7 +1151,7 @@
 
     /* ---------- submit / grader ---------- */
     function submit() {
-      if (ss.busy) return;
+      if (ss.busy) { c.toast('Wait for the checks to finish, then submit.', 'amber'); return; }
       setBusy(true); save();
       const fixedNow = isFixed();
       const n = p.checks.length;
@@ -1187,6 +1193,7 @@
         say(`${score === 100 ? '<span class="ok">' : '<span class="warn">'}Grader: ${passed}/${n} hidden checks · score ${score}</span>`); say(prompt());
         if (xp) c.addXP(xp, `Practical ${p.lecture} ${score === 100 ? 'passed' : 'submitted'}`);
         c.emit('practical:submitted', { score, field: field.id, lecture: p.lecture, practical: pid, passed, total: n, seconds: took });
+        if (c.notify) c.notify('Practical graded', `Lecture ${p.lecture} · ${p.topic}: ${score}/100, ${passed} of ${n} hidden checks passed.${score < 100 ? ' You can fix it and resubmit.' : ''}`, 'practical');
         setBusy(false); subBtn.lastChild.textContent = 'Resubmit'; paintResult();
         const pk = picker.children[PIDS.indexOf(pid)]; if (pk && !pk.querySelector('.ok')) pk.append(h('span', { class: 'ok', html: '&#10003;' }));
       });
@@ -1212,7 +1219,12 @@
 
     /* ---------- first paint ---------- */
     const activePk = picker.querySelector('[aria-pressed="true"]');
-    if (activePk) requestAnimationFrame(() => { if (activePk.offsetLeft + activePk.offsetWidth > picker.clientWidth) picker.scrollLeft = activePk.offsetLeft - 8; });
+    if (activePk) requestAnimationFrame(() => {
+      // Scroll only when the selected practical is cut off on the right; measure relative to the picker itself.
+      const pr = picker.getBoundingClientRect(), ar = activePk.getBoundingClientRect();
+      if (picker.scrollWidth <= picker.clientWidth) return;
+      if (ar.right > pr.right) picker.scrollLeft += ar.right - pr.right + 8; else picker.scrollLeft = 0;
+    });
     loadActive(); paintTerm(); paintChecks(); paintLadder(); paintChat(); paintResult(); paintTimer(); refreshPreviewTab();
     setPane(ss.pane === 'preview' && ss.last && ss.last.passed === ss.last.total ? 'preview' : 'terminal');
   }

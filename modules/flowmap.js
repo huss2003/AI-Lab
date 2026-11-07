@@ -243,6 +243,9 @@
 .m-flowmap .fm-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface) }
 .m-flowmap .fm-legend span { display: inline-flex; align-items: center; gap: 6px }
 .m-flowmap .fm-legend .fm-swipe { display: none }
+.m-flowmap .fm-legend .fm-lg { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid transparent; border-radius: 99px; padding: 2px 8px 2px 6px; margin: -2px -4px; color: inherit; font: inherit; cursor: pointer }
+.m-flowmap .fm-legend .fm-lg:hover { border-color: var(--line); color: var(--fg) }
+.m-flowmap .fm-legend .fm-lg[aria-pressed="true"] { border-color: var(--brand); color: var(--brand); background: var(--brand-soft) }
 .m-flowmap .fm-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block }
 .m-flowmap .lg-people { background: var(--violet-soft); border: 1.5px solid var(--violet) } .m-flowmap .lg-web { background: var(--brand-soft); border: 1.5px solid var(--brand) }
 .m-flowmap .lg-compute { background: var(--green-soft); border: 1.5px solid var(--green) } .m-flowmap .lg-data { background: var(--amber-soft); border: 1.5px solid var(--amber) }
@@ -370,15 +373,18 @@
         g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openNode(n.id); } });
         gNodes.append(g); nodeEls[n.id] = { g, sub: s, title: t };
       });
+      svg.addEventListener('click', (ev) => { if (!ev.target.closest('.fm-node')) closeNode(); });
       const pk = svgEl('g', { class: 'fm-pk', opacity: '0' });
       pk.append(svgEl('circle', { r: 15, class: 'halo' }), svgEl('circle', { r: 7, class: 'core' }));
       gPk.append(pk);
 
+      // Legend chips double as filters: tap one to light up every part of that kind.
+      const LEG = [['people', 'People and AI', ['people', 'ai']], ['web', 'Website and video', ['web']], ['compute', 'Cloud computers', ['compute']], ['data', 'Storage', ['data']]];
+      const legendBtns = LEG.map(([k, label]) => h('button', { class: 'fm-lg', 'aria-pressed': 'false', 'data-k': k, title: `Highlight: ${label}`, onclick: () => filterKind(k) }, h('i', { class: 'lg-' + k }), label));
       const drawer = h('aside', { class: 'fm-drawer', 'aria-label': 'Details', 'aria-hidden': 'true' });
       const stage = h('div', { class: 'fm-stage' }, h('div', { class: 'fm-scroll' }, svg), drawer,
         h('div', { class: 'fm-legend tiny muted' },
-          h('span', {}, h('i', { class: 'lg-people' }), 'People and AI'), h('span', {}, h('i', { class: 'lg-web' }), 'Website and video'),
-          h('span', {}, h('i', { class: 'lg-compute' }), 'Cloud computers'), h('span', {}, h('i', { class: 'lg-data' }), 'Storage'),
+          legendBtns,
           h('span', { class: 'fm-swipe' }, 'Swipe sideways to see the whole map'), h('span', { style: { marginLeft: 'auto' } }, 'Tap a box for details')));
 
       // Caption panel
@@ -457,8 +463,26 @@
 
       const curSc = () => SC.find((s) => s.id === run.sc);
 
+      function filterKind(k) {
+        const on = run.kind === k ? null : k;
+        clearTimers(); pk.setAttribute('opacity', '0');
+        run.kind = on;
+        legendBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === on)));
+        if (!on) { if (curSc()) setActive(curSc().steps[run.step]); else { svg.classList.remove('active'); NODES.forEach((n) => nodeEls[n.id].g.classList.remove('on')); } return; }
+        run.playing = false; bPlay.textContent = 'Play';
+        const kinds = LEG.find((x) => x[0] === on)[2];
+        const ids = NODES.filter((n) => kinds.includes(n.kind)).map((n) => n.id);
+        svg.classList.add('active');
+        NODES.forEach((n) => nodeEls[n.id].g.classList.toggle('on', ids.includes(n.id)));
+        EDGES.forEach((e) => { edgeEls[e.id].classList.remove('on'); chevEls[e.id].classList.remove('on'); });
+        capCount.textContent = LEG.find((x) => x[0] === on)[1];
+        capPlain.textContent = `${ids.length} part${ids.length > 1 ? 's' : ''} of the lab: ${ids.map((id) => NODE[id].title).join(', ')}. Tap one to see what it does, or tap the legend again to clear.`;
+        capTech.style.display = 'none';
+      }
+
       function startScenario(id, autoplay) {
         closeNode();
+        if (run.kind) { run.kind = null; legendBtns.forEach((b) => b.setAttribute('aria-pressed', 'false')); }
         const s = SC.find((x) => x.id === id); if (!s) return;
         run.sc = id; wrap.dataset.sc = s.color;
         scenBtns.forEach((b) => b.setAttribute('aria-pressed', b.dataset.sc === id ? 'true' : 'false'));

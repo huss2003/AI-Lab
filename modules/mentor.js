@@ -244,6 +244,11 @@
 .m-mentor td .acts { flex-wrap: nowrap; align-items: center }
 .m-mentor .lab-list { display: grid; gap: 10px }
 .m-mentor .lab-row { display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 92px; gap: 12px; align-items: center; font-size: 13px }
+.m-mentor .lab-row.clickable { cursor: pointer; border-radius: var(--radius-sm); padding: 4px 6px; margin: -4px -6px }
+.m-mentor .lab-row.clickable:hover { background: var(--surface-2) }
+.m-mentor .lab-row.clickable:hover > span:first-child { color: var(--brand) }
+.m-mentor .lnk { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--fg); cursor: pointer; text-align: left }
+.m-mentor .lnk:hover { color: var(--brand); text-decoration: underline }
 .m-mentor .lab-row > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .m-mentor .lab-track { position: relative; height: 12px; background: var(--surface-2); border-radius: 99px }
 .m-mentor .lab-track > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--brand); border-radius: 99px; transition: width .5s ease }
@@ -330,7 +335,8 @@
           h('div', {}, h('div', { class: 'eyebrow' }, `Month ${c.data.demo_student.month} · Week ${c.data.demo_student.week} · ${c.data.months[c.data.demo_student.month]}`),
             h('h2', {}, 'Your batch at a glance'),
             h('p', { class: 'small muted' }, '24 students across 9 career fields. Sorted so the students who need you come first.')),
-          h('span', { class: 'pill amber' }, 'Demo data · fictional students')));
+          h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill amber' }, 'Demo data · fictional students'),
+            h('button', { class: 'btn sm', onclick: () => c.go('admin'), html: icon('settings') + '<span>Admin console</span>' }))));
 
         /* summary */
         const stat = (val, label, cls) => h('div', { class: 'card ' + (cls || '') }, h('div', { class: 'stat' }, h('b', { class: 'num' }, val), h('span', {}, label)));
@@ -347,7 +353,7 @@
           h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('h3', {}, 'Needs attention'), h('span', { class: 'small muted' }, `${atRisk.length} at risk`)));
         if (!atRisk.length) attn.append(h('p', { class: 'small muted' }, 'No student is at risk this week.'));
         atRisk.forEach((s) => attn.append(h('div', { class: 'attn-item' },
-          h('div', {}, h('b', { class: 'small' }, s.name), h('span', { class: 'small muted' }, ` · ${fieldShort(s.field)}`), h('div', { class: 'small', style: { color: 'var(--red)' } }, reasons(s).join(' · ') || 'Several warning signs')),
+          h('div', {}, h('button', { class: 'lnk small', onclick: () => openStudent(s.id) }, s.name), h('span', { class: 'small muted' }, ` · ${fieldShort(s.field)}`), h('div', { class: 'small', style: { color: 'var(--red)' } }, reasons(s).join(' · ') || 'Several warning signs')),
           h('div', { class: 'acts' }, h('button', { class: 'btn sm', onclick: () => openStudent(s.id) }, 'Open'),
             h('button', { class: 'btn sm', onclick: () => c.toast(`Check-in message sent to ${first(s.name)}.`, 'green') }, 'Send a check-in')))));
 
@@ -475,7 +481,7 @@
         queue.forEach((q) => {
           const s = studs.find((x) => x.id === q.sid); const cap = capFor(s.field, q.slot); const rv = STORE.reviews[q.key];
           list.append(h('div', { class: 'qitem' },
-            h('div', {}, h('div', { class: 'row', style: { gap: '8px' } }, h('b', {}, s.name), q.live ? livePill(A.milestone.ts) : null),
+            h('div', {}, h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'lnk', onclick: () => openStudent(s.id) }, s.name), q.live ? livePill(A.milestone.ts) : null),
               h('div', { class: 'small' }, `${cap.slot} · Month ${q.month}: ${cap.title}`),
               h('div', { class: 'meta' }, h('span', { class: 'pill' }, fieldShort(s.field)), h('span', { class: 'tiny muted' }, `Submitted ${q.live ? rel(A.milestone.ts).toLowerCase() : q.when.toLowerCase()}`), q.resub ? h('span', { class: 'pill violet' }, 'Resubmission') : null,
                 rv ? h('span', { class: 'pill ' + (rv.decision === 'approved' ? 'green' : 'amber') }, `${rv.decision === 'approved' ? 'Approved' : 'Changes requested'} · ${rv.score}/100`) : h('span', { class: 'pill blue' }, 'Waiting for review'))),
@@ -562,24 +568,56 @@
           const s = x.s;
           const nameCell = h('td', {}, h('div', { class: 'nm' }, h('div', {}, h('b', {}, s.name), h('span', { class: 'tiny muted' }, fieldShort(s.field))), x.live ? livePill(A.exam.ts) : null));
           if (x.pending) {
-            tbody.append(h('tr', {}, nameCell, h('td', { colspan: '5', class: 'small muted' }, 'Not submitted yet. His result appears here when he submits the exam in the Student view.'), h('td', {}, h('button', { class: 'btn sm', onclick: () => c.go('exam') }, 'Go to his exam'))));
+            tbody.append(h('tr', { class: 'clickable', tabindex: '0', 'aria-label': `Open ${s.name}`, onclick: () => openStudent(s.id), onkeydown: rowKey(() => openStudent(s.id)) }, nameCell, h('td', { colspan: '5', class: 'small muted' }, 'Not submitted yet. His result appears here when he submits the exam in the Student view.'), h('td', {}, h('button', { class: 'btn sm', onclick: (e) => { e.stopPropagation(); c.go('exam'); } }, 'Go to his exam'))));
             return;
           }
           const w = flagWeight(x);
           const summary = w === 0 ? h('span', { class: 'pill green' }, 'No flags') : w < 3 ? h('span', { class: 'pill blue' }, 'Minor') : h('span', { class: 'pill amber' }, 'Worth a look');
           const dec = STORE.exam[s.id];
-          const actCell = h('td', {});
+          const actCell = h('td', { onclick: (e) => e.stopPropagation() });
           if (dec) actCell.append(h('div', { class: 'acts' }, h('span', { class: 'pill ' + DEC[dec][1] }, DEC[dec][0]), h('button', { class: 'btn sm ghost', onclick: () => { delete STORE.exam[s.id]; draw(); } }, 'Change')));
           else actCell.append(h('div', { class: 'acts' },
             h('button', { class: 'btn sm', onclick: () => { STORE.exam[s.id] = 'accepted'; c.toast(`Result accepted for ${s.name}: ${x.score}%.`, 'green'); draw(); } }, 'Accept'),
             h('button', { class: 'btn sm', onclick: () => { STORE.exam[s.id] = 'viva'; c.toast(`${first(s.name)} is asked to a 10-minute viva to talk through the answers.`, 'green'); draw(); } }, 'Ask for a viva'),
             h('button', { class: 'btn sm', onclick: () => { STORE.exam[s.id] = 'retest'; c.toast(`Re-test booked for ${first(s.name)} with a fresh set of questions.`, 'amber'); draw(); } }, 'Re-test')));
           const n = (v) => h('td', { class: 'n' }, h('span', { class: v >= 3 ? 'mid' : '' }, String(v)));
-          tbody.append(h('tr', { class: x.live ? 'is-live' : '' }, nameCell, h('td', { class: 'n' }, x.score == null ? 'n/a' : `${x.score}%`), n(x.tab), n(x.fs), n(x.paste), h('td', {}, summary), actCell));
+          tbody.append(h('tr', { class: 'clickable' + (x.live ? ' is-live' : ''), tabindex: '0', 'aria-label': `See ${s.name}'s exam attempt`, onclick: () => openAttempt(x), onkeydown: rowKey(() => openAttempt(x)) }, nameCell, h('td', { class: 'n' }, x.score == null ? 'n/a' : `${x.score}%`), n(x.tab), n(x.fs), n(x.paste), h('td', {}, summary), actCell));
         });
         panel.append(h('div', { class: 'table-wrap' }, h('table', {},
           h('thead', {}, h('tr', {}, ['Student', 'Score', 'Tab switches', 'Full-screen exits', 'Paste attempts', 'Summary', 'Mentor decision'].map((t) => h('th', {}, t)))), tbody)),
           h('p', { class: 'tiny muted' }, 'Flags are signals, not proof. A student might leave full screen to plug in a charger. That is why a person decides.'));
+      }
+
+      function rowKey(fn) { return (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } }; }
+
+      /* ----- One exam attempt: flag timeline and decision ----- */
+      function openAttempt(x) {
+        const s = x.s, r = rng(s.id + 'attempt'), mins = x.minutes || 30;
+        const ev = [];
+        const at = () => `${String(Math.floor(r() * Math.max(1, mins - 4)) + 2).padStart(2, '0')}:${String(Math.floor(r() * 60)).padStart(2, '0')}`;
+        for (let i = 0; i < x.tab; i++) ev.push([at(), 'Switched to another tab', `Back after ${3 + Math.floor(r() * 40)} seconds`]);
+        for (let i = 0; i < x.fs; i++) ev.push([at(), 'Left full screen', 'Returned to full screen when prompted']);
+        for (let i = 0; i < x.paste; i++) ev.push([at(), 'Tried to paste text', 'Blocked by the lockdown browser. Nothing was pasted']);
+        ev.sort((a, b) => a[0].localeCompare(b[0]));
+        const DEC = { accepted: 'Accepted', viva: 'Viva requested', retest: 'Re-test booked' };
+        const dec = STORE.exam[s.id];
+        const decide = (d, msg, kind) => { STORE.exam[s.id] = d; c.toast(msg, kind); m.close(); draw(); };
+        const content = h('div', { class: 'm-mentor sheet' },
+          h('div', { class: 'sheet-head' },
+            h('div', {}, h('div', { class: 'eyebrow' }, `Month 7 assessment · ${fieldShort(s.field)}`), h('h3', {}, `${s.name}: exam attempt`),
+              h('div', { class: 'small muted' }, `Score ${x.score == null ? 'n/a' : x.score + '%'}${x.minutes ? ` · finished in ${x.minutes} of 30 minutes` : ''} · answers autosaved every 20 seconds`)),
+            h('button', { class: 'x', 'aria-label': 'Close', onclick: () => m.close() }, '×')),
+          h('div', {}, h('b', { class: 'small' }, 'What the lockdown browser recorded'),
+            ev.length ? h('div', { style: { marginTop: '4px' } }, ev.map(([t, a, b]) => h('div', { class: 'check wait' }, h('span', { class: 'ic' }, '!'), h('div', { class: 'small' }, h('b', {}, `${t} · ${a}`), h('div', { class: 'tiny muted' }, b)))))
+              : h('p', { class: 'note', style: { marginTop: '6px' } }, 'No tab switches, no full-screen exits and no paste attempts. A clean attempt.')),
+          h('p', { class: 'tiny muted' }, 'Times are minutes into the exam. Flags are signals, not proof; you decide.'),
+          dec ? h('div', { class: 'note' }, `Your decision: ${DEC[dec]}.`) : null,
+          h('div', { class: 'sheet-foot' },
+            h('button', { class: 'btn ghost', onclick: () => { m.close(); openStudent(s.id); } }, 'Open student record'),
+            h('button', { class: 'btn', onclick: () => decide('retest', `Re-test booked for ${first(s.name)} with a fresh set of questions.`, 'amber') }, 'Re-test'),
+            h('button', { class: 'btn', onclick: () => decide('viva', `${first(s.name)} is asked to a 10-minute viva to talk through the answers.`, 'green') }, 'Ask for a viva'),
+            h('button', { class: 'btn primary', onclick: () => decide('accepted', `Result accepted for ${s.name}: ${x.score}%.`, 'green') }, 'Accept')));
+        const m = c.modal(content); m.box.style.maxWidth = '600px';
       }
 
       /* ----- Lab usage ----- */
@@ -599,7 +637,7 @@
         list.append(h('div', { class: 'lab-scale', 'aria-hidden': 'true' }, h('span'), h('div', {}, [0, 4, 8, 12].map((v) => h('span', { style: { left: `${v / scaleMax * 100}%` } }, `${v} h`))), h('span')));
         rows.forEach((s) => {
           const warn = s.lab_hours_week >= s.cap * 0.9;
-          list.append(h('div', { class: 'lab-row' },
+          list.append(h('div', { class: 'lab-row clickable', role: 'button', tabindex: '0', 'aria-label': `Open ${s.name}`, onclick: () => openStudent(s.id), onkeydown: rowKey(() => openStudent(s.id)) },
             h('span', { title: s.name }, s.name, s.demo ? h('span', { class: 'tiny muted' }, ' (demo)') : null),
             h('div', { class: 'lab-track', role: 'img', 'aria-label': `${s.name}: ${s.lab_hours_week.toFixed(1)} of ${s.cap} hours` },
               h('i', { class: warn ? 'warn' : '', style: { width: `${Math.min(100, s.lab_hours_week / scaleMax * 100)}%` } }),
@@ -607,15 +645,19 @@
             h('span', { class: 'num', style: { textAlign: 'right' } }, `${s.lab_hours_week.toFixed(1)} / ${s.cap} h`)));
         });
         panel.append(list,
-          h('p', { class: 'note' }, `Each student gets a cloud workspace for up to ${CAP} hours a week. It shuts down by itself when idle, so unused time costs nothing. Planned cost at full scale: about ₹${c.data.lab_costs.per_student_month_inr} per student per month.`));
+          h('p', { class: 'note' }, `Click a name to open the student record. Each student gets a cloud workspace for up to ${CAP} hours a week. It shuts down by itself when idle, so unused time costs nothing. Planned cost at full scale: about ₹${c.data.lab_costs.per_student_month_inr} per student per month.`));
       }
 
       draw();
       live = { rerender: draw };
+      const pend = c.state.openStudent; c.state.openStudent = null;
+      if (pend && c.data.students.some((x) => x.id === pend)) setTimeout(() => openStudent(pend), 0);
+      if (this._off) this._off();
+      this._off = c.on('student:open', (p) => { const id = p && (p.student && p.student.id ? p.student.id : p.student); if (id && c.state.route === 'mentor') openStudent(id); });
       const tick = setInterval(() => { document.querySelectorAll('.m-mentor [data-ts]').forEach((el) => { const t = Number(el.getAttribute('data-ts')); const label = rel(t); if (el.classList.contains('pill')) { el.lastChild.textContent = label; } else el.textContent = label; }); }, 30000);
       this._tick = tick;
     },
 
-    destroy() { live = null; if (this._tick) clearInterval(this._tick); this._tick = null; },
+    destroy() { live = null; if (this._off) { this._off(); this._off = null; } if (this._tick) clearInterval(this._tick); this._tick = null; },
   });
 })();

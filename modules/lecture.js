@@ -179,7 +179,7 @@
   function specGeneric(lec, field, data) {
     const B = BANK[lec.id] || {};
     const theme = data.months[lec.month];
-    const points = B.points || [`What "${lec.topic}" means, in plain words`, `How it fits the ${theme.toLowerCase()} work of Month ${lec.month}`, `What you build next: ${lec.practical}`];
+    const points = B.points || [`What "${lec.topic}" means, in plain words`, `How it fits the ${/^[A-Z][A-Z]/.test(theme) ? theme : theme.charAt(0).toLowerCase() + theme.slice(1)} work of Month ${lec.month}`, `What you build next: ${lec.practical}`];
     const nodes = B.nodes || [['Trigger', 'starts the run'], ['This lecture', 'the new idea'], ['Practical', 'you build it'], ['Checks', 'within a minute']];
     const code = B.code || `{\n  "displayName": "L${lec.id} practice flow",\n  "trigger": { "type": "WEBHOOK" },\n  "steps": ["${lec.practical}"]\n}`;
     const pitfalls = (B.pitfalls || ['Skipping the test run before publishing', 'Changing many things at once', 'Not reading the run history when something fails']).map((p, i) => [['First', 'Second', 'Third'][i], p]);
@@ -488,6 +488,9 @@
 .m-lecture .lx-line.q .ts::after { content: " ?"; color: var(--amber); font-weight: 800 }
 
 .m-lecture .lx-list { display: grid; gap: 6px }
+.m-lecture .lx-preview { display: grid; gap: 12px; border-left: 3px solid var(--brand) }
+.m-lecture .lx-preview .pill svg { width: 13px; height: 13px }
+.m-lecture .lx-pts { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px }
 .m-lecture .lx-item { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: var(--radius-sm); padding: 9px 10px; cursor: pointer }
 .m-lecture .lx-item:hover { border-color: var(--brand) }
 .m-lecture .lx-item[aria-current="true"] { border-color: var(--brand); background: var(--brand-soft) }
@@ -552,9 +555,19 @@
       injectCSS();
       const { h, data, field, state } = c;
       const me = data.demo_student;
-      const monthLecs = data.lectures.filter((l) => l.month === me.month);
-      if (!store.sel || !monthLecs.some((l) => l.id === store.sel)) store.sel = me.lecture;
+      // Deep link from search or the course map: NM.state.openLecture holds a lecture id (or {id}).
+      // Admin "Preview" sets previewLecture; My lab sets lectureRequest. First non-null wins, then all three are cleared.
+      const reqKey = ['openLecture', 'previewLecture', 'lectureRequest'].find((k) => state[k] != null);
+      if (reqKey) {
+        const v = state[reqKey];
+        state.openLecture = null; state.previewLecture = null; state.lectureRequest = null;
+        const want = Number(v && v.id != null ? v.id : v);
+        if (data.lectures.some((l) => l.id === want)) store.sel = want;
+      }
+      if (!store.sel || !data.lectures.some((l) => l.id === store.sel)) store.sel = me.lecture;
       const lec = data.lectures.find((l) => l.id === store.sel);
+      const monthLecs = data.lectures.filter((l) => l.month === lec.month);
+      const locked = lec.month > me.month; // later months: show a preview, not the player
       const S = lecState(lec.id, me.lecture);
       const spec = buildSpec(lec, field, data);
       const L = (live = { timers: [], offs: [] });
@@ -650,23 +663,45 @@
 
       // ----- Month lecture list -----
       const listCard = h('section', { class: 'card' },
-        h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${me.month}`), h('h3', {}, data.months[me.month])), h('span', { class: 'tiny muted' }, `${monthLecs.length} lectures`)),
+        h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${lec.month}${lec.month === me.month ? ' · this month' : lec.month < me.month ? ' · done' : ' · later'}`), h('h3', {}, data.months[lec.month])), h('span', { class: 'tiny muted' }, `${monthLecs.length} lectures`)),
+        lec.month !== me.month ? h('button', { class: 'btn sm', style: { marginBottom: '10px' }, onclick: () => openLec(me.lecture) }, `Back to this week: Lecture ${me.lecture}`) : null,
         h('div', { class: 'lx-list' }, monthLecs.map((l) => {
           const st = store.lec[l.id], pct = st ? watchedPct(st) : l.id < me.lecture ? 1 : 0;
           const done = st ? st.completed : l.id < me.lecture;
           const pill = done ? h('span', { class: 'pill green' }, 'Watched') : l.id === me.lecture ? h('span', { class: 'pill blue' }, 'Today') : pct > 0 ? h('span', { class: 'pill amber' }, 'Started') : h('span', { class: 'pill' }, 'Upcoming');
-          return h('button', { class: 'lx-item', 'aria-current': l.id === lec.id ? 'true' : 'false', onclick: () => { if (l.id === store.sel) return; store.sel = l.id; DEF.render(clear(root), c); window.scrollTo(0, 0); root.querySelector('.lx-stage')?.focus({ preventScroll: true }); } },
+          return h('button', { class: 'lx-item', 'aria-current': l.id === lec.id ? 'true' : 'false', onclick: () => { if (l.id === store.sel) { c.toast(`Lecture ${l.id} is open above.`); return; } openLec(l.id); } },
             h('span', { class: 'no' }, `L${l.id}`),
             h('span', { class: 'tx' }, h('b', {}, l.topic), h('span', { class: 'meta' }, h('span', {}, `Practical: ${l.practical}`), pill), h('span', { class: 'mini' }, h('i', { style: { width: `${Math.round(pct * 100)}%` } }))));
         })),
         h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo data. Each lecture plays the same player with its own slides and questions.'));
 
+      // ----- Preview for a lecture in a later month -----
+      let preview = null;
+      if (locked) {
+        const wk = lec.week - me.week;
+        const pts = spec.points || [];
+        preview = h('section', { class: 'card lx-preview' },
+          h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill' }, h('span', { html: c.icon('lock') }), 'Opens later'), h('span', { class: 'pill amber' }, 'Demo data')),
+          h('h3', {}, `This is Lecture ${lec.id}, in Month ${lec.month}`),
+          h('p', { class: 'small muted' }, `Month ${lec.month} is "${data.months[lec.month]}". This lecture opens in Week ${lec.week}, ${wk} week${wk === 1 ? '' : 's'} after this week. Lectures open in order, so each one builds on the last.`),
+          pts.length ? h('div', {}, h('b', { class: 'small' }, 'What you will learn'), h('ul', { class: 'lx-pts' }, pts.map((x) => h('li', {}, x)))) : null,
+          h('div', { class: 'note' }, `Practical: ${lec.practical} · 20 minutes, auto-checked within a minute.`),
+          h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => openLec(me.lecture) }, `Go to this week's lecture (L${me.lecture})`),
+            h('button', { class: 'btn', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask about it in the forum</span>' })));
+      }
+
       root.append(h('div', { class: 'm-lecture' }, h('div', { class: 'lx-grid' },
-        h('div', { class: 'lx-main' }, head, player, prog),
-        h('div', { class: 'lx-side' }, txCard, listCard))));
+        h('div', { class: 'lx-main' }, head, locked ? preview : player, locked ? null : prog),
+        h('div', { class: 'lx-side' }, locked ? null : txCard, listCard))));
+      if (locked) { statusPill.className = 'pill'; }
 
       // ----- Behaviour -----
       function clear(r) { r.textContent = ''; return r; }
+      function openLec(id) {
+        store.sel = id; DEF.render(clear(root), c); window.scrollTo(0, 0);
+        const v = document.getElementById('view'); if (v) v.scrollTop = 0;
+        root.querySelector('.lx-stage')?.focus({ preventScroll: true });
+      }
       function setPlaying(v) {
         playing = v; stage.classList.toggle('playing', v);
         playBtn.innerHTML = v ? PAUSE : PLAY; playBtn.setAttribute('aria-label', v ? 'Pause' : 'Play');
@@ -684,6 +719,7 @@
           S.completed = true; state.progress.lecturesWatched += 1;
           c.emit('lecture:completed', { lecture: lec.id, topic: lec.topic });
           c.toast(`Lecture ${lec.id} marked as watched`, 'green');
+          if (c.notify) c.notify('Lecture completed', `Lecture ${lec.id}: ${lec.topic}. Marked as watched${S.unlocked ? '; the practical is open' : ''}.`, 'lecture');
         }
       }
       function tick() {
@@ -800,6 +836,7 @@
           S.completed ? null : h('p', { class: 'small muted' }, 'Lectures count as watched at 90%. Play the parts you skipped.'),
           h('div', { class: 'lx-qfoot' },
             h('button', { class: 'btn', onclick: () => { closeOverlay(); seek(0); play(); } }, 'Watch again'),
+            h('button', { class: 'btn', onclick: () => c.go('forum') }, 'Ask a doubt'),
             h('button', { class: 'btn primary', disabled: !S.unlocked, onclick: () => c.go('practical') }, 'Go to the practical'))));
         qLayer.hidden = false;
       }
@@ -833,6 +870,7 @@
           thread, sugg,
           h('p', { class: 'note' }, 'The tutor sees the slide you paused on. It explains and gives hints, never the full graded answer. Demo: answers are scripted.'),
           h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+            h('button', { class: 'btn ghost', onclick: () => { m.close(); c.go('forum'); }, html: c.icon('forum') + '<span>Ask in the doubt forum</span>' }),
             h('button', { class: 'btn', onclick: () => m.close() }, 'Close'),
             h('button', { class: 'btn primary', onclick: () => { m.close(); play(); } }, was ? 'Resume the lecture' : 'Play the lecture')));
         m = c.modal(node);
@@ -845,6 +883,7 @@
       placeWm();
       L.timers.push(setInterval(tick, TICK), setInterval(placeWm, 7000));
       L.offs.push(c.on('field', () => pause()));
+      L.offs.push(c.on('lecture:open', (p) => { const id = Number(p && (p.lecture && p.lecture.id != null ? p.lecture.id : p.lecture)); if (data.lectures.some((l) => l.id === id) && root.isConnected) openLec(id); }));
       update(); updateProgress();
     },
   };
