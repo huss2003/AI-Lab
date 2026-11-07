@@ -3,7 +3,6 @@
    votes and replies live in module-level state so they survive navigation and field switches.
    All people, threads and numbers are fictional demo data. */
 (function () {
-  const ME = 'S1001';
   const MENTOR = 'Kavita Rao';
   const AI_LABEL = 'AI tutor · gives hints, not full graded answers';
 
@@ -77,20 +76,27 @@
 
   function buildSeeds(f) {
     const d = D();
+    const S = d.demo_student; const ME = S.id;
     const P = f.practicals || {};
-    const fs = d.students.filter((s) => s.field === f.id && s.id !== ME);
-    const others = d.students.filter((s) => s.field !== f.id && s.id !== ME);
+    const CP = (d.common && d.common.practicals) || {};
+    const CO = (d.common && d.common.company) || 'Sahyadri Home Services';
+    // Classmates who post: the other students of the batch (the demo students are followed separately).
+    const pool0 = d.students.filter((s) => s.id !== ME && !s.demo);
+    const fs = pool0.filter((s) => s.field === f.id);
+    const others = pool0.filter((s) => s.field !== f.id);
     const pick = (i, local) => { const pool = local && fs.length ? fs : others; return pool[i % pool.length]; };
-    const me = d.students.find((s) => s.id === ME) || { id: ME, name: d.demo_student.name };
+    const me = { id: ME, name: S.name };
     const now = Date.now();
     const ago = (min) => now - min * 60000;
     const ds = f.datasets || [];
     const ds0 = ds[0] || { id: 'DS-01', title: 'Lab dataset', size: 'small', format: 'csv' };
     const ds2 = ds[2] || ds0;
-    const cap = (f.capstones && (f.capstones[1] || f.capstones[0])) || { id: 'C2', title: 'Capstone 2' };
+    const capBy = (slot) => (f.capstones || []).find((x) => x.slot === slot) || (f.capstones && (f.capstones[1] || f.capstones[0])) || { id: 'C2', slot: 'C2', title: 'Capstone 2' };
     const task = (k, fallback) => (P[k] ? shortText(P[k].task, 170) : fallback);
+    const ctask = (k, fallback) => (CP[k] ? shortText(CP[k].task, 170) : fallback);
     const lh = loadHint(ds2.format);
     const tag = f.id;
+    let n = 0; const who = (local) => pick(n++, local);
 
     const T = [];
     const add = (o) => T.push(Object.assign({
@@ -98,143 +104,289 @@
       solved: false, needs: false, code: null, codeLabel: null, lecture: null, extraTag: null, mineSeed: false,
       ai: null,
     }, o));
-    const reply = (who, text, votes, min) => ({ id: 'r' + (++uid), name: who.name, sid: who.id, text, votes, voted: false, ts: ago(min) });
+    const by = (p) => ({ author: p.name, sid: p.id });
+    const reply = (w, text, votes, min) => ({ id: 'r' + (++uid), name: w.name, sid: w.id, text, votes, voted: false, ts: ago(min) });
     const ai = (text, secs) => ({ text, secs, helpful: null, streaming: false, typing: false });
     const mentor = (text, min) => ({ name: MENTOR, text, ts: ago(min), votes: 3, voted: false });
 
-    // 1. The demo student's own open question (so "My questions" and "Mark as solved" work straight away)
-    add({
-      title: 'Webhook practical: my flow runs but the caller never gets a response',
-      author: me.name, sid: ME, mineSeed: true, lecture: 65, ts: ago(35), votes: 6,
-      body: `Lecture 65 practical for ${f.company}. The task: "${task('65', 'Catch a webhook and answer the caller.')}" The run shows up in the Runs tab, but curl just waits and then times out. What am I missing?`,
-      code: `$ curl -X POST http://localhost:8088/hooks/lab-events \\\n    -H "Content-Type: application/json" \\\n    -d '{"event_id": "ev-001"}'\ncurl: (28) Operation timed out after 30001 milliseconds`, codeLabel: 'terminal',
-      ai: ai('Good catch that the run appears. That tells you the trigger works. Some hints:\n1. A Catch Webhook trigger only answers the caller when the flow ends with a Return Response step. Is there one, and is it the last step?\n2. Look at the trigger settings: does it reply straight away, or wait for the flow to finish?\n3. Run curl again with -i so you see the status code. You are aiming for 202, not a timeout.', 6),
-      replies: [reply(pick(0, true), 'I had the same thing. Hint 1 was it for me. Check the step order in the flow editor.', 2, 20)],
-    });
-    // 2. MCP server with no tools
-    add({
-      title: 'MCP Inspector connects to my server but shows zero tools',
-      author: pick(1, true).name, sid: pick(1, true).id, lecture: 57, ts: ago(90), votes: 14,
+    /* ----- threads shared by more than one point of the year ----- */
+    const tMCP = () => { const a = who(true); add(Object.assign(by(a), {
+      title: 'MCP Inspector connects to my server but shows zero tools', lecture: 57, ts: ago(90), votes: 14,
       body: `Working on Lecture 57: "${task('57', 'Turn a Python function into an MCP server.')}" The Inspector says Connected, but the Tools tab is empty.`,
       code: 'from mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP("lab-tools")\n\ndef lookup(query: str) -> dict:\n    """Return matching rows."""\n    return {"query": query, "rows": []}\n\nif __name__ == "__main__":\n    mcp.run()', codeLabel: 'server.py',
       ai: ai('Hints, not the full fix:\n1. FastMCP only lists functions you register. Look at the line just above def lookup. What does the lecture put there?\n2. After you change the file, restart the server from the Inspector. It does not reload on its own.\n3. Keep the docstring. It becomes the tool description the client sees.', 7),
       mentor: mentor('Confirmed. The missing piece is the tool decorator from the lecture. Also keep type hints on every argument, because the Inspector builds the input form from them.', 60),
-      replies: [reply(pick(2, false), 'Restarting the Inspector after the change was the part I kept forgetting.', 4, 55)],
-    });
-    // 3. Retrieval comparison (solved)
-    add({
-      title: 'Embedding search scores lower than BM25 on the practical questions. Did I do it wrong?',
-      author: pick(2, true).name, sid: pick(2, true).id, lecture: 51, ts: ago(26 * 60), votes: 22, solved: true,
+      replies: [reply(who(false), 'Restarting the Inspector after the change was the part I kept forgetting.', 4, 55)],
+    })); };
+    const tEmb = () => { const a = who(true); add(Object.assign(by(a), {
+      title: 'Embedding search scores lower than BM25 on the practical questions. Did I do it wrong?', lecture: 51, ts: ago(26 * 60), votes: 22, solved: true,
       body: `Lecture 51: "${task('51', 'Compare keyword and embedding retrieval.')}" My keyword search finds more of the right chunks than the embeddings. I expected the opposite.`,
       ai: ai('Not necessarily wrong. Check these before you change anything:\n1. Did you embed the questions with the same model as the chunks (nomic-embed-text)?\n2. Print the top 3 chunks for one question where BM25 wins. Do the question and the chunk share exact words such as IDs or codes? Keyword search is strong on exact terms.\n3. Cosine similarity needs vectors of the same length. Are you comparing like with like?', 9),
       mentor: mentor('Good hints. Exact codes and IDs favour BM25, and spotting that is the point of the lecture. Write it into your comparison. The checker grades your comparison and reasoning, not which method wins.', 22 * 60),
-      replies: [reply(pick(3, false), 'Same result here. Adding the reason to my report got it accepted.', 5, 20 * 60)],
-    });
-    // 4. Dockerfile non-root user
-    add({
-      title: 'Dockerfile: pip install fails with "Permission denied" after adding a non-root user',
-      author: pick(3, true).name, sid: pick(3, true).id, lecture: 43, ts: ago(50), votes: 9,
+      replies: [reply(who(false), 'Same result here. Adding the reason to my report got it accepted.', 5, 20 * 60)],
+    })); };
+    const tDocker = (min) => { const a = who(true); add(Object.assign(by(a), {
+      title: 'Dockerfile: pip install fails with "Permission denied" after adding a non-root user', lecture: 43, ts: ago(min || 50), votes: 9,
       body: `Lecture 43: "${task('43', 'Write a Dockerfile for a Python app.')}" The build stops at the pip install line.`,
       code: 'FROM python:3.12-slim\nWORKDIR /app\nRUN useradd -m appuser\nUSER appuser\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\nCOPY . .\nCMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]', codeLabel: 'Dockerfile',
       ai: ai('Read the Dockerfile top to bottom and ask one question for each line: which user runs this?\n1. Installing packages usually needs more rights than a normal user has.\n2. So where should USER appuser go, so that installs happen first and the app still runs as appuser?\n3. Keep the requirements install before COPY . . so Docker can cache that layer.', 5),
-      replies: [reply(pick(4, false), 'Moving one line fixed it for me. Hint 2 is the whole answer.', 3, 30)],
-    });
-    // 5. FastAPI 422
-    const ep = endpointOf(P['33'] && P['33'].task);
-    add({
-      title: 'FastAPI returns 422 even though my JSON looks right',
-      author: pick(4, true).name, sid: pick(4, true).id, lecture: 33, ts: ago(5 * 60), votes: 11,
+      replies: [reply(who(false), 'Moving one line fixed it for me. Hint 2 is the whole answer.', 3, 30)],
+    })); };
+    const tFast = () => { const a = who(true); const ep = endpointOf(P['33'] && P['33'].task); add(Object.assign(by(a), {
+      title: 'FastAPI returns 422 even though my JSON looks right', lecture: 33, ts: ago(5 * 60), votes: 11,
       body: `Lecture 33: "${task('33', 'Create an endpoint with a Pydantic model.')}" Every request I send gets a 422.`,
       code: `$ curl -X POST localhost:8000${ep} -d '{"name": "test"}'\n{"detail":[{"type":"missing","loc":["body"],"msg":"Field required"}]}`, codeLabel: 'terminal',
       ai: ai('A 422 means FastAPI received the request but it did not match your Pydantic model.\n1. Read the "loc" list in the reply. It points to the part that failed.\n2. Look at your curl call. Is there a Content-Type: application/json header? Without it the body is not read as JSON.\n3. Then compare each field name and type in your model with the JSON you send.', 8),
       mentor: mentor('Confirmed. Hint 2 is the usual cause. Once the header is there, the error message will name the exact field that is wrong.', 4 * 60),
-    });
-    // 6. Prompt injection (needs mentor)
-    add({
-      title: 'Prompt-injection report: how many attacks must succeed for the practical to pass?',
-      author: pick(5, true).name, sid: pick(5, true).id, lecture: 90, ts: ago(15), votes: 5, needs: true,
+    })); };
+    const tInj = (min) => { const a = who(true); add(Object.assign(by(a), {
+      title: 'Prompt-injection report: how many attacks must succeed for the practical to pass?', lecture: 90, ts: ago(min || 15), votes: 5, needs: true,
       body: `Lecture 90: "${task('90', 'Run injection cases and write a report.')}" Only a few of my cases worked. Will the report fail?`,
       ai: Object.assign(ai('I can\'t tell you how the grader scores this, but here is how to think about it:\n1. The practical looks at your evidence and how you map each case to the OWASP Top 10 for LLM apps.\n2. Record every case, including the ones that did not work. A failed attack is evidence that a defence held.\n3. Re-read the expected output on the practical page and check each item off.', 8), { helpful: false }),
-    });
-    // 7. Dataset location (solved)
-    add({
-      title: `Where do I find ${ds0.id} (${ds0.title}) in my workspace?`,
-      author: pick(6, true).name, sid: pick(6, true).id, extraTag: 'Datasets', month: 8, ts: ago(2 * 1440), votes: 7, solved: true,
+    })); };
+    const tData = (min) => { const a = who(true); add(Object.assign(by(a), {
+      title: `Where do I find ${ds0.id} (${ds0.title}) in my workspace?`, extraTag: 'Datasets', month: S.month, ts: ago(min || 2 * 1440), votes: 7, solved: true,
       body: `The practical mentions ${ds0.id} but I can't see it in my project folder. Do I need to download it from somewhere?`,
       ai: ai('No download needed. Some hints:\n1. Lab datasets are already in your workspace, in the datasets folder. List it from the terminal.\n2. Each dataset sits in a folder named after its ID.\n3. Copy the files into your project folder before you change them, so the original stays clean for the checker.', 6),
       mentor: mentor(`Correct. ${ds0.id} is ${ds0.size}. If the folder is missing, stop and start your workspace once and it will appear.`, 2 * 1440 - 200),
-    });
-    // 8. Capstone scope
-    add({
-      title: `Can I add a feature to "${cap.title}" that is not in the brief?`,
-      author: pick(7, true).name, sid: pick(7, true).id, extraTag: `Capstone ${cap.slot || 2}`, month: 8, ts: ago(8 * 60), votes: 13, capstone: true,
-      body: `I want to add an extra screen to my capstone for ${f.company}. Will that hurt my rubric score, or is it a plus?`,
-      ai: ai('Good instinct to ask first. Think about it this way:\n1. The rubric grades the milestones in the brief. Are all of them done and tested?\n2. An extra feature is worth most when it solves a real problem for the company in the brief. Which problem would yours solve?\n3. Keep extras separate, for example on their own branch, so they can\'t break graded work.', 7),
-      mentor: mentor('Yes, as an extra. Finish every milestone in the brief first, because that is what the rubric scores. Build the extra on its own branch and describe it in your README. I will look at it in your review.', 6 * 60),
-      replies: [reply(pick(8, false), 'My mentor said the same last month. The README note matters.', 1, 5 * 60)],
-    });
-    // 9. Loading a dataset format
-    add({
-      title: `${ds2.id} is a .${ds2.format} file. What is the cleanest way to load it in Python?`,
-      author: pick(8, true).name, sid: pick(8, true).id, lecture: lh[1], ts: ago(3 * 60), votes: 4,
+    })); };
+    const tLoad = () => { const a = who(true); add(Object.assign(by(a), {
+      title: `${ds2.id} is a .${ds2.format} file. What is the cleanest way to load it in Python?`, lecture: lh[1], ts: ago(3 * 60), votes: 4,
       body: `${ds2.title} (${ds2.size}). I keep getting messy output when I try to read it.`,
       ai: ai(`Some hints:\n1. The usual tool for this format is ${lh[0]}. Lecture ${lh[1]} shows it.\n2. ${lh[2]}\n3. Print only the first 3 records before you write any processing code.`, 7),
-    });
+    })); };
 
-    // Common threads (everyone takes Months 1 to 3 and the shared tools)
-    add({
-      title: 'IndexError: list index out of range when I loop over my 50-item list',
-      author: pick(9, false).name, sid: pick(9, false).id, lecture: 13, ts: ago(3 * 1440), votes: 18, solved: true,
+    if (S.month <= 3) {
+      /* ----- Month 1 to 3: common foundation on Sahyadri Home Services (Python, APIs, .env, Claude API) ----- */
+      add({
+        title: 'First Claude call: I get a 401 "invalid x-api-key" even though my key is in .env',
+        author: me.name, sid: ME, mineSeed: true, lecture: 26, ts: ago(35), votes: 6,
+        body: `Lecture 26 practical for ${CO}. The task: "${ctask('26', 'Send one enquiry to Claude and parse the JSON result.')}" My .env file has the lab key, but the call fails before Claude answers. What am I missing?`,
+        code: '$ python triage_call.py\nanthropic.AuthenticationError: Error code: 401\n{"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}}', codeLabel: 'terminal',
+        ai: ai('Good that you kept the key in .env and not in your code. Some hints:\n1. A .env file is not read on its own. Which line from the lecture loads it, and does it run before you create the client?\n2. Check only whether the key exists, never print the key itself: print(bool(os.environ.get("ANTHROPIC_API_KEY"))). What do you get?\n3. Run the script from the folder that holds .env, or tell the loader where the file is.', 6),
+        replies: [reply(who(false), 'Same for me. I created the client before loading .env. Hint 1 fixed it.', 2, 20)],
+      });
+      add(Object.assign(by(who(true)), {
+        title: 'stop_reason is "max_tokens" and my triage JSON is cut off halfway', lecture: 26, ts: ago(90), votes: 14,
+        body: `Lecture 26: the reply for one ${CO} enquiry ends in the middle of the JSON, so Pydantic refuses it.`,
+        code: 'msg = client.messages.create(\n    model=MODEL,\n    max_tokens=60,\n    system=SYSTEM_PROMPT,\n    messages=[{"role": "user", "content": enquiry}],\n)\nprint(msg.stop_reason)   # max_tokens', codeLabel: 'triage_call.py',
+        ai: ai('The stop reason tells you why Claude stopped.\n1. "max_tokens" means it ran out of room, not that it finished. How many tokens does a full TriageResult need?\n2. Check stop_reason before you parse. If it is not "end_turn", treat the reply as incomplete.\n3. Asking for short field values in the system prompt also keeps the reply small.', 7),
+        mentor: mentor('Confirmed. Raise max_tokens and check stop_reason before you parse. The practical checks that line, so keep it in your code.', 60),
+        replies: [reply(who(false), 'Checking stop_reason first saved me from a lot of confusing errors.', 4, 55)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'Pydantic rejects "Urgent": urgency should be critical, high, medium or low', lecture: 24, ts: ago(26 * 60), votes: 22, solved: true,
+        body: `Lecture 24, "Validate AI-extracted JSON". For a burst pipe at ${CO} the model sometimes writes "Urgent", and validation fails.`,
+        code: 'class TriageResult(BaseModel):\n    category: str\n    urgency: Literal["critical", "high", "medium", "low"]\n\nTriageResult(**{"category": "plumbing", "urgency": "Urgent"})\n# ValidationError: urgency: Input should be "critical", "high", "medium" or "low"', codeLabel: 'models.py',
+        ai: ai('The validator is doing its job: it stopped a value your queue does not understand.\n1. Does your system prompt list the four allowed urgency words exactly as the model must write them?\n2. Should your code quietly change "Urgent" to "critical", or retry with the error message? The lecture compares both.\n3. Count how often it happens on 20 enquiries before you decide.', 9),
+        mentor: mentor('Good hints. List the allowed values in the prompt and retry with the validation error, within the bounded retries from your capstone brief. Never guess the urgency in code.', 22 * 60),
+        replies: [reply(who(false), 'Putting the four words in the prompt took my failures from 6 to 0.', 5, 20 * 60)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'httpx: my request works in the REST Client but Python gets a 401', lecture: 25, ts: ago(5 * 60), votes: 11,
+        body: 'Lecture 25, "Working API client with auth header". Same address, same parameters, but only the REST Client gets data back.',
+        code: 'import httpx\n\nr = httpx.get("https://lab-api.example/zones", params={"zone": "Z3"})\nprint(r.status_code)   # 401', codeLabel: 'client.py',
+        ai: ai('Compare the two requests side by side.\n1. In the REST Client file, which headers are sent above the request line?\n2. Is the same Authorization header in your httpx call?\n3. Read the token from the environment, as in the lecture, instead of pasting it into the code.', 8),
+        mentor: mentor('Confirmed: the header is missing. Pass headers= with the Authorization line and read the token from .env.', 4 * 60),
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'I pushed my .env file to GitHub by mistake. What do I do now?', lecture: 26, ts: ago(15), votes: 5, needs: true,
+        body: 'I only noticed after the push. The repo is my public portfolio repo.',
+        ai: ai('Act now, in this order:\n1. Tell your mentor here so the lab key can be replaced. A key that reached GitHub must be treated as public, even if you delete the file.\n2. Add .env to .gitignore and commit that change. The practical checks for it.\n3. Deleting the file in a new commit does not remove it from history. Ask before you try to rewrite history on your portfolio repo.', 6),
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'Capstone 1, Month 3: does "bounded retries" mean exactly 3?', extraTag: 'Capstone C1', month: 3, ts: ago(8 * 60), votes: 13, capstone: true,
+        body: `For the ${CO} triage desk the brief says "up to 3 bounded retries on invalid output". Can I stop after 2 if the same error comes back each time?`,
+        ai: ai('Read the brief line again: "up to 3".\n1. What should happen to the enquiry when every retry fails? The brief has a queue for that.\n2. Does retrying help when the same error comes back? What could you change in the retry message?\n3. Log each retry so your evaluation can count them.', 7),
+        mentor: mentor('Up to 3 is a ceiling, not a target. Stopping early on a repeated error is fine if the enquiry goes to the human-approval queue with needs_human set. Say so in your README.', 6 * 60),
+        replies: [reply(who(false), 'Logging the retries also gave me numbers for the cost section.', 1, 5 * 60)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: `Picked ${f.short} for Month 4. What will the practicals at ${f.company} be like?`, extraTag: 'Career fields', month: 3, ts: ago(2 * 1440), votes: 7,
+        body: `I chose ${f.name}. From Month 4 the practicals move from ${CO} to ${f.company}. What should I revise in the last weeks of Month 3?`,
+        ai: ai(`Some hints:\n1. Read the company brief on your Projects page: ${shortText(f.about, 150)}\n2. Months 4 to 12 reuse the Python, APIs and prompting from Months 1 to 3. Which of those felt weakest in your Month 2 assessment?\n3. Finish Capstone 1 first. It is reviewed before the field work starts.`, 6),
+        mentor: mentor(`Good to ask early. ${f.company} is fictional, but its data is realistic. Keep your Capstone 1 code tidy: the ${f.short} practicals build on the same Python and API habits.`, 2 * 1440 - 200),
+      }));
+    } else if (S.month <= 6) {
+      /* ----- Months 4 to 6: servers, Linux, SSH, Docker and Compose ----- */
+      add({
+        title: 'Working Dockerfile: the image builds, but the container stops straight away',
+        author: me.name, sid: ME, mineSeed: true, lecture: 43, ts: ago(35), votes: 6,
+        body: `Lecture 43 practical for ${f.company}. The task: "${task('43', 'Write a Dockerfile for a Python app.')}" docker build works, but docker ps shows nothing running. What am I missing?`,
+        code: '$ docker run -d -p 8000:8000 lab-app:dev\n3f9c1a7e2b\n$ docker ps\nCONTAINER ID   IMAGE   COMMAND   STATUS   PORTS\n$ docker ps -a\n3f9c1a7e2b   lab-app:dev   "python app.py"   Exited (1) 4 seconds ago', codeLabel: 'terminal',
+        ai: ai('Exited (1) means the app inside started and then crashed. Some hints:\n1. Read what it printed: run docker logs with the container ID. The last line names the problem.\n2. Does the app need a variable or a file that is in your workspace but not inside the image?\n3. A server inside a container must listen on 0.0.0.0, not 127.0.0.1, or nothing outside can reach it.', 6),
+        replies: [reply(who(true), 'docker logs showed mine was a missing environment variable. Hint 2.', 2, 20)],
+      });
+      tDocker(50);
+      add(Object.assign(by(who(true)), {
+        title: 'Practice VPS: "Permission denied (publickey)" when I log in as the new deploy user', lecture: 41, ts: ago(26 * 60), votes: 22, solved: true,
+        body: 'Lecture 41: root login with my key works, but the deploy user I just created is refused.',
+        code: '$ ssh deploy@vps-lab-17\ndeploy@vps-lab-17: Permission denied (publickey).', codeLabel: 'terminal',
+        ai: ai('Some hints:\n1. Did you copy your public key into the deploy user\'s home, or only into root\'s?\n2. SSH is strict about permissions: ~/.ssh should be 700 and authorized_keys 600, owned by deploy.\n3. Keep your current root session open until the new login works, so you cannot lock yourself out.', 7),
+        mentor: mentor('Confirmed: the key was only in /root/.ssh. Copy it to /home/deploy/.ssh, fix the owner and permissions, test the login, and only then turn off root login.', 22 * 60),
+        replies: [reply(who(false), 'Keeping the old session open (hint 3) saved me twice.', 5, 20 * 60)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'I turned on UFW and my SSH session froze', lecture: 42, ts: ago(5 * 60), votes: 11,
+        body: 'Lecture 42, "Tested firewall configuration". Now I cannot get back into the Practice VPS.',
+        code: '$ sudo ufw default deny incoming\n$ sudo ufw enable\nCommand may disrupt existing ssh connections. Proceed with operation (y|n)? y\nFirewall is active and enabled on system startup\n# the session stops responding', codeLabel: 'terminal',
+        ai: ai('Some hints:\n1. Which rule did you add before you enabled the firewall? Look for port 22 in your commands.\n2. The Practice VPS has a browser console in the lab. It still works when SSH is blocked.\n3. From the console, allow OpenSSH, then check with ufw status.', 8),
+        mentor: mentor('Confirmed. Use the lab console, allow 22 first, then enable UFW. The practical expects only 22, 80 and 443 to be open.', 4 * 60),
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'Should DATABASE_URL go in the Dockerfile ENV line or in Compose?', lecture: 45, ts: ago(2 * 60), votes: 8,
+        body: 'The password is inside the URL. Putting it in ENV works, but it feels wrong.',
+        code: 'FROM python:3.12-slim\nENV DATABASE_URL="postgresql://lab:lab-pass@db:5432/lab"\nCOPY . .\nCMD ["python", "main.py"]', codeLabel: 'Dockerfile',
+        ai: ai('Your instinct is right. Some hints:\n1. Anything in ENV is baked into the image. Who can see an image once you push it?\n2. Compose can read values from a .env file next to it. Is that file in your .gitignore?\n3. Run docker history on your image. Would you be happy if a stranger ran it too?', 8),
+      }));
+      const c2 = capBy('C2');
+      add(Object.assign(by(who(true)), {
+        title: `Capstone 2: is depends_on enough, or do I need a database healthcheck?`, extraTag: 'Capstone C2', month: 5, ts: ago(8 * 60), votes: 13, capstone: true,
+        body: `Month 5 milestone of "${c2.title}" for ${f.company}. My API starts before the database is ready about one time in three.`,
+        ai: ai('Some hints:\n1. depends_on waits for the container to start, not for the database to accept connections. What is the difference?\n2. Look up condition: service_healthy in the Compose notes.\n3. The milestone tests run docker compose up on a fresh machine. Try that yourself twice in a row.', 7),
+        mentor: mentor('Use a database healthcheck with condition: service_healthy. The Month 5 milestone tests start the stack from scratch, so the reviewer will look for it.', 6 * 60),
+        replies: [reply(who(false), 'Adding the healthcheck made my fresh-VPS test pass every time.', 1, 5 * 60)],
+      }));
+      tData(2 * 1440);
+      tFast();
+    } else if (S.month <= 9) {
+      /* ----- Months 7 to 9: MCP, automation and agents (the original demo set) ----- */
+      add({
+        title: 'Webhook practical: my flow runs but the caller never gets a response',
+        author: me.name, sid: ME, mineSeed: true, lecture: 65, ts: ago(35), votes: 6,
+        body: `Lecture 65 practical for ${f.company}. The task: "${task('65', 'Catch a webhook and answer the caller.')}" The run shows up in the Runs tab, but curl just waits and then times out. What am I missing?`,
+        code: `$ curl -X POST http://localhost:8088/hooks/lab-events \\\n    -H "Content-Type: application/json" \\\n    -d '{"event_id": "ev-001"}'\ncurl: (28) Operation timed out after 30001 milliseconds`, codeLabel: 'terminal',
+        ai: ai('Good catch that the run appears. That tells you the trigger works. Some hints:\n1. A Catch Webhook trigger only answers the caller when the flow ends with a Return Response step. Is there one, and is it the last step?\n2. Look at the trigger settings: does it reply straight away, or wait for the flow to finish?\n3. Run curl again with -i so you see the status code. You are aiming for 202, not a timeout.', 6),
+        replies: [reply(who(true), 'I had the same thing. Hint 1 was it for me. Check the step order in the flow editor.', 2, 20)],
+      });
+      tMCP(); tEmb(); tDocker(50); tFast(); tInj(15); tData(2 * 1440);
+      const cap = capBy(S.capstone && S.capstone !== 'C1' ? S.capstone : 'C3');
+      add(Object.assign(by(who(true)), {
+        title: `Can I add a feature to "${cap.title}" that is not in the brief?`, extraTag: `Capstone ${cap.slot || 2}`, month: S.month, ts: ago(8 * 60), votes: 13, capstone: true,
+        body: `I want to add an extra screen to my capstone for ${f.company}. Will that hurt my rubric score, or is it a plus?`,
+        ai: ai('Good instinct to ask first. Think about it this way:\n1. The rubric grades the milestones in the brief. Are all of them done and tested?\n2. An extra feature is worth most when it solves a real problem for the company in the brief. Which problem would yours solve?\n3. Keep extras separate, for example on their own branch, so they can\'t break graded work.', 7),
+        mentor: mentor('Yes, as an extra. Finish every milestone in the brief first, because that is what the rubric scores. Build the extra on its own branch and describe it in your README. I will look at it in your review.', 6 * 60),
+        replies: [reply(who(false), 'My mentor said the same last month. The README note matters.', 1, 5 * 60)],
+      }));
+      tLoad();
+    } else {
+      /* ----- Months 10 to 12: AI security, OWASP LLM Top 10, red-team reports, Capstone 4 and Demo Day ----- */
+      add({
+        title: 'Prompt-injection report: my canary only leaks when the attack hides inside a document',
+        author: me.name, sid: ME, mineSeed: true, lecture: 90, ts: ago(35), votes: 6,
+        body: `Lecture 90 practical for ${f.company}. The task: "${task('90', 'Run injection cases and write a report.')}" Direct attacks fail, but one case hidden inside a retrieved document leaks the canary. How do I report it?`,
+        code: 'case inj-07  direct    leaked=False\ncase inj-12  direct    leaked=False\ncase inj-19  indirect  leaked=True   # hidden in a retrieved chunk\n\n3 of 25 cases leaked the canary', codeLabel: 'test run',
+        ai: ai('A leak through a hidden instruction is a real finding, so report it clearly:\n1. Name the type. An attack inside retrieved content is indirect prompt injection. Which OWASP Top 10 for LLM entry covers prompt injection?\n2. Record the exact case, the chunk it came from and what leaked, so someone else can repeat it on the practice target.\n3. Suggest one defence and re-run the case to show whether it holds. Test only the authorised practice targets in your lab.', 6),
+        replies: [reply(who(true), 'My leak was indirect too. Writing down the source chunk made the report much clearer.', 2, 20)],
+      });
+      add(Object.assign(by(who(true)), {
+        title: 'OWASP LLM Top 10: is a leaked system prompt LLM01 or LLM07?', lecture: 90, ts: ago(90), votes: 14,
+        body: 'One of my cases makes the bot print its own system prompt. I am not sure which entry to map it to.',
+        ai: ai('Separate how the attack worked from what it exposed.\n1. The attack itself was an injection. Which entry is about prompt injection?\n2. What it exposed was the system prompt. Is there an entry for that kind of leak?\n3. Your report can name both, with one as the main finding.', 7),
+        mentor: mentor('Confirmed. Map the technique to LLM01 Prompt Injection and the impact to LLM07 System Prompt Leakage. Also note that nothing secret should live in a system prompt in the first place.', 60),
+        replies: [reply(who(false), 'Splitting technique and impact made my mapping table much easier.', 4, 55)],
+      }));
+      tInj(15);
+      add(Object.assign(by(who(true)), {
+        title: 'Red-team report: what severity for an attack that works 1 time in 10?', lecture: 90, ts: ago(26 * 60), votes: 22, solved: true,
+        body: `My best case against the ${f.company} assistant only works now and then. Is that low severity?`,
+        ai: ai('Some hints:\n1. Run it more times. Is it really 1 in 10, or 1 in 50?\n2. Severity combines how likely it is with how bad the result is. What does the attacker get when it works?\n3. Write the success rate next to the severity so the reader can judge for themselves.', 9),
+        mentor: mentor('Good hints. Rare but damaging can still be high severity. Show the rate, the impact and the fix, as in the report template.', 22 * 60),
+        replies: [reply(who(false), 'Adding the success rate column got my report accepted first time.', 5, 20 * 60)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'My benign test cases keep getting refused after I added the input filter', lecture: 89, ts: ago(5 * 60), votes: 11,
+        body: `Lecture 89: since the filter went in, normal ${f.company} questions are blocked too.`,
+        code: 'benign:       40 cases   refused  9   (22%)\nadversarial:  25 cases   blocked 23   (92%)', codeLabel: 'test summary',
+        ai: ai('Some hints:\n1. A guardrail that blocks normal users is a failure too. Which benign cases were refused?\n2. Look for words they share with the attacks.\n3. Report both numbers in your test-case collection: attacks blocked and normal questions wrongly refused.', 8),
+        mentor: mentor('Confirmed. Keep both rates in your report. Over-refusal costs real users, so tune the filter until benign refusals drop without letting attacks back in.', 4 * 60),
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'Can my adversarial test data use real-looking ID numbers?', lecture: 88, ts: ago(3 * 1440), votes: 18, solved: true,
+        body: 'Lecture 88 on sensitive data and the DPDP Act. I want my test cases to look realistic.',
+        ai: ai('Some hints:\n1. Is there a synthetic dataset for this practical? Check the datasets list first.\n2. What would happen if a real-looking number turned out to belong to someone?\n3. Lecture 88 shows how to classify data before you use it.', 5),
+        mentor: mentor('Use only the synthetic records from the lab datasets and label them as synthetic in your data-classification report. Never paste real personal data into a test.', 3 * 1440 - 120),
+        replies: [reply(who(false), 'The synthetic set already has realistic-looking records. No need to make any up.', 6, 3 * 1440 - 60)],
+      }));
+      const c4 = capBy('C4');
+      add(Object.assign(by(who(true)), {
+        title: 'Capstone 4: do my Lecture 90 injection cases count for the Month 11 milestone?', extraTag: 'Capstone C4', month: 11, ts: ago(8 * 60), votes: 13, capstone: true,
+        body: `For "${c4.title}" at ${f.company}, the Month 11 milestone asks for adversarial tests. Can I reuse the cases from the practical?`,
+        ai: ai('Some hints:\n1. Read the Month 11 tests in the brief. Which of them mention injection?\n2. Reuse is fine if the cases fit your capstone\'s own AI step. Which cases target it?\n3. Add some cases written for your capstone, not only for the practice bot.', 7),
+        mentor: mentor('Yes, reuse them as a starting set, then add cases aimed at your capstone\'s AI step. Put the results table in your README; I will look at it in your review.', 6 * 60),
+        replies: [reply(who(false), 'I reused 10 and wrote 8 new ones. The new ones found the real problem.', 1, 5 * 60)],
+      }));
+      add(Object.assign(by(who(true)), {
+        title: 'Demo Day in Month 12: live demo or a recorded video?', extraTag: 'Demo Day', month: 11, ts: ago(2 * 1440), votes: 13,
+        body: 'I am worried the network or the model will be slow on the day.',
+        ai: ai('Some hints:\n1. List what can go wrong live: network, login, a slow model call. Which of those can you control?\n2. A short recorded backup costs little. Where would you keep it?\n3. Open with the problem your capstone solves, not with the code.', 6),
+        mentor: mentor('Plan a live demo and keep a short recorded backup in case the network drops. Rehearse once with your mentor in Month 12. Start with the problem for the company, then show it working.', 2 * 1440 - 200),
+      }));
+      if (S.ai_budget && S.ai_budget.cap && S.ai_budget.used / S.ai_budget.cap >= 0.75) add({
+        title: `My lab AI key is at ₹${S.ai_budget.used} of ₹${S.ai_budget.cap} and the full red-team run is still to do`,
+        author: me.name, sid: ME, mineSeed: true, lecture: 90, ts: ago(3 * 60), votes: 4,
+        body: `The usage panel shows ₹${S.ai_budget.used} of ₹${S.ai_budget.cap} used this month. The final report run needs every case against each defence.`,
+        ai: ai('Some hints:\n1. Which runs need the main lab model, and which only check whether a canary appears?\n2. The lab has small local models on a shared server. They do not use your key. Could they handle the repeated runs?\n3. Save the replies for cases you have already run, so a re-run only sends the new ones.', 7),
+        mentor: mentor('Good plan. Do the repeated runs on the local qwen2.5 model and keep the main model for the final run in your report. At that rate you finish inside your budget.', 2 * 60),
+      });
+      tMCP(); tEmb();
+    }
+
+    /* ----- Common threads (everyone takes Months 1 to 3 and the shared tools) ----- */
+    // Near the end of the year only the threads people still return to stay on the first page.
+    const keepCommon = S.month >= 10 ? new Set(['git', 'budget']) : null;
+    const addC = (key, o) => { if (!keepCommon || keepCommon.has(key)) add(o); };
+
+    addC('index', Object.assign(by(who(false)), {
+      title: 'IndexError: list index out of range when I loop over my 50-item list', lecture: 13, ts: ago(3 * 1440), votes: 18, solved: true,
       body: 'The program prints all the titles and then crashes at the very end.',
       code: 'tasks = load_tasks()          # 50 items\nfor i in range(len(tasks) + 1):\n    print(tasks[i]["title"])\n\nIndexError: list index out of range', codeLabel: 'tasks.py',
       ai: ai('The error names the line. Some hints:\n1. Which value of i does the last turn of the loop use?\n2. Python lists start at 0. What is the last valid index for 50 items?\n3. You may not need an index at all. The lecture shows how to loop over the list directly.', 4),
-      replies: [reply(pick(10, false), 'Hint 3 made my code shorter too.', 6, 3 * 1440 - 60)],
-    });
-    add({
-      title: 'json.loads fails with "Expecting property name enclosed in double quotes"',
-      author: pick(11, false).name, sid: pick(11, false).id, lecture: 16, ts: ago(30 * 60), votes: 15,
+      replies: [reply(who(false), 'Hint 3 made my code shorter too.', 6, 3 * 1440 - 60)],
+    }));
+    addC('json', Object.assign(by(who(false)), {
+      title: 'json.loads fails with "Expecting property name enclosed in double quotes"', lecture: 16, ts: ago(30 * 60), votes: 15,
       code: 'import json\nraw = "{\'name\': \'Asha\', \'city\': \'Pune\'}"\ndata = json.loads(raw)\n\njson.decoder.JSONDecodeError: Expecting property name enclosed in double quotes', codeLabel: 'storage.py',
       body: 'I saved my data to a file and now I can\'t read it back.',
       ai: ai('Compare your string with a JSON example from the lecture.\n1. Which quote marks does JSON use around keys and text?\n2. Your text looks like a Python dictionary printed with print(). How did you write the file?\n3. If you write the file yourself, the lecture shows a function that always produces valid JSON.', 5),
       mentor: mentor('Confirmed. Save with json.dumps (or json.dump) and the file will always load. Delete the old file once, because it is in the wrong format.', 28 * 60),
-    });
-    add({
-      title: 'git push rejected: "the remote contains work that you do not have locally"',
-      author: pick(12, false).name, sid: pick(12, false).id, lecture: 18, ts: ago(4 * 1440), votes: 24,
+    }));
+    addC('git', Object.assign(by(who(false)), {
+      title: 'git push rejected: "the remote contains work that you do not have locally"', lecture: 18, ts: ago(4 * 1440), votes: 24,
       body: 'I created the repo on GitHub, then tried to push my project and got this.',
       code: '$ git push origin main\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs\nhint: Updates were rejected because the remote contains work that you do not have locally.', codeLabel: 'terminal',
       ai: ai('Nothing is broken. Some hints:\n1. Did you tick "Add a README" when you created the repo on GitHub? That is a commit you don\'t have yet.\n2. Bring that work down first. Which Git command fetches and merges in one step?\n3. Don\'t use --force on your portfolio repo. You can lose commits.', 6),
       mentor: mentor('Right. Pull first, sort out any conflict, then push again. This happens to most people the first time they create a README on GitHub.', 4 * 1440 - 120),
-      replies: [reply(pick(13, false), 'This is the most useful thread in the forum.', 9, 3 * 1440)],
-    });
-    add({
-      title: 'My few-shot prompt makes the model copy my examples word for word',
-      author: pick(14, false).name, sid: pick(14, false).id, lecture: 20, ts: ago(2 * 60), votes: 8,
+      replies: [reply(who(false), 'This is the most useful thread in the forum.', 9, 3 * 1440)],
+    }));
+    addC('fewshot', Object.assign(by(who(false)), {
+      title: 'My few-shot prompt makes the model copy my examples word for word', lecture: 20, ts: ago(2 * 60), votes: 8,
       body: 'For new tickets it keeps answering with the exact category text from my examples, even when it does not fit.',
       code: 'Classify the ticket. Examples:\nTicket: "Order late" -> Category: Delivery\nTicket: "Refund not received" -> Category: Payment\nTicket: {ticket} -> Category:', codeLabel: 'prompt',
       ai: ai('Some hints:\n1. Are all your examples similar in length and wording? Try examples that look different from each other.\n2. Add a clear rule for the output: one word, chosen from a fixed list you write in the prompt.\n3. Test on 5 tickets that look nothing like your examples before you change anything else.', 8),
-    });
-    add({
-      title: 'Docker Compose: my app can\'t reach the database on localhost:5432',
-      author: pick(15, false).name, sid: pick(15, false).id, lecture: 46, ts: ago(25), votes: 3, needs: true,
+    }));
+    addC('compose', Object.assign(by(who(false)), {
+      title: 'Docker Compose: my app can\'t reach the database on localhost:5432', lecture: 46, ts: ago(25), votes: 3, needs: true,
       body: 'The database container is running, but the app container logs "connection refused".',
       code: 'services:\n  app:\n    build: .\n    environment:\n      DATABASE_URL: "postgresql://lab:lab@localhost:5432/lab"\n  db:\n    image: postgres:16', codeLabel: 'compose.yaml',
       ai: ai('Some hints:\n1. Inside a container, localhost means that container itself, not your workspace.\n2. In Compose, services reach each other by service name. What is your database service called?\n3. The app may start before the database is ready. Look up depends_on with a health check in the lecture notes.', 9),
-    });
-    add({
-      title: 'My lab AI key says "budget reached" and it is only the 18th',
-      author: pick(16, false).name, sid: pick(16, false).id, lecture: 26, ts: ago(20 * 60), votes: 19,
+    }));
+    addC('budget', Object.assign(by(who(false)), {
+      title: 'My lab AI key says "budget reached" and it is only the 18th', lecture: 26, ts: ago(20 * 60), votes: 19,
       body: 'My batch script ran for a while and now every call to the lab model is refused.',
       ai: ai('Each lab key has a monthly budget. Some hints:\n1. Open the usage panel in your workspace and find the run that used the most.\n2. Long prompts inside a loop add up fast. Is your script sending the whole document on every call?\n3. Lecture 21 covers tokens, prompt caching and cost. It shows how to cut this down.', 7),
       mentor: mentor('Confirmed. Your batch loop resent the full document each time. I have added a small top-up for this month. Fix the loop first so it does not happen again.', 18 * 60),
-    });
-    return T;
+    }));
+    // Nothing from lectures the active student has not reached yet (the Month 7 to 9 set is kept as it always was).
+    if (S.month >= 7 && S.month <= 9) return T;
+    return T.filter((t) => !t.lecture || t.lecture <= S.lecture + 3);
   }
 
   function seedsFor(f) { if (!seeded[f.id]) seeded[f.id] = buildSeeds(f); return seeded[f.id]; }
   function allThreads(f) { return mine.concat(seedsFor(f)); }
-  const isMine = (t) => t.sid === ME;
-  function monthOf(t) { if (t.month) return t.month; const l = lectureById(t.lecture); return l ? l.month : 8; }
+  const meId = () => D().demo_student.id;
+  const isMine = (t) => t.sid === meId();
+  function monthOf(t) { if (t.month) return t.month; const l = lectureById(t.lecture); return l ? l.month : D().demo_student.month; }
   function status(t) {
     if (t.ai && (t.ai.typing || t.ai.streaming)) return ['typing', 'AI tutor is typing', 'violet'];
     if (!t.ai) return ['waiting', 'Waiting for AI tutor', ''];
@@ -553,7 +705,7 @@
 
     const head = h('section', { class: 'card fhead' },
       h('div', {},
-        h('div', { class: 'eyebrow' }, `Community · ${f.short} · ${f.company}`),
+        h('div', { class: 'eyebrow' }, c.data.demo_student.month <= 3 ? `Community · Month ${c.data.demo_student.month} · Common foundation, then ${f.short}` : `Community · Month ${c.data.demo_student.month} · ${f.short} · ${f.company}`),
         h('h1', {}, 'Doubt forum'),
         h('p', { class: 'small' }, 'Ask about any lecture or practical. The AI tutor answers in seconds with hints, then a mentor checks the answer.')),
       h('button', { class: 'btn primary', type: 'button', html: c.icon('forum') + '<span>Ask a question</span>', onclick: () => openAsk(c) }));
@@ -723,7 +875,7 @@
     }
     // Student replies
     t.replies.forEach((r) => {
-      const me = r.sid === ME;
+      const me = r.sid === meId();
       answers.push(h('section', { class: 'card ans' + (me ? ' mine' : '') },
         h('div', { class: 'ahead', html: `<span class="av${me ? ' me' : ''}">${initials(r.name)}</span><div><b>${esc(me ? 'You' : r.name)}</b><div class="tiny muted">Student · ${rel(r.ts)}</div></div>` }),
         h('p', { class: 'atext' }, r.text),
@@ -739,7 +891,7 @@
       const text = ta.value.trim();
       if (text.length < 3) { held.textContent = 'Write a few words first.'; ta.focus(); return; }
       if (ABUSE.test(text)) { held.textContent = 'Held back: the forum filters abusive language. Please rephrase.'; c.toast('Reply held back by the content filter', 'red'); return; }
-      t.replies.push({ id: 'r' + (++uid), name: c.data.demo_student.name, sid: ME, text, votes: 0, voted: false, ts: Date.now() });
+      t.replies.push({ id: 'r' + (++uid), name: c.data.demo_student.name, sid: meId(), text, votes: 0, voted: false, ts: Date.now() });
       ui.drafts[t.id] = '';
       c.emit('forum:answered', { title: t.title, by: c.data.demo_student.name });
       c.toast('Reply posted', 'green');
@@ -770,7 +922,7 @@
           ['shield', 'Abusive content filtered', 'Rude or abusive posts are held back before anyone sees them.']]
           .map(([ic, b, s]) => h('li', { html: `<span class="ix">${c.icon(ic)}</span><span><b>${c.esc(b)}</b><span class="muted">${c.esc(s)}</span></span>` }))));
 
-    const pool = data.students.filter((s) => s.id !== ME);
+    const pool = data.students.filter((s) => s.id !== meId());
     const local = pool.filter((s) => s.field === f.id);
     const rest = pool.filter((s) => s.field !== f.id).sort((a, b) => b.xp - a.xp);
     const top = local.concat(rest).slice(0, 5);
@@ -796,10 +948,17 @@
   }
 
   /* ---------- ask a question ---------- */
+  function askExample() {
+    const m = D().demo_student.month;
+    if (m <= 3) return 'For example: Why does my Claude call return a 401 error?';
+    if (m <= 6) return 'For example: Why does my Docker container stop straight away?';
+    if (m <= 9) return 'For example: Why does my webhook never answer the caller?';
+    return 'For example: Which OWASP LLM entry fits this injection case?';
+  }
   function openAsk(c, preset) {
     const { h, data, field: f } = c;
     const box = h('div', { class: 'm-forum mf-ask' });
-    const title = h('input', { class: 'field-input', type: 'text', maxlength: '140', placeholder: 'For example: Why does my Docker container stop straight away?', value: preset || '' });
+    const title = h('input', { class: 'field-input', type: 'text', maxlength: '140', placeholder: askExample(), value: preset || '' });
     const details = h('textarea', { class: 'field-input', placeholder: 'What did you try? What did you expect, and what happened instead?' });
     const lecSel = h('select', { class: 'field-input' });
     for (let m = 1; m <= 12; m++) {
@@ -852,7 +1011,7 @@
       if (ABUSE.test(tt + ' ' + details.value)) { err.textContent = 'Held back: the forum filters abusive language. Please rephrase.'; return; }
       const lecId = Number(lecSel.value);
       const t = {
-        id: 'mine-' + (++uid), field: f.id, fieldShort: f.short, title: tt, body: details.value.trim(), author: data.demo_student.name, sid: ME,
+        id: 'mine-' + (++uid), field: f.id, fieldShort: f.short, title: tt, body: details.value.trim(), author: data.demo_student.name, sid: meId(),
         lecture: lecId, ts: Date.now(), votes: 0, voted: false, replies: [], mentor: null, solved: false, needs: false,
         code: attach.checked ? codeFor(lecId, f) : null, codeLabel: attach.checked ? 'my code' : null, ai: null,
       };

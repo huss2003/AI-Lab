@@ -288,6 +288,29 @@
     Object.entries(PEOPLE).forEach(([k, p]) => el.append(h('button', { class: 'pop-item', type: 'button', role: 'menuitemradio', 'aria-checked': String(state.role === k),
       html: `<span class="avatar role-${k}">${esc(initials(p.name))}</span><span class="tx"><span>View as ${p.role}</span><small>${esc(p.name)} · ${esc(p.desc)}</small></span>` + (state.role === k ? svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'tick') : ''),
       onclick: () => { closePop(); switchRole(k); } })));
+    if (!STUDENTS.length) return;
+    el.append(h('div', { class: 'pop-sep', role: 'separator' }),
+      h('div', { class: 'pop-head' }, h('b', {}, 'Switch student'), h('small', { class: 'pop-sub' }, `Batch ${D.demo_student.batch}`)));
+    STUDENTS.forEach((s) => {
+      const cur = s.id === D.demo_student.id;
+      el.append(h('button', { class: 'pop-item pop-student', type: 'button', role: 'menuitemradio', 'aria-checked': String(cur), 'data-student': s.id,
+        html: `<span class="avatar st-av">${esc(s.initials || initials(s.name))}</span><span class="tx"><span>${esc(s.name)}</span><small>Month ${s.month} · ${esc(studentFieldLabel(s))}${cur ? ' · Currently viewing' : ''}</small></span>` + (cur ? svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'tick') : ''),
+        onclick: () => switchStudent(s.id) }));
+    });
+  }
+
+  // Demo students: labels and the switch used by the top-bar menu, search and the tour.
+  const studentField = (s) => D.fields.find((f) => f.id === s.field) || D.fields[0];
+  const studentLecture = (s) => D.lectures.find((l) => l.id === s.lecture) || D.lectures[0];
+  const firstName = (s) => String(s.name || '').split(' ')[0];
+  function studentFieldLabel(s) { const f = studentField(s); return s.month <= 3 ? `Foundation · ${f.short} next` : f.short; }
+  const hoursText = (min) => { const m = Math.max(0, Math.round(min || 0)); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} m`; };
+  function switchStudent(id) {
+    closePop();
+    const st = STUDENTS.find((x) => x.id === id); if (!st) return;
+    if (id === D.demo_student.id) { toast(`You are already viewing ${st.name}.`); return; }
+    toast(`Logging in as ${st.name}`, 'green');
+    setTimeout(() => setStudent(id, state.route || 'home'), 300);
   }
 
   // Mobile and tablet drawer.
@@ -311,6 +334,12 @@
     out.push({ group: 'Actions', icon: 'settings', title: dark ? 'Switch to light mode' : 'Switch to dark mode', sub: 'Change the colour theme', kw: 'theme dark light mode night colour color', go: 'Run', run: () => setTheme(dark ? 'light' : 'dark') });
     if (state.theme !== 'system') out.push({ group: 'Actions', icon: 'settings', title: 'Match my device theme', sub: 'Follow the light or dark setting of this device', kw: 'theme system auto', go: 'Run', run: () => setTheme('system') });
     Object.entries(PEOPLE).filter(([k]) => k !== state.role).forEach(([k, p]) => out.push({ group: 'Actions', icon: k === 'admin' ? 'shield' : k === 'mentor' ? 'mentor' : 'users', title: `View as ${p.role}`, sub: `${p.name} · ${p.desc}`, kw: 'role switch view ' + k, go: 'Switch', run: () => switchRole(k) }));
+    STUDENTS.forEach((s) => {
+      const cur = s.id === D.demo_student.id, f = studentField(s);
+      out.push({ group: 'Log in', icon: 'login', title: `Log in as ${s.name}`, sub: `${cur ? 'Currently viewing · ' : ''}Month ${s.month} · ${studentFieldLabel(s)} · Lecture ${s.lecture}`,
+        kw: `log in login sign in switch student demo ${s.id} ${f.name} ${s.education || ''}`, go: cur ? 'Viewing' : 'Log in', current: cur,
+        run: () => (cur ? go('home') : switchStudent(s.id)) });
+    });
     if (unread()) out.push({ group: 'Actions', icon: 'bell', title: 'Mark all notifications read', sub: `${unread()} unread`, kw: 'notifications bell clear', go: 'Run', run: () => { markAllRead(); toast('All notifications marked read.'); } });
     out.push({ group: 'Actions', icon: 'book', title: 'Open the course documents', sub: 'The full 1-year program and every practical', kw: 'docs documents syllabus curriculum word', go: 'Open', run: () => { location.href = 'docs/'; } });
     D.fields.filter((f) => f.id !== state.field).forEach((f) => out.push({ group: 'Actions', icon: 'project', title: `Change field to ${f.short}`, sub: `${f.name} · ${f.company}`, kw: 'career field switch ' + f.name, go: 'Switch', run: () => { setField(f.id); toast(`Career field: ${f.name}`); } }));
@@ -324,10 +353,11 @@
       const cur = D.lectures.find((l) => l.id === D.demo_student.lecture);
       return all.filter((x) => x.group === 'Screens')
         .concat(all.filter((x) => x.group === 'Actions').slice(0, 4))
+        .concat(all.filter((x) => x.group === 'Log in' && !x.current))
         .concat(cur ? all.filter((x) => x.group === 'Lectures' && x.title.startsWith(`Lecture ${cur.id}:`)).map((x) => Object.assign({}, x, { group: 'Continue' })) : []);
     }
     const toks = q.split(/\s+/);
-    const caps = { Screens: 8, Actions: 6, Lectures: 8, Students: 6 };
+    const caps = { Screens: 8, Actions: 6, 'Log in': 4, Lectures: 8, Students: 6 };
     const res = [];
     all.forEach((x) => {
       const hay = `${x.title} ${x.sub} ${x.kw || ''}`.toLowerCase();
@@ -337,7 +367,7 @@
     });
     const groups = {};
     res.sort((a, b) => b.s - a.s).forEach(({ x }) => { (groups[x.group] = groups[x.group] || []); if (groups[x.group].length < (caps[x.group] || 6)) groups[x.group].push(x); });
-    return ['Screens', 'Actions', 'Lectures', 'Students'].flatMap((g) => groups[g] || []);
+    return ['Screens', 'Log in', 'Actions', 'Lectures', 'Students'].flatMap((g) => groups[g] || []);
   }
   function closeSearch() {
     if (!palette) return; const p = palette; palette = null;
@@ -387,22 +417,38 @@
   }
 
   // Guided tour: walks across screens and spotlights one element per step.
-  const TOUR = [
-    { route: 'welcome', sel: ['#view .card', '#view > *'], title: 'Welcome to the Neuromind AI Lab', body: 'This is a clickable demo of the online lab that comes with our one-year AI course. All people and numbers are fictional demo data. The tour takes about two minutes.' },
-    { route: 'home', sel: ['#view .today', '#view .card'], title: 'A student’s day starts here', body: 'Aarav, a fictional student in Month 8, sees today’s plan: one recorded lecture, a 20-minute practical and what is due this week. Every card opens the real screen.' },
-    { route: 'home', sel: ['.field-pick'], title: 'Nine career fields, one lab', body: 'After Month 3 each student picks a career field. Switch it here and every practical, dataset and project changes to that field’s fictional company.' },
-    { route: 'lecture', sel: ['#view .card'], title: 'Recorded lectures with checks inside', body: '104 lectures over 12 months, two a week, about 40 minutes each. Quick questions appear inside the video so students stay with it.' },
-    { route: 'practical', sel: ['#view .card'], title: 'A 20-minute practical after every lecture', body: 'Students write real code in the browser. It is checked automatically within a minute. The AI tutor gives hints, never the graded answer.' },
-    { route: 'workspace', sel: ['#view .card'], title: 'A cloud computer for every student', body: 'VS Code in the browser with a terminal and Docker, up to 12 hours a week. It runs on a basic laptop and shuts down after 20 idle minutes.' },
-    { route: 'exam', sel: ['#view .card'], title: 'Fair exams from home', body: 'Exams run in browser lockdown mode and save answers as the student goes, so a dropped connection loses nothing.' },
-    { route: 'projects', sel: ['#view .card'], title: 'Four capstones and a portfolio', body: 'Projects go to the student’s own GitHub, get a mentor review against a rubric, and turn into a portfolio website automatically.' },
-    { route: 'forum', sel: ['#view .card'], title: 'Doubts answered fast', body: 'In the doubt forum the AI answers first and a mentor confirms, so no student waits a day for help.' },
-    { route: 'achievements', sel: ['#view .card'], title: 'Progress students can show', body: 'XP, streaks and badges keep students going. Every certificate carries a QR code that anyone can verify.' },
-    { route: 'mentor', sel: ['#view .card'], title: 'The mentor console', body: 'Mentors see who is falling behind, review capstones with a rubric and confirm forum answers from one screen.' },
-    { route: 'admin', sel: ['#view .card'], title: 'Running the lab', body: 'Admins watch costs, AI key budgets and server load for the whole batch, with alerts before anything runs over.' },
-    { route: 'flowmap', sel: ['#view .card'], title: 'How it all works', body: 'An animated map of the system: where student code runs and where AI answers come from (Amazon Bedrock in Mumbai).' },
-    { route: null, sel: ['#searchBtn'], title: 'Explore on your own', body: 'Search any screen, lecture or student here (Ctrl K). Check the bell for updates, switch to the mentor or admin view from the name on the right, and restart this tour any time.' },
-  ];
+  // Captions follow the active demo student, so they are built when the tour starts.
+  function tourSteps() {
+    const s = D.demo_student, f = field(), sf = studentField(s), lec = studentLecture(s), fn = firstName(s);
+    const common = s.practical_company === 'common';
+    const co = common ? D.common.company : f.company;
+    const cap = s.capstone === 'C1' ? D.common.capstone : (f.capstones || []).find((x) => x.slot === s.capstone);
+    const capName = cap ? String(cap.title).split(':')[0] : '';
+    const nCert = (s.certificates || []).length;
+    const nx = s.next_exam || {}, last = s.last_exam || {};
+    const minor = s.consent ? ` ${fn} is under 18, so a parent’s consent (${s.consent.parent}, ${String(s.consent.relation || 'parent').toLowerCase()}) is on file.` : '';
+    const ws = s.workspace || {};
+    return [
+      { route: 'welcome', sel: ['#view .card', '#view > *'], title: 'Welcome to the Neuromind AI Lab', body: `This is a clickable demo of the online lab that comes with our one-year AI course. You are following ${s.name}, one of 4 fictional students in batch ${s.batch}. All people and numbers are demo data. The tour takes about two minutes.` },
+      { route: 'home', sel: ['#view .today', '#view .card'], title: `${fn}’s day starts here`, body: `${fn} (${s.age}, ${s.education}) is in Month ${s.month}, Week ${s.week}. Today: Lecture ${lec.id}, the “${lec.practical}” practical and the ${nx.title || 'next assessment'} on ${nx.due || 'Friday'}.${minor} Every card opens the real screen.` },
+      { route: 'home', sel: ['.field-pick'], title: 'Nine career fields, one lab', body: s.month <= 3
+        ? `Months 1 to 3 are the same for everyone. ${fn} has picked ${sf.name} for Month 4, and the choice locks in after Month 3. Switch the field here to see any field’s fictional company, practicals and projects.`
+        : `${fn} is on the ${sf.name} track with ${sf.company}, a fictional company. Switch the field here and every practical, dataset and project changes to that field’s company.` },
+      { route: 'lecture', sel: ['#view .card'], title: 'Recorded lectures with checks inside', body: `104 lectures over 12 months, two a week, about 40 minutes each. ${fn} has finished ${s.lecturesWatched} and is on Lecture ${lec.id}: ${lec.topic}. Quick questions inside the video keep students with it.` },
+      { route: 'practical', sel: ['#view .card'], title: 'A 20-minute practical after every lecture', body: `${fn}’s practical is “${lec.practical}” on ${co} data${common ? ', run in Python right in the browser' : ''}. It is checked automatically within a minute. The AI tutor gives hints, never the graded answer.` },
+      { route: 'workspace', sel: ['#view .card'], title: 'A cloud computer for every student', body: common
+        ? `In the foundation months ${fn} codes in Python in the browser (${hoursText(ws.hours_used_min)} this week). From Month 4 every student gets VS Code in the browser with a terminal and Docker, up to 12 hours a week, shut down after 20 idle minutes.`
+        : `${fn} has a ${ws.size || 'cloud'} workspace (${ws.env || 'cloud workspace'}) and has used ${hoursText(ws.hours_used_min)} of 12 hours this week. VS Code, a terminal and Docker in the browser, on a basic laptop. It shuts down after 20 idle minutes.` },
+      { route: 'exam', sel: ['#view .card'], title: 'Fair exams from home', body: `Next for ${fn}: the ${nx.title || 'monthly assessment'}, due ${nx.due || 'Friday'}.${last.score != null ? ` Last result: ${last.title}, ${last.score}%.` : ''} Exams run in browser lockdown mode and save answers as the student goes, so a dropped connection loses nothing.` },
+      { route: 'projects', sel: ['#view .card'], title: 'Four capstones and a portfolio', body: `${fn} is working on Capstone ${String(s.capstone || 'C1').slice(1)}${capName ? `, ${capName}` : ''}: the Month ${s.capstone_month} milestone.${s.month >= 11 ? ' Demo Day is in Month 12.' : ''} Projects go to the student’s own GitHub (${s.github}), get a mentor review against a rubric, and become a portfolio website automatically.` },
+      { route: 'forum', sel: ['#view .card'], title: 'Doubts answered fast', body: 'In the doubt forum the AI answers first and a mentor confirms, so no student waits a day for help.' },
+      { route: 'achievements', sel: ['#view .card'], title: 'Progress students can show', body: `${fn} has ${Number(state.xp).toLocaleString('en-IN')} XP, a ${s.streak}-day streak and ${nCert ? `${nCert} certificate${nCert > 1 ? 's' : ''}` : 'no certificates yet (the first comes after Month 3)'}. Every certificate carries a QR code that anyone can verify.` },
+      { route: 'mentor', sel: ['#view .card'], title: 'The mentor console', body: 'Mentors see who is falling behind, review capstones with a rubric and confirm forum answers from one screen.' },
+      { route: 'admin', sel: ['#view .card'], title: 'Running the lab', body: 'Admins watch costs, AI key budgets and server load for the whole batch, with alerts before anything runs over.' },
+      { route: 'flowmap', sel: ['#view .card'], title: 'How it all works', body: 'An animated map of the system: where student code runs and where AI answers come from (Amazon Bedrock in Mumbai).' },
+      { route: null, sel: ['#searchBtn'], title: 'Explore on your own', body: `Search any screen, lecture or student here (Ctrl K), or type “log in” to follow another demo student. The name on the right switches student or view (mentor, admin). Restart this tour any time.` },
+    ];
+  }
   const T = { on: false, i: 0, steps: [], token: 0, layer: null, spot: null, bubble: null, target: null };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   function visibleEl(sel) {
@@ -483,7 +529,7 @@
       if (T.on) tourApi.stop(true);
       closePop(); closeSearch(); closeDrawer();
       document.querySelectorAll('.modal-back').forEach((m) => m.remove());
-      T.steps = TOUR.filter((s) => !s.route || modules[s.route]);
+      T.steps = tourSteps().filter((s) => !s.route || modules[s.route]);
       if (!T.steps.length) return;
       T.on = true;
       T.layer = h('div', { class: 'tour-layer', 'aria-hidden': 'true' });
@@ -513,12 +559,39 @@
 
   // Believable starting notifications so the bell is never empty.
   function seedNotifications() {
-    const lec = D.lectures.find((l) => l.id === D.demo_student.lecture) || D.lectures[0];
-    [
-      ['Mentor feedback on Capstone 2', 'Kavita Rao reviewed your final Capstone 2 milestone: 84/100, approved with two notes on your README.', 'projects', 26 * 3600e3],
-      ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Watch it, then do the 20-minute practical.`, 'lecture', 5 * 3600e3],
-      ['Your doubt was answered', '“Why does my Router send everything to the fallback branch?” The AI answered and a mentor confirmed it.', 'forum', 42 * 60e3],
-    ].forEach(([t, b, r, back]) => { const n = notify(t, b, r); n.ts = Date.now() - back; });
+    const s = D.demo_student, f = field();
+    const lec = studentLecture(s);
+    const nextLec = D.lectures.find((l) => l.id === s.lecture + 1) || lec;
+    const cert = (slot) => (s.certificates || []).find((x) => x.slot === slot);
+    const capOf = (slot) => (slot === 'C1' ? D.common.capstone : (f.capstones || []).find((x) => x.slot === slot));
+    const short = (c) => (c ? String(c.title).split(':')[0] : '');
+    const H = 3600e3, M = 60e3;
+    const sets = {
+      S1002: [
+        ['Parent consent confirmed', `${s.consent ? s.consent.parent : 'Your parent'} confirmed consent by one-time code. Reference ${s.consent ? s.consent.ref : 'on file'}. You can use every part of the lab.`, 'home', 30 * H],
+        [`Lecture ${nextLec.id} unlocks on Monday`, `${nextLec.topic}. Finish Lecture ${lec.id} and the “${lec.practical}” practical first.`, 'lecture', 5 * H],
+        [`${s.last_exam && s.last_exam.title ? s.last_exam.title : 'Assessment'} result: ${s.last_exam && s.last_exam.score != null ? s.last_exam.score + '%' : 'ready'}`, `Passed. ${s.next_exam ? s.next_exam.title + ' is due ' + s.next_exam.due + '.' : ''}`, 'exam', 50 * H],
+        ['Your doubt was answered', '“Why does my Claude call stop with stop_reason max_tokens?” The AI answered and a mentor confirmed it.', 'forum', 42 * M],
+      ],
+      S1003: [
+        ['Mentor feedback on Capstone 2', `Kavita Rao reviewed your Month 4 milestone of ${short(capOf('C2')) || 'Capstone 2'}: 81/100, approved. Next: Dockerfiles and docker compose for Month 5.`, 'projects', 28 * H],
+        ['Practice VPS is ready', `Your ${s.workspace ? s.workspace.size : 'Large'} workspace and a practice server are set up for the Month 5 deploy milestone.`, 'workspace', 9 * H],
+        ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Watch it, then do the 20-minute practical.`, 'lecture', 5 * H],
+        ['Your doubt was answered', '“Why does my container stop right after docker run?” The AI answered and a mentor confirmed it.', 'forum', 38 * M],
+      ],
+      S1004: [
+        ['Demo Day booking opens', 'Pick your 10-minute slot for Demo Day in Month 12. Mentors and visiting employers watch the final capstones.', 'projects', 3 * H],
+        ['Capstone 3 certificate approved', `${cert('C3') ? cert('C3').detail : 'Capstone 3'} passed review. Your certificate has a QR code anyone can verify.`, 'achievements', 26 * H],
+        ['Lab AI key at 80% of budget', `₹${s.ai_budget ? s.ai_budget.used : 97} of ₹${s.ai_budget ? s.ai_budget.cap : 120} used this month. Hard questions still go to the backup model until the cap.`, 'workspace', 7 * H],
+        ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Test only the authorised practice targets.`, 'lecture', 5 * H],
+      ],
+    };
+    const fallback = [
+      ['Mentor feedback on Capstone 2', `Kavita Rao reviewed your final Capstone 2 milestone${cert('C2') ? ' (' + cert('C2').detail.split(':')[0] + ')' : ''}: 84/100, approved with two notes on your README.`, 'projects', 26 * H],
+      ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Watch it, then do the 20-minute practical.`, 'lecture', 5 * H],
+      ['Your doubt was answered', '“Why does my Router send everything to the fallback branch?” The AI answered and a mentor confirmed it.', 'forum', 42 * M],
+    ];
+    (sets[s.id] || fallback).slice().sort((x, y) => y[3] - x[3]).forEach(([t, b, r, back]) => { const n = notify(t, b, r); n.ts = Date.now() - back; });
   }
 
   function shellInit() {
