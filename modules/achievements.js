@@ -15,7 +15,7 @@
   // Demo state that survives navigation and field switches.
   const ui = { tab: 'board', scope: 'batch', period: 'week', hidden: false, badgeFilter: 'all', verifyInput: '', verifyId: null };
   const perField = {};             // per field id: { extras: generated same-field rows, lastRank: {scopeKey: rank} }
-  const verifiedOnce = new Set();  // certificate ids already announced to Aarav
+  const verifiedOnce = new Set();  // certificate ids already announced to the active student
   let live = null;                 // the mounted screen (refs + cleanup)
 
   const reduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
@@ -64,8 +64,10 @@
     const others = genPeople('nm-all-batches', 40, null, 2101);
     const wk = batch.map((p) => periodXP(p, 'week')).sort((a, b) => b - a);
     const mo = batch.map((p) => periodXP(p, 'month')).sort((a, b) => b - a);
-    // Aarav sits just behind 2nd this week (#3, as on the home screen) and 4th this month, so new XP moves him up live.
-    pool = { batch, others, meBase: { week: Math.round((wk[1] + wk[2]) / 2), month: Math.round((mo[2] + mo[3]) / 2) } };
+    // The active student sits at their profile rank this week (as on the home screen) and one place lower this month, so new XP moves them up live.
+    const at = (arr, rank) => (rank <= 1 ? arr[0] + Math.max(40, Math.round(arr[0] * 0.08)) : rank > arr.length ? Math.max(1, arr[arr.length - 1] - 20) : Math.round((arr[rank - 2] + arr[rank - 1]) / 2));
+    const rk = Math.max(1, Math.min(batch.length + 1, S.rank || 3));
+    pool = { batch, others, meBase: { week: at(wk, rk), month: at(mo, rk === 1 ? 1 : rk + 1) } };
     return pool;
   }
   function fieldState(f) {
@@ -76,7 +78,7 @@
   }
   function periodXP(p, period) {
     if (period === 'all') return p.all;
-    const [lo, hi] = period === 'month' ? [0.1, 0.22] : [0.022, 0.065];
+    const [lo, hi] = period === 'month' ? [0.2, 0.45] : [0.07, 0.18];
     return Math.round(p.all * frac(p.id + ':' + period, lo, hi));
   }
   function meXP(period) {
@@ -105,8 +107,22 @@
     if (period === 'all') return 0;
     return Math.floor(frac(p.id + ':trend:' + period, 0, 7)) - 3;
   }
+  const demoOf = (id) => (NM.students || D.demo_students || []).find((x) => x.id === id && x.id !== S.id);
+  // Finished (and current) projects of a demo student, for the portfolio preview.
+  function projectsOf(who, fx, me) {
+    const out = [], have = new Set((who.certificates || []).map((x) => x.slot));
+    if (me) Object.keys(NM.state.liveCerts || {}).forEach((k) => have.add(k));
+    ['C1', 'C2', 'C3'].forEach((slot) => { if (have.has(slot)) { const cap = capFor(fx, slot); out.push({ t: cap.title, co: slot === 'C1' ? D.common.company : fx.company, st: skillsOf(cap.stack, 3), tag: `Capstone ${slot.slice(1)}` }); } });
+    const cur = who.capstone && !have.has(who.capstone) ? capFor(fx, who.capstone) : null;
+    if (cur) out.push({ t: cur.title, co: who.capstone === 'C1' ? D.common.company : fx.company, st: skillsOf(cur.stack, 3), tag: `Capstone ${who.capstone.slice(1)}`, wip: true });
+    FOUNDATION_REPOS.forEach((r, i) => { if (i + 1 < (who.month || 1)) out.push({ t: r.title, co: D.common.company, st: [`Month ${i + 1}`], tag: 'Monthly project' }); });
+    (fx.standalone || []).filter((x) => x.month < (who.month || 1)).forEach((x) => out.push({ t: x.title, co: fx.company, st: [`Month ${x.month}`], tag: 'Monthly project' }));
+    return out;
+  }
   function profileOf(p) {
     if (p.me) return { streak: S.streak, badges: earnedCount(), handle: S.github, certs: myCerts(fieldById(p.field)).length };
+    const dm = demoOf(p.id);
+    if (dm) { const b = BS[dm.id]; return { streak: dm.streak, badges: b ? Object.values(b).filter((x) => x.earned).length : 5, handle: dm.github, certs: (dm.certificates || []).length }; }
     const r = rng(p.id + ':profile');
     return { streak: 2 + Math.floor(r() * 38), badges: 3 + Math.floor(r() * 10), handle: slug(p.name) + (r() > 0.5 ? '-dev' : '-builds'), certs: 2 + Math.floor(r() * 2) };
   }
@@ -118,28 +134,49 @@
     { id: 'streak-30', name: '30-day streak', icon: 'star', cat: 'Habits', goal: 30, unit: 'days', what: 'A full month of daily learning without a gap.', how: 'Keep your daily streak going for 30 days. Any lecture question or practical run counts.', route: 'lecture' },
     { id: 'sharp', name: 'Sharp listener', icon: 'play', cat: 'Habits', goal: 50, unit: 'correct answers', what: 'Answered 50 of the questions inside lectures correctly.', how: 'Answer the quick questions that pause each lecture video. Every right answer counts.', route: 'lecture' },
     { id: 'bug-hunter', name: 'Bug hunter', icon: 'search', cat: 'Skills', goal: 10, unit: 'submissions', what: 'Kept fixing code until the checks passed, ten times over.', how: 'Submit practicals, read what failed, fix it and submit again. Each submission counts.', route: 'practical' },
-    { id: 'docker', name: 'Docker captain', icon: 'cloud', cat: 'Skills', goal: 5, unit: 'practicals', what: 'Shipped five practicals that run inside Docker containers.', how: 'Submit practicals from Month 5 onwards, where your code runs in a container.', route: 'practical' },
-    { id: 'rag', name: 'RAG builder', icon: 'book', cat: 'Skills', goal: 1, what: 'Built an assistant that answers from documents and shows its sources.', how: 'Pass the Month 6 retrieval project with cited answers.', route: 'projects' },
+    { id: 'docker', name: 'Docker captain', icon: 'cloud', cat: 'Skills', goal: 5, opens: 5, unit: 'practicals', what: 'Shipped five practicals that run inside Docker containers.', how: 'Submit practicals from Month 5 onwards, where your code runs in a container.', route: 'practical' },
+    { id: 'rag', name: 'RAG builder', icon: 'book', cat: 'Skills', goal: 1, opens: 6, what: 'Built an assistant that answers from documents and shows its sources.', how: 'Pass the Month 6 retrieval project with cited answers.', route: 'projects' },
     { id: 'mcp', name: 'MCP maker', icon: 'key', cat: 'Skills', goal: 1, opens: 9, what: 'Published a working MCP server that gives an AI assistant safe tools.', how: 'Build and test the MCP tools project. It opens in Month 9 for your field.', route: 'projects' },
-    { id: 'automation', name: 'Automation pro', icon: 'flow', cat: 'Skills', goal: 3, unit: 'workflows', what: 'Built three automated workflows that run without anyone clicking.', how: 'Finish the Month 8 automation practicals. Each working workflow counts.', route: 'practical' },
-    { id: 'security', name: 'Security minded', icon: 'shield', cat: 'Skills', goal: 5, unit: 'practicals', what: 'Passed the secrets and input-safety checks in five practicals.', how: 'Keep keys out of code and check user input. The grader tests both.', route: 'practical' },
+    { id: 'automation', name: 'Automation pro', icon: 'flow', cat: 'Skills', goal: 3, opens: 8, unit: 'workflows', what: 'Built three automated workflows that run without anyone clicking.', how: 'Finish the Month 8 automation practicals. Each working workflow counts.', route: 'practical' },
+    { id: 'security', name: 'Security minded', icon: 'shield', cat: 'Skills', goal: 5, opens: 3, unit: 'practicals', what: 'Passed the secrets and input-safety checks in five practicals.', how: 'Keep keys out of code and check user input. The grader tests both.', route: 'practical' },
     { id: 'curious', name: 'Curious mind', icon: 'forum', cat: 'Community', goal: 1, unit: 'question', what: 'Asked a first question in the doubt forum.', how: 'Ask anything in the doubt forum. The AI answers first and a mentor confirms.', route: 'forum' },
     { id: 'forum-helper', name: 'Forum helper', icon: 'users', cat: 'Community', goal: 5, unit: 'answers', what: 'Five of your answers to classmates were confirmed by a mentor.', how: 'Answer doubts in the forum. Answers count once a mentor confirms them.', route: 'forum' },
     { id: 'portfolio', name: 'Portfolio live', icon: 'github', cat: 'Community', goal: 1, what: 'Published a capstone to your own GitHub and your portfolio site went live.', how: 'Publish an approved capstone from the Projects screen.', route: 'projects' },
     { id: 'cap1', name: 'Capstone 1', icon: 'project', cat: 'Capstones', goal: 1, what: 'Built the common Capstone 1 and passed mentor review.', how: 'Pass mentor review for Capstone 1 in Month 3.', route: 'projects' },
-    { id: 'cap2', name: 'Capstone 2', icon: 'project', cat: 'Capstones', goal: 1, what: 'Built the first field capstone and passed mentor review.', how: 'Pass mentor review for Capstone 2 in Month 6.', route: 'projects' },
-    { id: 'cap3', name: 'Capstone 3', icon: 'project', cat: 'Capstones', goal: 2, unit: 'milestones', what: 'Built the second field capstone and passed mentor review.', how: 'Get both Capstone 3 milestones approved by your mentor (Months 7 and 8).', route: 'projects' },
-    { id: 'cap4', name: 'Capstone 4', icon: 'project', cat: 'Capstones', goal: 1, opens: 10, what: 'Built the final capstone, the biggest project of the year.', how: 'Capstone 4 runs in Months 10 to 12.', route: 'projects' },
+    { id: 'cap2', name: 'Capstone 2', icon: 'project', cat: 'Capstones', goal: 1, opens: 4, what: 'Built the first field capstone and passed mentor review.', how: 'Pass mentor review for Capstone 2 in Month 6.', route: 'projects' },
+    { id: 'cap3', name: 'Capstone 3', icon: 'project', cat: 'Capstones', goal: 2, opens: 7, unit: 'milestones', what: 'Built the second field capstone and passed mentor review.', how: 'Get both Capstone 3 milestones approved by your mentor (Months 7 and 8).', route: 'projects' },
+    { id: 'cap4', name: 'Capstone 4', icon: 'project', cat: 'Capstones', goal: 3, unit: 'milestones', opens: 10, what: 'Built the final capstone, the biggest project of the year.', how: 'Get all three Capstone 4 milestones approved: Months 10 and 11, then Month 12 at Demo Day.', route: 'projects' },
     { id: 'perfect-exam', name: 'Perfect exam', icon: 'exam', cat: 'Skills', goal: 90, unit: 'best score', what: 'Scored 90 or more in a monthly assessment.', how: 'Take the monthly assessment in lockdown mode and score 90 or more.', route: 'exam' },
     { id: 'demo-day', name: 'Demo Day speaker', icon: 'mentor', cat: 'Community', goal: 1, opens: 12, what: 'Presented a capstone live to mentors and guests at Demo Day.', how: 'Demo Day is in Month 12.', route: 'projects' },
   ];
-  const bs = {
-    'first-practical': { progress: 1, earned: '19 Jan 2027' }, 'streak-7': { progress: 7, earned: '2 Aug 2027' }, 'streak-30': { progress: S.streak },
-    sharp: { progress: 46 }, 'bug-hunter': { progress: 7 }, docker: { progress: 4 }, rag: { progress: 1, earned: '22 Jun 2027' }, mcp: { progress: 0 },
-    automation: { progress: 2 }, security: { progress: 5, earned: '30 Jun 2027' }, curious: { progress: 0 }, 'forum-helper': { progress: 3 },
-    portfolio: { progress: 0 }, cap1: { progress: 1, earned: '8 Apr 2027' }, cap2: { progress: 1, earned: '9 Jul 2027' }, cap3: { progress: 1 },
-    cap4: { progress: 0 }, 'perfect-exam': { progress: 84 }, 'demo-day': { progress: 0 },
+  // Badge progress for each demo student, matching how far into the year they are (demo data).
+  const E = (earned, progress) => ({ progress: progress == null ? 1 : progress, earned });
+  const BS = {
+    S1002: { // Ishita, Month 3: a few habit badges so far
+      'first-practical': E('9 Feb 2027'), 'streak-7': E('21 Apr 2027', 7), 'streak-30': { progress: S.streak }, sharp: { progress: 31 }, 'bug-hunter': { progress: 6 },
+      docker: { progress: 0 }, rag: { progress: 0 }, mcp: { progress: 0 }, automation: { progress: 0 }, security: { progress: 2 }, curious: E('3 Mar 2027'),
+      'forum-helper': { progress: 1 }, portfolio: { progress: 0 }, cap1: { progress: 0 }, cap2: { progress: 0 }, cap3: { progress: 0 }, cap4: { progress: 0 },
+      'perfect-exam': { progress: 78 }, 'demo-day': { progress: 0 } },
+    S1003: { // Kabir, Month 5
+      'first-practical': E('12 Feb 2027'), 'streak-7': E('8 May 2027', 7), 'streak-30': { progress: S.streak }, sharp: { progress: 44 }, 'bug-hunter': { progress: 8 },
+      docker: { progress: 2 }, rag: { progress: 0 }, mcp: { progress: 0 }, automation: { progress: 0 }, security: E('6 Jun 2027', 5), curious: { progress: 0 },
+      'forum-helper': { progress: 4 }, portfolio: E('30 Apr 2027'), cap1: E('30 Apr 2027'), cap2: { progress: 0 }, cap3: { progress: 0 }, cap4: { progress: 0 },
+      'perfect-exam': { progress: 88 }, 'demo-day': { progress: 0 } },
+    S1001: { // Aarav, Month 8 (the original demo)
+      'first-practical': E('19 Jan 2027'), 'streak-7': E('2 Aug 2027', 7), 'streak-30': { progress: S.streak }, sharp: { progress: 46 }, 'bug-hunter': { progress: 7 },
+      docker: { progress: 4 }, rag: E('22 Jun 2027'), mcp: { progress: 0 }, automation: { progress: 2 }, security: E('30 Jun 2027', 5), curious: { progress: 0 },
+      'forum-helper': { progress: 3 }, portfolio: { progress: 0 }, cap1: E('30 Apr 2027'), cap2: E('31 Jul 2027'), cap3: { progress: 1 }, cap4: { progress: 0 },
+      'perfect-exam': { progress: 84 }, 'demo-day': { progress: 0 } },
+    S1004: { // Sneha, Month 11: nearly everything
+      'first-practical': E('8 Feb 2027'), 'streak-7': E('20 Feb 2027', 7), 'streak-30': E('29 Nov 2027', 30), sharp: E('4 Jun 2027', 50), 'bug-hunter': E('12 May 2027', 10),
+      docker: E('24 Jun 2027', 5), rag: E('27 Jul 2027'), mcp: E('6 Oct 2027'), automation: E('30 Sep 2027', 3), security: E('18 Jun 2027', 5), curious: E('20 Feb 2027'),
+      'forum-helper': E('14 Nov 2027', 5), portfolio: E('31 Jul 2027'), cap1: E('30 Apr 2027'), cap2: E('31 Jul 2027'), cap3: E('31 Oct 2027', 2), cap4: { progress: 1 },
+      'perfect-exam': E('30 Sep 2027', 92), 'demo-day': { progress: 0 } },
   };
+  const bs = BS[S.id] || BS.S1001;
+  BADGES.forEach((b) => { if (!bs[b.id]) bs[b.id] = { progress: 0 }; });
+  // What the current milestone's approval does to badges, per student.
+  const ON_APPROVE = { S1002: ['cap1'], S1003: ['docker'], S1001: ['cap3', 'automation'], S1004: ['cap4'] };
   const badgeById = (id) => BADGES.find((b) => b.id === id);
   const statusOf = (b) => (bs[b.id].earned ? 'earned' : b.opens && b.opens > NOW_MONTH ? 'locked' : 'progress');
   const earnedCount = () => BADGES.filter((b) => bs[b.id].earned).length;
@@ -149,7 +186,7 @@
     if (!b || st.earned) return;
     st.progress = b.goal; st.earned = 'Today'; st.fresh = true;
     NM.toast(`Badge unlocked: ${b.name}`, 'green');
-    NM.notify(`Badge unlocked: ${b.name}`, b.what + (id === 'cap3' ? ' Your Capstone 3 certificate is ready to share.' : ''), ID);
+    NM.notify(`Badge unlocked: ${b.name}`, b.what + ((id === 'cap3' && S.id === 'S1001') || (id === 'cap1' && S.id === 'S1002') ? ` Your Capstone ${id.slice(3)} certificate is ready to share.` : ''), ID);
   }
   function bump(id, n) {
     const b = badgeById(id), st = bs[id];
@@ -171,6 +208,7 @@
   });
   NM.on('lecture:mcq', (p) => { if (p && p.correct) bump('sharp'); refresh(); });
   NM.on('exam:submitted', (p) => {
+    if (p && +p.month === 3 && +p.score >= 50) issueLive('F', { date: '30 Apr 2027', score: null });
     const sc = Math.round(+((p && p.score) || 0));
     const b = bs['perfect-exam'];
     if (sc >= 90) earn('perfect-exam');
@@ -180,55 +218,81 @@
   NM.on('milestone:reviewed', (p) => {
     p = p || {};
     if (!isMe(p)) return;
-    if (p.month != null && +p.month !== NOW_MONTH) return;
+    if (p.month != null && +p.month !== (S.capstone_month || NOW_MONTH)) return;
     if (p.decision === 'approved') {
-      NM.state.progress.certificates = Math.max(4, NM.state.progress.certificates || 0);
-      bump('cap3');
-      bump('automation');
+      const slot = CERT_ON_APPROVE[S.id];
+      if (slot) issueLive(slot, { date: LIVE_DATE[slot], score: p.score != null ? +p.score : null });
+      if (p.score != null) lastReviewScore = +p.score;
+      (ON_APPROVE[S.id] || []).forEach((id) => bump(id));
     }
     refresh();
   });
   // Shared with Home so both screens show the same live batch rank.
   NM.myRank = () => board('batch', 'week', NM.field()).myRank;
   NM.on('forum:asked', () => { bump('curious'); refresh(); });
-  NM.on('forum:answered', (p) => { if (p && p.by && /aarav|^you$/i.test(String(p.by))) bump('forum-helper'); refresh(); });
+  NM.on('forum:answered', (p) => { if (p && p.by && (String(p.by).toLowerCase().includes(S.name.split(' ')[0].toLowerCase()) || /^you$/i.test(String(p.by)))) bump('forum-helper'); refresh(); });
   NM.on('portfolio:published', () => { earn('portfolio'); refresh(); });
 
   // ---------- certificates and the verification records ----------
-  const c3Issued = () => (NM.state.progress.certificates || 0) >= 4;
-  function myCerts(f) {
-    const base = `${S.batch}-${S.id}`, gh = S.github;
-    const c1 = D.common.capstone, c2 = f.capstones[0], c3 = f.capstones[1];
-    const list = [
-      { key: 'F', id: `${base}-F`, kind: 'Certificate of Completion', title: 'Months 1–3: AI foundations', short: 'Months 1–3 completion',
-        what: `Completed Months 1 to 3: ${[1, 2, 3].map((m) => D.months[m]).join(', ')}.`, issued: '4 Apr 2027', track: 'Common foundation (all fields)',
-        skills: ['Python 3', 'Prompt writing', 'Claude API', 'Git and GitHub', 'AI coding tools'],
-        repos: [{ name: 'ai-foundations-notes', title: 'AI foundations notes', desc: 'Weekly notes and small experiments from Month 1.', stack: ['Markdown', 'Python 3'] },
-          { name: 'python-practice-set', title: 'Python practice set', desc: 'The Month 2 practicals, each with passing automatic checks.', stack: ['Python 3', 'pytest'] },
-          { name: 'prompt-and-api-lab', title: 'Prompt and API lab', desc: 'Month 3 prompts and Claude API calls with saved results.', stack: ['Python 3', 'Claude Messages API'] }] },
-      { key: 'C1', id: `${base}-C1`, kind: 'Capstone Certificate', title: `Capstone 1: ${c1.title}`, short: 'Capstone 1', score: 88,
-        what: `Built and passed mentor review for “${c1.title}” for ${D.common.company}.`, issued: '8 Apr 2027', track: 'Common foundation (all fields)',
-        skills: skillsOf(c1.stack), repos: [{ name: kebab(c1.title), title: c1.title, desc: firstSentence(c1.build), stack: skillsOf(c1.stack, 4) }] },
-      { key: 'C2', id: `${base}-C2`, kind: 'Capstone Certificate', title: `Capstone 2: ${c2.title}`, short: 'Capstone 2', score: 91,
-        what: `Built and passed mentor review for “${c2.title}” for ${f.company}.`, issued: '9 Jul 2027', track: f.name,
-        skills: skillsOf(c2.stack), repos: [{ name: kebab(c2.title), title: c2.title, desc: firstSentence(c2.build), stack: skillsOf(c2.stack, 4) }] },
-    ];
-    if (c3Issued()) {
-      list.push({ key: 'C3', id: `${base}-C3`, kind: 'Capstone Certificate', title: `Capstone 3: ${c3.title}`, short: 'Capstone 3', score: null,
-        what: `Built and passed mentor review for “${c3.title}” for ${f.company}.`, issued: '20 Aug 2027', track: f.name,
-        skills: skillsOf(c3.stack), repos: [{ name: kebab(c3.title), title: c3.title, desc: firstSentence(c3.build), stack: skillsOf(c3.stack, 4) }] });
+  // Certificates come from the student's profile (data.demo_student.certificates) plus any issued live in this session
+  // (NM.state.liveCerts, shared with Projects and Exams).
+  const CERT_ON_APPROVE = { S1001: 'C3', S1002: 'C1' };
+  const LIVE_DATE = { F: '30 Apr 2027', C1: '28 Apr 2027', C3: '20 Aug 2027' };
+  const SCORES = { S1001: { C1: 88, C2: 91 }, S1003: { C1: 86 }, S1004: { C1: 92, C2: 90, C3: 94 } };
+  let lastReviewScore = null;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || '')); return m ? `${+m[3]} ${MON[+m[2] - 1]} ${m[1]}` : String(iso || ''); };
+  const liveCerts = () => (NM.state.liveCerts = NM.state.liveCerts || {});
+  function issueLive(slot, info) {
+    const L = liveCerts();
+    if (L[slot] || (S.certificates || []).some((x) => x.slot === slot)) return;
+    L[slot] = info; NM.state.progress.certificates = (S.certificates || []).length + Object.keys(L).length;
+  }
+  const scoreOf = (who, slot) => { const t = SCORES[who.id]; return t && t[slot] != null ? t[slot] : 80 + (hashStr(who.id + slot) % 13); };
+  const capFor = (fx, slot) => (slot === 'C1' ? D.common.capstone : fx.capstones[{ C2: 0, C3: 1, C4: 2 }[slot]]);
+  const FOUNDATION_REPOS = [{ name: 'ai-foundations-notes', title: 'AI foundations notes', desc: 'Weekly notes and small experiments from Month 1.', stack: ['Markdown', 'Python 3'] },
+    { name: 'python-practice-set', title: 'Python practice set', desc: 'The Month 2 practicals, each with passing automatic checks.', stack: ['Python 3', 'pytest'] },
+    { name: 'prompt-and-api-lab', title: 'Prompt and API lab', desc: 'Month 3 prompts and Claude API calls with saved results.', stack: ['Python 3', 'Claude Messages API'] }];
+  // Build one certificate record for a student (the active one or a classmate) and a field.
+  function certRecord(who, fx, slot, issued, score) {
+    const base = `${who.batch || S.batch}-${who.id}`;
+    if (slot === 'F') {
+      return { key: 'F', id: `${base}-F`, kind: 'Certificate of Completion', title: 'Months 1–3: AI foundations', short: 'Months 1–3 completion',
+        what: `Completed Months 1 to 3: ${[1, 2, 3].map((m) => D.months[m]).join(', ')}.`, issued, track: 'Common foundation (all fields)',
+        skills: ['Python 3', 'Prompt writing', 'Claude API', 'Git and GitHub', 'AI coding tools'], repos: FOUNDATION_REPOS };
     }
-    list.forEach((x) => { x.name = S.name; x.gh = gh; x.mentor = MENTOR; x.url = `https://${VERIFY_HOST}/c/${x.id}`; });
+    const cap = capFor(fx, slot), n = slot.slice(1), co = slot === 'C1' ? D.common.company : fx.company;
+    return { key: slot, id: `${base}-${slot}`, kind: 'Capstone Certificate', title: `Capstone ${n}: ${cap.title}`, short: `Capstone ${n}`, score,
+      what: `Built and passed mentor review for “${cap.title}” for ${co}.`, issued, track: slot === 'C1' ? 'Common foundation (all fields)' : fx.name,
+      skills: skillsOf(cap.stack), repos: [{ name: kebab(cap.title), title: cap.title, desc: firstSentence(cap.build), stack: skillsOf(cap.stack, 4) }] };
+  }
+  function myCerts(f) {
+    const L = liveCerts(), list = [];
+    ['F', 'C1', 'C2', 'C3'].forEach((slot) => {
+      const p = (S.certificates || []).find((x) => x.slot === slot), l = L[slot];
+      if (!p && !l) return;
+      const score = slot === 'F' ? null : l ? (l.score != null ? l.score : lastReviewScore) : scoreOf(S, slot);
+      list.push(certRecord(S, f, slot, p ? fmtDate(p.date) : l.date, score));
+    });
+    list.forEach((x) => { x.name = S.name; x.gh = S.github; x.mentor = MENTOR; x.url = `https://${VERIFY_HOST}/c/${x.id}`; });
     return list;
+  }
+  // Classmates from the same batch who are also demo students (their own field and certificates).
+  function classmates() { return (NM.students || D.demo_students || []).filter((x) => x.id !== S.id); }
+  function classmateCerts(who) {
+    const fx = fieldById(who.field);
+    return (who.certificates || []).map((x) => Object.assign(certRecord(who, fx, x.slot, fmtDate(x.date), x.slot === 'F' ? null : scoreOf(who, x.slot)),
+      { name: who.name, gh: who.github, mentor: MENTOR, batch: who.batch, status: 'valid' }));
   }
   function records(f) {
     const map = {};
+    classmates().forEach((who) => classmateCerts(who).forEach((x) => { map[x.id] = x; }));
     myCerts(f).forEach((x) => { map[x.id] = Object.assign({ status: 'valid', batch: S.batch }, x); });
     const sec = fieldById('cybersecurity'), web = fieldById('web_dev');
     const saanvi = D.students.find((x) => x.id === 'S1006') || { name: 'Saanvi Pawar' };
     const sc = sec.capstones[0], wc = web.capstones[2];
     map['NM-2027-A-S1006-C2'] = { status: 'valid', id: 'NM-2027-A-S1006-C2', name: saanvi.name, batch: 'NM-2027-A', kind: 'Capstone Certificate', title: `Capstone 2: ${sc.title}`,
-      track: sec.name, issued: '9 Jul 2027', mentor: 'Rahul Menon', gh: 'saanvi-pawar-sec', skills: skillsOf(sc.stack),
+      track: sec.name, issued: '31 Jul 2027', mentor: 'Rahul Menon', gh: 'saanvi-pawar-sec', skills: skillsOf(sc.stack),
       repos: [{ name: kebab(sc.title), title: sc.title, desc: firstSentence(sc.build), stack: skillsOf(sc.stack, 4) }] };
     map['NM-2026-B-S0412-C4'] = { status: 'valid', id: 'NM-2026-B-S0412-C4', name: 'Nikhil Deshpande', batch: 'NM-2026-B', kind: 'Program Completion and Capstone 4', title: `Capstone 4: ${wc.title}`,
       track: web.name, issued: '18 Mar 2027', mentor: 'Farah Siddiqui', gh: 'nikhil-d-builds', skills: skillsOf(wc.stack),
@@ -237,6 +301,14 @@
     map['NM-2026-X-S9999-C2'] = { status: 'revoked', id: 'NM-2026-X-S9999-C2', name: 'Name withheld', kind: 'Capstone Certificate', title: 'Capstone 2', track: 'Data Science',
       issued: '14 Nov 2026', revoked: '12 Mar 2027', reason: 'Withdrawn after an academic integrity review found that the capstone code was not the student’s own work.' };
     return map;
+  }
+  // The certificate the student is working towards right now (shown as a "Next" card).
+  function nextCert(f) {
+    const have = new Set(myCerts(f).map((x) => x.key)), slot = S.capstone || 'C3', n = slot.slice(1);
+    if (slot === 'C4') return { title: `Capstone 4: ${f.capstones[2].title}`, text: 'Issued with the program completion certificate after Demo Day in Month 12.' };
+    if (have.has(slot)) return null;
+    const cap = capFor(f, slot), last = cap.milestones[cap.milestones.length - 1].month;
+    return { title: `Capstone ${n}: ${cap.title}`, text: CERT_ON_APPROVE[S.id] === slot ? `Issued automatically when your mentor approves the Month ${S.capstone_month} milestone.` : `Issued when your mentor approves the final Month ${last} milestone.` };
   }
 
   // ---------- QR code (real library from cdnjs when reachable, deterministic pattern otherwise) ----------
@@ -733,7 +805,8 @@
         };
         const showPortfolio = () => {
           content.textContent = '';
-          const caps = [
+          const who = p.me ? S : demoOf(p.id);
+          const caps = who ? projectsOf(who, fx, p.me) : [
             { t: D.common.capstone.title, co: D.common.company, st: skillsOf(D.common.capstone.stack, 3), tag: 'Capstone 1' },
             { t: fx.capstones[0].title, co: fx.company, st: skillsOf(fx.capstones[0].stack, 3), tag: 'Capstone 2' },
             fx.standalone && fx.standalone[0] ? { t: fx.standalone[0].title, co: fx.company, st: [`Month ${fx.standalone[0].month}`], tag: 'Monthly project' } : null,
@@ -744,17 +817,17 @@
             h('div', { class: 'ma-browser' },
               h('div', { class: 'ma-bbar' }, h('span', { class: 'ma-dots', html: '<i></i><i></i><i></i>' }), h('span', { class: 'ma-url', title: site, html: icon('lock') + esc(site) })),
               h('div', { class: 'ma-site' },
-                h('div', { class: 'ma-site-hero' }, av(p, 'lg'), h('div', {}, h('b', {}, p.name), h('div', { class: 'tiny muted' }, `${fx.name} · ${PROGRAM}`), h('div', { class: 'tiny muted' }, `github.com/${pf.handle} · ${pf.certs} verified certificates`))),
+                h('div', { class: 'ma-site-hero' }, av(p, 'lg'), h('div', {}, h('b', {}, p.name), h('div', { class: 'tiny muted' }, `${fx.name} · ${PROGRAM}`), h('div', { class: 'tiny muted' }, `github.com/${pf.handle} · ${pf.certs} verified certificate${pf.certs === 1 ? '' : 's'}`))),
                 h('div', { class: 'eyebrow' }, 'Projects'),
                 h('div', { class: 'ma-site-grid' }, caps.map((x) => h('div', { class: 'ma-site-card' },
                   h('span', { class: 'pill blue', style: { justifySelf: 'start' } }, x.tag), h('b', {}, x.t), h('span', { class: 'tiny muted' }, `For ${x.co}`),
                   h('div', { class: 'ma-tags' }, x.st.map((s) => h('span', { class: 'ma-tag' }, s))),
-                  h('span', { class: 'tiny', style: { color: 'var(--green)', fontWeight: 700 } }, 'Automatic tests passing')))))),
+                  h('span', { class: 'tiny', style: { color: x.wip ? 'var(--amber)' : 'var(--green)', fontWeight: 700 } }, x.wip ? 'In progress' : 'Automatic tests passing')))))),
             h('p', { class: 'tiny muted' }, 'Demo preview. In the real lab this site is rebuilt each time the student publishes a project.'),
             h('div', { class: 'row', style: { justifyContent: 'space-between', gap: '8px' } },
               h('button', { class: 'btn', onclick: showProfile }, 'Back to profile'),
               h('div', { class: 'row', style: { gap: '8px' } },
-                p.me ? h('button', { class: 'btn', onclick: () => { m.close(); ui.verifyInput = myCerts(f)[2].id; setTab('verify'); L.panelFns.verify && L.panelFns.verify(ui.verifyInput); } }, 'Verify my certificate') : null,
+                p.me && myCerts(f).length ? h('button', { class: 'btn', onclick: () => { const mc = myCerts(f); m.close(); ui.verifyInput = mc[mc.length - 1].id; setTab('verify'); L.panelFns.verify && L.panelFns.verify(ui.verifyInput); } }, 'Verify my certificate') : null,
                 h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
         };
         showProfile();
@@ -874,11 +947,19 @@
                 h('button', { class: 'btn sm', onclick: () => copyText(x.url, 'Verification link copied') }, 'Copy verification link'),
                 h('button', { class: 'btn sm ghost', onclick: () => { ui.verifyInput = x.id; setTab('verify'); L.panelFns.verify && L.panelFns.verify(x.id); } }, 'Verify'))));
           });
-          if (!c3Issued()) {
-            grid.append(h('article', { class: 'ma-lockcert', 'data-cert': 'C3-locked' },
+          if (!list.length) {
+            grid.append(h('article', { class: 'ma-lockcert', 'data-cert': 'empty' },
+              h('span', { class: 'pill amber' }, 'No certificates yet'),
+              h('b', {}, `${S.name.split(' ')[0]}’s first certificates arrive after Month 3`),
+              h('p', { class: 'small muted' }, `Months 1 to 3 are the common foundation. Passing the Month 3 assessment issues the Months 1–3 completion certificate, and the mentor’s approval of the Month 3 capstone milestone issues Capstone 1. Both get a QR code and a public verification page.`),
+              h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn sm primary', onclick: () => c.go('exam') }, 'Open the Month 3 assessment'), h('button', { class: 'btn sm', onclick: () => c.go('projects') }, 'Open Capstone 1'))));
+          }
+          const nx = nextCert(f);
+          if (nx && list.length) {
+            grid.append(h('article', { class: 'ma-lockcert', 'data-cert': 'next-locked' },
               h('span', { class: 'pill' }, 'Next'),
-              h('b', {}, `Capstone 3: ${f.capstones[1].title}`),
-              h('p', { class: 'small muted' }, 'Issued automatically when your mentor approves the Month 8 milestone.'),
+              h('b', {}, nx.title),
+              h('p', { class: 'small muted' }, nx.text),
               h('button', { class: 'btn sm', onclick: () => c.go('projects') }, 'Open my capstone')));
           }
         }
@@ -927,7 +1008,7 @@
       // ================= 4. Verify (public page) =================
       function renderVerify() {
         const url = h('span', { class: 'ma-url', html: icon('lock') + esc(`https://${VERIFY_HOST}`) });
-        const input = h('input', { class: 'field-input', type: 'text', placeholder: 'Certificate ID, for example NM-2027-A-S1001-C2', 'aria-label': 'Certificate ID', autocomplete: 'off', spellcheck: 'false' });
+        const input = h('input', { class: 'field-input', type: 'text', placeholder: `Certificate ID, for example ${S.batch}-${S.id}-C1`, 'aria-label': 'Certificate ID', autocomplete: 'off', spellcheck: 'false' });
         input.value = ui.verifyInput || '';
         input.addEventListener('input', () => { ui.verifyInput = input.value; });
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(input.value); });
@@ -935,13 +1016,16 @@
         const scanBtn = h('button', { class: 'btn', onclick: scanModal, html: icon('search') + '<span>Scan QR</span>' });
         const result = h('div', { 'aria-live': 'polite' });
         const mine = myCerts(f);
+        const mate = classmates().filter((x) => (x.certificates || []).length).sort((a, b) => b.certificates.length - a.certificates.length)[0];
+        const mateCert = mate ? mate.certificates[mate.certificates.length - 1] : null;
         const TRY = [
-          [`${S.name.split(' ')[0]}’s latest`, mine[mine.length - 1].id],
+          mine.length ? [`${S.name.split(' ')[0]}’s latest`, mine[mine.length - 1].id] : null,
+          mateCert ? [`Classmate ${mate.name.split(' ')[0]}`, `${mate.batch}-${mate.id}-${mateCert.slot}`] : null,
           ['Another student', 'NM-2027-A-S1006-C2'],
           ['A past graduate', 'NM-2026-B-S0412-C4'],
           ['A revoked certificate', 'NM-2026-X-S9999-C2'],
-          ['A wrong ID', 'NM-2027-A-S1001-C9'],
-        ];
+          ['A wrong ID', `${S.batch}-${S.id}-C9`],
+        ].filter(Boolean);
         panel.append(
           h('p', { class: 'small muted' }, 'This is the public page an employer sees after scanning a certificate. No login is needed.'),
           h('div', { class: 'ma-browser' },
@@ -975,7 +1059,7 @@
               h('div', { class: 'ma-res-head' }, h('span', { class: 'ic', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' }),
                 h('div', {}, h('h2', {}, 'Not found'), h('div', { class: 'small' }, h('span', { class: 'ma-mono' }, id), ' is not in the certificate register.'))),
               h('ul', { class: 'ma-guide' },
-                h('li', {}, 'Check each character. IDs look like ', h('span', { class: 'ma-mono' }, 'NM-2027-A-S1001-C2'), ' (batch, student, certificate).'),
+                h('li', {}, 'Check each character. IDs look like ', h('span', { class: 'ma-mono' }, `${S.batch}-${S.id}-C1`), ' (batch, student, certificate).'),
                 h('li', {}, 'Scan the QR code on the certificate instead of typing. It opens the right page directly.'),
                 h('li', {}, `Still not found? Treat the certificate as unverified and contact ${D.brand.org}.`)),
               h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { input.value = ''; ui.verifyInput = ''; input.focus(); result.textContent = ''; } }, 'Try another ID'), h('button', { class: 'btn sm', onclick: scanModal }, 'Scan QR instead'))));
@@ -1020,7 +1104,7 @@
           const vf = h('div', { class: 'ma-vf' }, h('span', { class: 'cn a' }), h('span', { class: 'cn b' }), h('span', { class: 'cn c' }), h('span', { class: 'cn d' }), h('span', { class: 'hint' }, 'Camera preview. Pick a certificate below to hold up to the camera.'));
           const status = h('div', { class: 'small muted', style: { textAlign: 'center' } }, 'Waiting for a QR code…');
           const opts = [
-            [`${S.name} · ${mine[mine.length - 1].short}`, mine[mine.length - 1].id],
+            mine.length ? [`${S.name} · ${mine[mine.length - 1].short}`, mine[mine.length - 1].id] : mateCert ? [`${mate.name} · ${mateCert.slot === 'F' ? 'Months 1–3' : 'Capstone ' + mateCert.slot.slice(1)}`, `${mate.batch}-${mate.id}-${mateCert.slot}`] : ['Saanvi Pawar · Capstone 2', 'NM-2027-A-S1006-C2'],
             ['Saanvi Pawar · Capstone 2', 'NM-2027-A-S1006-C2'],
             ['Revoked example', 'NM-2026-X-S9999-C2'],
           ];

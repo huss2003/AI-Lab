@@ -1048,7 +1048,7 @@
         // Already done earlier in the year: open it as the student left it, with the graded result.
         Object.assign(ss.files, spec.fixed);
         const n = spec.p.checks.length;
-        const partial = hash(st.id + spec.pid) % 5 === 0 && n > 1;
+        const partial = hash(st.id + spec.pid) % 5 === 0 && n >= 3;
         const passed = partial ? n - 1 : n, score = Math.round(passed / n * 100);
         const took = 11 * 60 + (hash(spec.pid + st.id) % 8) * 60 + (hash(st.id) % 50);
         ss.last = { results: spec.visible.map(() => true), passed: spec.visible.length, total: spec.visible.length };
@@ -1065,7 +1065,7 @@
 .m-practical { display: grid; gap: 14px; min-width: 0 }
 .m-practical [hidden], .m-practical-grader [hidden] { display: none !important }
 .m-practical .top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; min-width: 0 }
-.m-practical .pickwrap { display: grid; gap: 6px; min-width: 0; flex: 1 1 420px }
+.m-practical .pickwrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; flex: 1 1 420px }
 .m-practical .pickhead { padding-left: 2px }
 .m-practical .picker { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; padding: 2px }
 @media (max-width: 640px) { .m-practical .picker { flex-wrap: nowrap; overflow-x: auto; scroll-padding-inline: 8px } }

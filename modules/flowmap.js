@@ -83,95 +83,155 @@
   ].map(([a, b, d]) => ({ a, b, id: a + '-' + b, d: d || `M${NODE[a].x},${NODE[a].y} L${NODE[b].x},${NODE[b].y}` }));
   const findEdge = (from, to) => EDGES.find((e) => (e.a === from && e.b === to) || (e.a === to && e.b === from));
 
-  function scenarios(c) {
+  // Everything the stories and drawers say about the active demo student.
+  const FEM = new Set(['S1002', 'S1004']);
+  function who(c) {
     const f = c.field, D = c.data, s = D.demo_student, first = s.name.split(' ')[0];
-    const p = (f.practicals && f.practicals['65']) || { topic: 'today’s practical', starter: [] };
-    const dsId = ((p.starter || []).find((x) => x.dataset) || {}).dataset;
-    const ds = (f.datasets || []).find((d) => d.id === dsId) || (f.datasets || [])[0];
-    const cap = f.capstones[1] || f.capstones[0];
+    const fem = s.pronoun ? s.pronoun === 'she' : FEM.has(s.id);
+    const P = fem ? { he: 'she', He: 'She', his: 'her', His: 'Her', him: 'her', hers: 'hers' } : { he: 'he', He: 'He', his: 'his', His: 'His', him: 'him', hers: 'his' };
+    const common = s.practical_company === 'common';
+    const co = common ? D.common.company : f.company;
+    const lec = D.lectures.find((l) => l.id === s.lecture) || { id: s.lecture, topic: 'this week’s lecture', practical: 'today’s practical' };
+    const pr = (common ? D.common.practicals[String(s.lecture)] : f.practicals && f.practicals[String(s.lecture)]) || { topic: lec.topic, lecture: s.lecture, starter: [], checks: [] };
+    const dsId = common ? null : ((pr.starter || []).find((x) => x.dataset) || {}).dataset;
+    const ds = dsId ? (f.datasets || []).find((d) => d.id === dsId) : null;
+    const capC1 = s.capstone === 'C1';
+    const cap = capC1 ? D.common.capstone : (f.capstones.find((x) => x.slot === s.capstone) || f.capstones[0]);
+    const capCo = capC1 ? D.common.company : f.company;
+    const exam = (s.next_exam && s.next_exam.title) || `Month ${s.month} assessment`;
+    const ai = s.ai_budget || { used: 0, cap: 0 };
+    const ws = s.workspace || {};
+    return { f, D, s, first, P, common, co, lec, pr, ds, cap, capCo, exam, ai, ws };
+  }
+
+  function scenarios(c) {
+    const W = who(c), { s, first, P, co, lec, pr, ds, cap, capCo, ai, ws } = W;
     const capShort = cap.title.split(/[:(]/)[0].trim();
-    const ms = (cap.milestones || []).find((m) => m.type === 'merged') || (cap.milestones || [])[0] || { month: s.month };
     const crit = ((cap.rubric || [])[0] || {}).criterion || 'Correctness';
+    const usesClaude = /claude/i.test(pr.topic + ' ' + lec.topic);
+    const hasKey = (pr.starter || []).some((x) => /\.env/.test(x.path));
+    const target = /injection/i.test(lec.topic);
+    const nCerts = (s.certificates || []).length;
+    const practicalSteps = W.common ? [
+      { hops: [['student', 'app'], ['app', 'db']], plain: `${first} clicks Start practical: “${pr.topic}” (Lecture ${s.lecture}), set at ${co}.`,
+        tech: `Practical spec for Lecture ${pr.lecture || s.lecture} (task, starter files, checks) loaded from the lab catalogue in PostgreSQL.` },
+      { hops: [['app', 'student']], plain: `In Months 1 to 3, practicals run as Python inside ${P.his} browser. No cloud computer is needed yet, so none is started or billed.`,
+        tech: 'In-browser Python runtime served with the web app; cloud workspaces are switched on later in the course.' },
+      { hops: [['s3', 'app'], ['app', 'student']], plain: `The ${co} starter files load into ${P.his} browser${hasKey ? ', with a .env.example where the lab AI key goes. The key never sits in the code.' : '.'}`,
+        tech: `Starter files streamed from S3 through the API${hasKey ? '; the lab proxy key is injected into .env at run time.' : '.'}` },
+    ].concat(usesClaude ? [
+      { hops: [['student', 'app'], ['app', 'tutor'], ['tutor', 'bedrock']], plain: `${P.His} code calls Claude through the lab’s AI gateway, on ${P.his} own budgeted lab key: ₹${ai.used} of ₹${ai.cap} used this month. No personal AI account needed.`,
+        tech: 'Lab proxy key mapped to a LiteLLM virtual key with a monthly budget; requests go to Claude on Amazon Bedrock in Mumbai.' },
+    ] : []).concat([
+      { hops: [['student', 'app'], ['app', 'grader']], plain: `${first} presses Submit. ${P.His} code is copied into a fresh grading computer that has no internet, so nobody can cheat.`,
+        tech: `Grader pod on an EKS Spot node, network disabled; ${(pr.checks || []).length || 'all'} checks${pr.checks && pr.checks.length ? ` (${pr.checks.join('; ')})` : ''}; result in under 60 s.` },
+      { hops: [['grader', 'app'], ['app', 'db'], ['app', 'mentor']], plain: `Within a minute ${P.he} sees ${P.his} score and which checks passed. ${P.His} mentor’s dashboard updates at the same moment.`,
+        tech: 'Result saved in PostgreSQL; pushed to the browser and the mentor console; copy-detection fingerprint stored.' },
+      { hops: [['app', 's3']], plain: `${P.He} closes the tab. ${P.His} files are already saved, and there is no cloud computer to switch off.`,
+        tech: 'Browser files synced to S3 through the API on every save.' },
+    ]) : [
+      { hops: [['student', 'app'], ['app', 'db']], plain: `${first} clicks Start practical: “${pr.topic}” (Lecture ${s.lecture}), set at ${co}.`,
+        tech: `Practical spec for Lecture ${pr.lecture || s.lecture} (task, starter files, checks) loaded from the lab catalogue in PostgreSQL.` },
+      { hops: [['app', 'ws']], plain: `The lab switches on a cloud computer just for ${P.him}${ws.size ? ` (${ws.size})` : ''}. ${P.His} laptop does not need to be powerful.`,
+        tech: 'Coder starts a workspace pod on an EKS Graviton Spot node; Sysbox lets Docker run safely inside it.' },
+      { hops: [['s3', 'ws']], plain: target
+          ? `${P.His} saved files and the ${co} test files${ds ? ` (“${ds.title}”)` : ''} are copied in. The authorised practice target starts inside the lab, the only place ${P.his} tests may reach.`
+          : `${P.His} saved files and the ${co} starter files${ds ? ` (“${ds.title}”)` : ''} are copied in.`,
+        tech: `Home volume restored from S3; starter repo${ds ? ` and dataset ${ds.id}` : ''} mounted read-only${target ? '; practice target on a lab-only network' : ''}.` },
+      { hops: [['ws', 'student']], plain: `${P.He} writes code in VS Code inside ${P.his} browser. All the heavy work runs on the cloud computer.`,
+        tech: 'code-server (VS Code in the browser) over a secure WebSocket; terminal and Docker run in the pod.' },
+      { hops: [['student', 'app'], ['app', 'grader']], plain: `${first} presses Submit. ${P.His} work is copied into a fresh grading computer that has no internet, so nobody can cheat.`,
+        tech: `Grader pod on an EKS Spot node, network disabled; ${(pr.checks || []).length || 'all'} checks plus hidden tests; result in under 60 s.` },
+      { hops: [['grader', 'app'], ['app', 'db'], ['app', 'mentor']], plain: `Within a minute ${P.he} sees ${P.his} score and which checks passed. ${P.His} mentor’s dashboard updates at the same moment.`,
+        tech: 'Result saved in PostgreSQL; pushed to the browser and the mentor console; copy-detection fingerprint stored.' },
+      { hops: [['ws', 's3']], plain: `${P.He} closes the tab. After a short idle time the cloud computer saves ${P.his} files and switches itself off, so nothing is billed while ${P.he} is away.`,
+        tech: 'Idle timeout stops the pod; workspace volume saved to S3; 12-hour weekly cap enforced per student.' },
+    ];
     return [
       { id: 'lecture', label: 'Watch a lecture', color: 'brand', steps: [
-        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} opens Lecture ${s.lecture} on his laptop. The lab website checks that he is signed in and enrolled.`,
+        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} opens Lecture ${s.lecture}, “${lec.topic}”, on ${P.his} laptop. The lab website checks that ${P.he} is signed in and enrolled.`,
           tech: 'Next.js page; Cognito session; FastAPI checks enrolment and batch in PostgreSQL (RDS).' },
-        { hops: [['app', 'student']], plain: 'The website gives his browser a short-lived pass that works for this one video only.',
-          tech: 'API sets a signed CloudFront cookie that expires after the lesson; watermark carries his student ID.' },
-        { hops: [['s3', 'cdn'], ['cdn', 'student']], plain: 'The video streams from a delivery network close to him, so it starts quickly even on a slow connection.',
+        { hops: [['app', 'student']], plain: `The website gives ${P.his} browser a short-lived pass that works for this one video only.`,
+          tech: `API sets a signed CloudFront cookie that expires after the lesson; the watermark carries ${P.his} student ID, ${s.id}.` },
+        { hops: [['s3', 'cdn'], ['cdn', 'student']], plain: `The video streams from a delivery network close to ${P.him}, so it starts quickly even on a slow connection.`,
           tech: 'Encrypted HLS segments in S3, cached at CloudFront edges in India; quality adapts from 360p to 1080p.' },
-        { hops: [['student', 'app'], ['app', 'db']], plain: 'Quick questions pop up inside the video. He sees straight away if he is right, and his answers are saved.',
+        { hops: [['student', 'app'], ['app', 'db']], plain: `Quick questions pop up inside the video. ${P.He} sees straight away if ${P.he} is right, and ${P.his} answers are saved.`,
           tech: 'In-video MCQ events posted to FastAPI, stored in PostgreSQL; XP and leaderboard updated in Valkey.' },
         { hops: [], nodes: ['cdn', 's3'], plain: 'Video costs stay flat. The delivery plan has a fixed monthly price, so thousands of students watching do not raise the bill.',
           tech: 'CloudFront flat-rate plan instead of per-GB billing; S3 keeps one copy of each lecture.' },
       ] },
-      { id: 'practical', label: 'Do a practical', color: 'green', steps: [
-        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} clicks Start practical: “${p.topic}”, set at ${f.company}.`,
-          tech: `Practical spec for Lecture ${p.lecture || 65} (task, starter files, checks) loaded from the lab catalogue in PostgreSQL.` },
-        { hops: [['app', 'ws']], plain: 'The lab switches on a cloud computer just for him. His laptop does not need to be powerful.',
-          tech: 'Coder starts a workspace pod on an EKS Graviton Spot node; Sysbox lets Docker run safely inside it.' },
-        { hops: [['s3', 'ws']], plain: `His saved files and the ${f.company} starter files${ds ? ` (“${ds.title}”)` : ''} are copied in.`,
-          tech: `Home volume restored from S3; starter repo${ds ? ` and dataset ${ds.id}` : ''} mounted read-only.` },
-        { hops: [['ws', 'student']], plain: 'He writes code in VS Code inside his browser. All the heavy work runs on the cloud computer.',
-          tech: 'code-server (VS Code in the browser) over a secure WebSocket; terminal and Docker run in the pod.' },
-        { hops: [['student', 'app'], ['app', 'grader']], plain: `${first} presses Submit. His code is copied into a fresh grading computer that has no internet, so nobody can cheat.`,
-          tech: 'Grader pod on EKS Spot node, network disabled; pytest + hidden tests; result in under 60 s.' },
-        { hops: [['grader', 'app'], ['app', 'db'], ['app', 'mentor']], plain: 'Within a minute he sees his score and which checks passed. His mentor’s dashboard updates at the same moment.',
-          tech: 'Result saved in PostgreSQL; pushed to his browser and the mentor console; copy-detection fingerprint stored.' },
-        { hops: [['ws', 's3']], plain: 'He closes the tab. After a short idle time the cloud computer saves his files and switches itself off, so nothing is billed while he is away.',
-          tech: 'Idle timeout stops the pod; workspace volume saved to S3; 12-hour weekly cap enforced per student.' },
-      ] },
+      { id: 'practical', label: 'Do a practical', color: 'green', steps: practicalSteps },
       { id: 'tutor', label: 'Ask the AI tutor', color: 'violet', steps: [
-        { hops: [['student', 'app'], ['app', 'tutor']], plain: `${first} is stuck on an error and clicks Ask the tutor. The lab sends the task, his code and the error along with his question.`,
-          tech: 'Request carries the practical ID, his code changes and the last error output; sent to the LiteLLM gateway.' },
-        { hops: [], nodes: ['tutor'], plain: 'The tutor gateway checks his monthly AI allowance and removes personal details before anything leaves the lab.',
+        { hops: [['student', 'app'], ['app', 'tutor']], plain: `${first} is stuck on “${pr.topic}” and clicks Ask the tutor. The lab sends the task, ${P.his} code and the error along with ${P.his} question.`,
+          tech: 'Request carries the practical ID, the code changes and the last error output; sent to the LiteLLM gateway.' },
+        { hops: [], nodes: ['tutor'], plain: `The tutor gateway checks ${P.his} monthly AI allowance (₹${ai.used} of ₹${ai.cap} used) and removes personal details before anything leaves the lab.`,
           tech: 'LiteLLM virtual key per student with a monthly budget; personal-data redaction; rate limits.' },
         { hops: [['tutor', 'bedrock']], plain: 'Most questions go to a small, low-cost AI model. Only hard ones are passed to a stronger model.',
           tech: 'Default model on Amazon Bedrock (gpt-oss-120b or Nova); escalation to Claude Haiku 4.5 when needed.' },
-        { hops: [['bedrock', 'tutor'], ['tutor', 'app'], ['app', 'student']], plain: 'He gets a hint, not the answer, plus a link to the exact moment in the lecture that explains it.',
+        { hops: [['bedrock', 'tutor'], ['tutor', 'app'], ['app', 'student']], plain: `${P.He} gets a hint, not the answer, plus a link to the exact moment in Lecture ${s.lecture} that explains it.`,
           tech: 'Hint-ladder prompt: nudge, then pointer, then a worked example of a different problem; lecture moment found with pgvector.' },
-        { hops: [['app', 'db'], ['app', 'mentor']], plain: 'If he is still stuck after three hints, the question goes to the doubt forum and a mentor follows up.',
+        { hops: [['app', 'db'], ['app', 'mentor']], plain: `If ${P.he} is still stuck after three hints, the question goes to the doubt forum and a mentor follows up.`,
           tech: 'Forum thread created automatically with the context attached (Discourse); it appears in the mentor queue.' },
       ] },
       { id: 'exam', label: 'Sit an exam', color: 'amber', steps: [
-        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} starts the Month 7 assessment. His browser switches to lockdown mode: full screen, no other tabs.`,
+        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} starts the ${W.exam}. ${P.His} browser switches to lockdown mode: full screen, no other tabs.`,
           tech: 'Browser lockdown using full-screen and tab-visibility checks; exam session opened in PostgreSQL.' },
         { hops: [['app', 'student']], plain: 'Each student gets a different mix of questions from a large pool, so sharing answers does not help.',
           tech: 'Per-student shuffle of questions and options from the pool; the timer is kept on the server, not the laptop.' },
-        { hops: [['student', 'app'], ['app', 'db']], plain: 'Answers are saved every 20 seconds. If his Wi-Fi drops, he carries on exactly where he left off.',
+        { hops: [['student', 'app'], ['app', 'db']], plain: `Answers are saved every 20 seconds. If ${P.his} Wi-Fi drops, ${P.he} carries on exactly where ${P.he} left off.`,
           tech: 'Autosave every 20 s to FastAPI, buffered in Valkey and written to PostgreSQL; resumes on reconnect.' },
-        { hops: [['student', 'app']], plain: 'If he leaves full screen or switches tabs, the lab quietly notes it instead of stopping his exam.',
+        { hops: [['student', 'app']], plain: `If ${P.he} leaves full screen or switches tabs, the lab quietly notes it instead of stopping ${P.his} exam.`,
           tech: 'Integrity events (tab switch, exit full screen, paste) logged with timestamps. No webcam needed.' },
-        { hops: [['app', 'grader'], ['grader', 'app'], ['app', 'mentor']], plain: 'When time is up, the lab marks it and his mentor sees the score with a short integrity summary.',
+        { hops: [['app', 'grader'], ['grader', 'app'], ['app', 'mentor']], plain: `When time is up, the lab marks it and ${P.his} mentor sees the score with a short integrity summary.`,
           tech: 'Multiple-choice scored instantly; code questions run in the grader; the API adds servers for exam peaks.' },
       ] },
       { id: 'review', label: 'Mentor reviews a project', color: 'brand', steps: [
-        { hops: [['student', 'app'], ['app', 's3']], plain: `${first} submits his Month ${ms.month} milestone for “${capShort}”, his ${cap.slot} capstone at ${f.company}.`,
-          tech: 'Submission tagged in git; a snapshot of his repository stored in S3 (versioned).' },
+        { hops: [['student', 'app'], ['app', 's3']], plain: `${first} submits ${P.his} Month ${s.capstone_month || s.month} milestone for “${capShort}”, ${P.his} ${cap.slot || s.capstone} capstone at ${capCo}.`,
+          tech: 'Submission tagged in git; a snapshot of the repository stored in S3 (versioned).' },
         { hops: [['app', 'grader'], ['grader', 'app']], plain: 'Automatic acceptance tests run first, so the mentor only spends time on work that already runs.',
           tech: 'Milestone tests from the capstone spec run in an isolated grader pod; the report is attached to the submission.' },
-        { hops: [['app', 'mentor']], plain: 'The project lands in his mentor’s review queue with the test report attached.',
+        { hops: [['app', 'mentor']], plain: `The project lands in ${P.his} mentor’s review queue with the test report attached.`,
           tech: 'Mentor console review queue, sorted by due date and at-risk flag.' },
-        { hops: [['mentor', 'app'], ['app', 's3']], plain: 'The mentor opens his code and README side by side with the marking rubric.',
+        { hops: [['mentor', 'app'], ['app', 's3']], plain: `The mentor opens ${P.his} code and README side by side with the marking rubric.`,
           tech: 'Files served from S3 through short-lived links; rubric criteria and weights come from the capstone spec.' },
-        { hops: [['mentor', 'app'], ['app', 'db']], plain: `She scores each rubric line, such as “${crit}”, and writes feedback.`,
+        { hops: [['mentor', 'app'], ['app', 'db']], plain: `The mentor scores each rubric line, such as “${crit}”, and writes feedback.`,
           tech: 'Weighted rubric score saved in PostgreSQL; feedback versioned with the submission.' },
-        { hops: [['app', 'student']], plain: 'He is notified with his score and comments, and can improve the work and resubmit.',
+        { hops: [['app', 'student']], plain: `${first} is notified with the score and comments, and can improve the work and resubmit.${s.capstone === 'C4' ? ` This is ${P.his} final capstone, which ${P.he} presents at Demo Day in Month 12.` : ''}`,
           tech: 'In-app and email notification; a resubmission reopens the same review thread.' },
       ] },
       { id: 'publish', label: 'Publish to portfolio', color: 'green', steps: [
-        { hops: [['student', 'app'], ['app', 'db']], plain: `${first} clicks Publish on his approved project.`,
+        { hops: [['student', 'app'], ['app', 'db']], plain: nCerts ? `${first} clicks Publish on ${P.his} approved project.` : `When ${first}’s first capstone, “${capShort}”, is approved, ${P.he} clicks Publish.`,
           tech: 'Publishing is allowed only after the mentor approval flag is set in PostgreSQL.' },
-        { hops: [['s3', 'app']], plain: 'The lab gathers his final code and README, and checks that no passwords or keys are inside.',
+        { hops: [['s3', 'app']], plain: `The lab gathers ${P.his} final code and README, and checks that no passwords or keys are inside.`,
           tech: 'Repository snapshot pulled from S3; secret scan (gitleaks) before anything leaves the lab.' },
-        { hops: [['app', 'github']], plain: `It pushes the project to his own GitHub account, github.com/${s.github}, so the work is his to keep.`,
-          tech: 'GitHub App with permission limited to his repositories; commits authored as the student.' },
-        { hops: [], nodes: ['github'], plain: 'GitHub builds his portfolio website automatically, listing every project and certificate.',
+        { hops: [['app', 'github']], plain: `It pushes the project to ${P.his} own GitHub account, github.com/${s.github}, so the work is ${P.hers} to keep.`,
+          tech: 'GitHub App with permission limited to the student’s repositories; commits authored as the student.' },
+        { hops: [], nodes: ['github'], plain: `GitHub builds ${P.his} portfolio website automatically, listing every project and certificate${nCerts ? ` (${nCerts} so far)` : ''}.`,
           tech: 'GitHub Actions builds a static portfolio site on GitHub Pages; certificates link to verification pages.' },
-        { hops: [['app', 'db'], ['app', 'student']], plain: 'He shares one link with employers. Each certificate has a QR code anyone can scan to check it is real.',
+        { hops: [['app', 'db'], ['app', 'student']], plain: `${P.He} shares one link with employers. Each certificate has a QR code anyone can scan to check it is real.`,
           tech: 'Certificate check page on the lab API verifies a signed certificate ID against PostgreSQL.' },
       ] },
     ];
+  }
+
+  // One line per box about the active student, shown in the details drawer.
+  function nowFor(id, c) {
+    const W = who(c), { s, first, P, co, lec, pr, ai, ws } = W;
+    const hrs = ws.hours_used_min != null ? `${(ws.hours_used_min / 60).toFixed(1)} of 12 hours used this week` : '';
+    switch (id) {
+      case 'student': return `${s.name}, ${s.age}. ${s.education || ''}. Month ${s.month}, Week ${s.week}${W.common ? ', on the common foundation' : `, ${W.f.name}`}.`;
+      case 'mentor': return `${P.His} mentor sees attendance ${s.attendance}%, quiz average ${s.quiz_avg}% and ${s.practicals_passed} of ${s.practicals_done} practicals passed.`;
+      case 'cdn': return `Streaming Lecture ${s.lecture}, “${lec.topic}”, with ${s.id} in the watermark.`;
+      case 'app': return `${first} is signed in as ${s.id}, batch ${s.batch}${s.consent ? `. Under 18: parental consent on record (${s.consent.relation.toLowerCase()}, ${s.consent.parent})` : ''}.`;
+      case 'ws': return W.common ? `${first} has no cloud workspace yet. In Month ${s.month}, ${P.his} practicals run as Python in the browser.` : `${ws.env || 'Cloud workspace'}, ${ws.size || 'Small 2 GB'}. ${hrs}.`;
+      case 'grader': return `Checks ${P.his} Lecture ${s.lecture} practical at ${co}: ${(pr.checks || []).length} automatic checks.`;
+      case 'tutor': return `${P.His} AI allowance this month: ₹${ai.used} of ₹${ai.cap} used.`;
+      case 'bedrock': return `${first} never needed a personal AI account. ${P.His} questions use the lab’s models on ${P.his} budgeted key.`;
+      case 'db': return `${s.lecturesWatched} lectures watched, ${(s.certificates || []).length} certificate${(s.certificates || []).length === 1 ? '' : 's'}, rank ${s.rank} in the batch.`;
+      case 's3': return `${P.His} saved files and every submission for “${pr.topic}” are kept here.`;
+      case 'github': return `${P.His} portfolio lives at github.com/${s.github}.`;
+      default: return '';
+    }
   }
 
   // Planning model, calibrated to the PRD estimate: typical month = Rs 2.32 lakh at ~1,000 online (3,000 students).
@@ -402,7 +462,7 @@
 
       const mapCard = h('section', { class: 'card' },
         h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'System map'), h('h3', {}, 'Follow one click through the lab')),
-          h('span', { class: 'small muted' }, `${c.field.name} · ${c.field.company}`)),
+          h('span', { class: 'small muted' }, (() => { const W = who(c); return `${W.s.name} · Month ${W.s.month} · ${W.co}`; })())),
         scenRow, stage, cap);
 
       // ---------- Scale ----------
@@ -589,15 +649,16 @@
         NODES.forEach((x) => nodeEls[x.id].g.classList.toggle('sel', x.id === id));
         const used = SC.filter((s) => s.steps.some((st) => (st.nodes || []).includes(id) || st.hops.some(([a, b]) => a === id || b === id)));
         drawer.textContent = '';
-        drawer.append(
+        drawer.append(...[
           h('button', { class: 'btn sm ghost x', 'aria-label': 'Close details', onclick: closeNode }, 'Close'),
           h('div', {}, h('div', { class: 'eyebrow' }, { people: 'People', web: 'Website and video', compute: 'Cloud computers', ai: 'AI', data: 'Storage', ext: 'Outside the lab' }[n.kind]), h('h3', {}, n.title)),
           h('div', { class: 'sec' }, h('b', {}, 'What it does'), h('p', {}, n.does)),
           h('div', { class: 'sec tech' }, h('b', {}, 'What it runs on'), h('p', {}, n.runs)),
           n.saves ? h('div', { class: 'sec save' }, h('b', {}, 'Why it keeps costs low'), h('p', {}, n.saves)) : null,
+          nowFor(id, c) ? h('div', { class: 'sec' }, h('b', {}, `For ${c.data.demo_student.name.split(' ')[0]} right now · demo data`), h('p', {}, nowFor(id, c))) : null,
           id === 'ws' ? h('p', { class: 'note' }, `Right now in the Scale panel: ${computersFor(keep.online).pcs} cloud computers for ${keep.online.toLocaleString('en-IN')} students online.`) : null,
           used.length ? h('div', { class: 'sec' }, h('b', {}, 'See it in a story'),
-            h('div', { class: 'row', style: { gap: '6px' } }, used.map((s) => h('button', { class: 'btn sm', onclick: () => startScenario(s.id, true) }, h('span', { class: 'sw ' + s.color }), s.label)))) : null);
+            h('div', { class: 'row', style: { gap: '6px' } }, used.map((s) => h('button', { class: 'btn sm', onclick: () => startScenario(s.id, true) }, h('span', { class: 'sw ' + s.color }), s.label)))) : null].filter(Boolean));
         drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false');
         if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) { try { drawer.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }); } catch (e) {} }
       }

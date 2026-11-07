@@ -669,7 +669,7 @@
             step(3, 'Push your commits', stage >= 3
               ? h('div', { class: 'mp-commits' }, commits.slice(0, stage === 3 ? st.pub.commits : 4).map((x) => h('div', { html: `<span class="hx">${x.hash}</span> ${c.esc(x.msg)}` })),
                 stage === 3 && st.pub.commits < 4 ? h('div', { class: 'dm' }, 'pushing…') : h('div', { class: 'dm' }, `4 commits pushed to main`))
-              : h('span', { class: 'mp-sub' }, '4 commits from your lab workspace')),
+              : h('span', { class: 'mp-sub' }, '4 commits from your lab work')),
             step(4, 'Review the README', readmeBlock),
             step(5, 'Rebuild the portfolio site', h('span', { class: 'mp-sub' }, stage === 6 ? `Live at https://${gh}.github.io` : stage === 5 ? 'Building the site from your repositories…' : 'Adds this project to your public portfolio'))),
           stage === 0
@@ -703,7 +703,7 @@
         // What comes next, so the list never looks finished when it is not.
         const has = (slot) => out.some((x) => x.key === slot);
         if (info.slot !== 'C4' && !has(info.slot)) {
-          out.push(Object.assign({}, defs[info.slot], { id: `${base}-${info.slot}`, locked: true, title: `Capstone ${CN} — available after approval`,
+          out.push(Object.assign({}, defs[info.slot], { id: `${base}-${info.slot}`, locked: true, title: info.certSlot ? `Capstone ${CN} — available after approval` : `Capstone ${CN} — after the Month ${info.last.month} milestone`,
             lockText: info.certSlot ? `Unlocks when your mentor approves the Month ${MM} milestone` : `Unlocks when the final Month ${info.last.month} milestone is approved` }));
         }
         if (!has('F') && NOW <= 3) out.push(Object.assign({}, defs.F, { id: `${base}-F`, locked: true, title: 'Months 1–3 completion', lockText: 'Issued when you pass the Month 3 assessment' }));

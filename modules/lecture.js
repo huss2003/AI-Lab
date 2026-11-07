@@ -334,8 +334,7 @@
         'USER app',
         'EXPOSE 8000',
         'HEALTHCHECK CMD python healthcheck.py',
-        'CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]',
-        '# .dockerignore keeps out: .env  .git  __pycache__'].join('\n')) },
+        'CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]'].join('\n')) },
       { kind: 'case', title: `At ${co}`,
         rows: [['The app', cap(F.app)], ['Right now', cap(F.now)], ['The checks also want', cap(F.extra)]],
         sample: `$ docker build -t ${F.tag} .\n$ docker run --rm ${F.tag} id -u\n1000`,
@@ -880,6 +879,10 @@
   .m-lecture .lx-opts { grid-template-columns: minmax(0, 1fr) }
   .m-lecture .lx-controls { padding: 4px 10px 10px }
   .m-lecture .lx-ask .lbl-long { display: none }
+  /* Phones: a taller stage keeps captions below the slide content instead of on top of it. */
+  .m-lecture .lx-stage { aspect-ratio: 4 / 3 }
+  .m-lecture .lx-slide { padding-bottom: 21cqw }
+  .m-lecture .lx-slide[data-kind="case"] .lx-code.sm, .m-lecture .lx-slide[data-kind="field65"] .lx-code.sm { display: none }
 }
 @media (prefers-reduced-motion: reduce) {
   .m-lecture .lx-svg .pkt { display: none }

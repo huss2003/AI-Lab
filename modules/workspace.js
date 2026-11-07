@@ -4,7 +4,6 @@
 (function () {
   const WEEK_CAP = 720;            // 12 hours a week, in minutes
   const MIN_PER_TICK_MS = 3000;    // demo clock: 1 workspace minute every 3 real seconds
-  const BUDGET = 120;              // monthly AI key budget in rupees
   const ALERT_AT = 0.8;
 
   const S = {
@@ -16,6 +15,11 @@
     tok: { mode: 'en', text: {} },
     vps: { status: 'running', rules: { 22: true, 80: true, 443: true }, confirm: false, step: -1, resets: 0, bootedAt: Date.now() - 3 * 86400000 - 5 * 3600000 },
     month: 8,
+    for: null,                     // id of the student this state was set up for
+    preview: false,                // student without a cloud workspace yet: investor previews it
+    vpsPreview: false,
+    browser: { lines: [] },
+    target: { status: 'running', resets: 0 },
   };
   let live = null; // { root, c, timers: Set, intervals: Set, refs }
 
@@ -28,6 +32,31 @@
   function every(fn, ms) { if (!live) return null; const id = setInterval(fn, ms); live.intervals.add(id); return id; }
   function stopEvery(id) { if (id == null) return; clearInterval(id); live && live.intervals.delete(id); }
   function D() { return window.NM_DATA; }
+  function ST() { return D().demo_student; }
+  function budgetCap() { return (ST().ai_budget || {}).cap || 120; }
+  function hasCloud() { return /GB/.test((ST().workspace || {}).size || ''); }
+  function hasVPS() { return ST().month >= 5; }
+  function his() { return ['S1001', 'S1003'].includes(ST().id) ? 'his' : 'her'; }
+  function firstOfMonth(m) { const l = D().lectures.find((x) => x.month === m); return l ? l.id : 1; }
+  function coFor(field) { return ST().practical_company === 'common' && ST().month < 4 ? D().common.company : field.company; }
+  const FIELD_PIDS = ['33', '43', '51', '57', '65', '90'];
+  // The student's own practical number for this week ('26' for a common one), used to pick files, commands and examples.
+  function curPid() { const st = ST(); const k = String(st.lecture); return FIELD_PIDS.includes(k) || (D().common.practicals || {})[k] ? k : '65'; }
+  // Set the demo state from the active student once per page load (the page reloads when the student changes).
+  function initStudent() {
+    const st = ST(); if (S.for === st.id) return; S.for = st.id;
+    const w = st.workspace || {};
+    S.ws.usedMin = hasCloud() ? (w.hours_used_min || 0) : 0;
+    S.ws.base = S.ws.usedMin;
+    S.ws.size = /Large/i.test(w.size || '') ? 'large' : 'small';
+    S.key.used = st.ai_budget ? st.ai_budget.used : 62; S.key.base = S.key.used;
+    S.key.alerted = S.key.used / budgetCap() >= ALERT_AT;
+    S.key.suffix = (hash(st.id) % 1679616).toString(36).toUpperCase().padStart(4, '7').slice(-4);
+    S.month = st.month;
+  }
+  function specFor(pid, field) {
+    try { const m = NM.modules && NM.modules.practical; return m && m._buildSpec ? m._buildSpec(field, pid, D()) : null; } catch (e) { return null; }
+  }
   function lectureById(id) { return D().lectures.find((l) => l.id === id); }
 
   function openLecture(c, id) {
@@ -53,42 +82,63 @@
   function hookOf(field) { const m = (field.practicals['65'] && field.practicals['65'].task || '').match(/\/hooks\/([a-z0-9-]+)/); return m ? m[1] : 'events'; }
 
   /* ---------- workspace files (per field, from the practical starter files) ---------- */
-  function filesFor(field) {
-    const out = [{ path: 'README.md' }, { path: '.env' }];
-    [['65', 'lecture-65'], ['57', 'lecture-57']].forEach(([k, dir]) => {
-      const p = field.practicals[k]; if (!p) return;
-      (p.starter || []).forEach((s) => {
-        if (!s.path || s.path.endsWith('/')) return;
-        const clean = s.path.replace(/^p\d+\//, '');
-        out.push({ path: `${dir}/${clean}`, desc: s.desc || '' });
-      });
+  // Files in the workspace: the student's practical folders (this week and the one before), from the practical starter files.
+  function lectureDirs(field) {
+    const st = ST();
+    if (!hasCloud()) return [FIELD_PIDS[0]].filter((k) => field.practicals[k]);   // preview: set up for the first Month 4 practical
+    const done = FIELD_PIDS.filter((k) => field.practicals[k] && field.practicals[k].lecture <= st.lecture);
+    return done.slice(-2).reverse();
+  }
+  function browserDirs() { const st = ST(); return ['26', '24', '14'].filter((k) => D().common.practicals[k] && D().common.practicals[k].lecture <= st.lecture).slice(0, 2); }
+  function filesFor(field, browser) {
+    const st = ST();
+    const out = browser ? [{ path: 'README.md' }] : [{ path: 'README.md' }, { path: '.env' }];
+    const pids = browser ? browserDirs() : lectureDirs(field);
+    pids.forEach((k, idx) => {
+      const p = browser ? D().common.practicals[k] : field.practicals[k]; if (!p) return;
+      const spec = specFor(k, field);
+      const list = spec ? spec.files.map((f) => ({ path: f.path, desc: f.desc })) : (p.starter || []).filter((x) => x.path && !x.path.endsWith('/')).map((x) => ({ path: x.path, desc: x.desc }));
+      list.forEach((f) => out.push({ path: `lecture-${p.lecture}/${f.path.replace(/^p\d+\//, '')}`, desc: f.desc || '', lec: p.lecture, idx }));
     });
-    (S.extraFiles[field.id] || []).forEach((f) => out.push(f));
+    if (!browser) (S.extraFiles[field.id] || []).forEach((f) => out.push(f));
     const seen = new Set();
     return out.filter((f) => (seen.has(f.path) ? false : seen.add(f.path))).map((f, i) => {
       const hsh = hash(field.id + f.path);
       const kb = f.body ? Math.max(1, Math.round(f.body.length / 100) / 10) : (0.4 + (hsh % 180) / 10);
-      const when = f.body ? 'Just now' : f.path.startsWith('lecture-65') ? `Today ${9 + (hsh % 3)}:${String(10 + (hsh % 49)).padStart(2, '0')}` : f.path.startsWith('lecture-57') ? 'Last week' : 'Yesterday';
+      const when = f.body ? 'Just now' : f.lec == null ? 'Yesterday' : f.lec === st.lecture ? `Today ${9 + (hsh % 3)}:${String(10 + (hsh % 49)).padStart(2, '0')}` : f.lec > st.lecture ? `Ready for Month ${(D().lectures.find((l) => l.id === f.lec) || {}).month}` : f.idx === 0 ? 'Last week' : 'Earlier';
       return Object.assign({ size: kb >= 10 ? `${Math.round(kb)} KB` : `${kb.toFixed(1)} KB`, when, i }, f);
     });
   }
 
   function fileBody(path, field) {
-    const hook = hookOf(field), base = path.split('/').pop(), ext = base.includes('.') ? base.split('.').pop().toLowerCase() : base;
+    const st = ST();
+    const base = path.split('/').pop(), ext = base.includes('.') ? base.split('.').pop().toLowerCase() : base;
     const extra = (S.extraFiles[field.id] || []).find((f) => f.path === path);
     if (extra) return extra.body;
-    const co = field.company;
-    if (base === 'README.md') return `# ${co} lab workspace\n\nOwner: ${D().demo_student.name} (${D().demo_student.id})\nField: ${field.name}\n\n## This week\n- Lecture 65: Webhooks, catch and respond\n- Practical: make /hooks/${hook} answer its caller\n\n## Run\n  make up        # start the lab services\n  make check     # run the same checks as the auto-grader`;
-    if (base === '.env' || base === '.env.example') return `# Filled in by the lab. Do not share.\nLAB_TOKEN=lab_${hash(field.id).toString(16).slice(0, 8)}\nNM_AI_KEY=nmk_••••••••${S.key.suffix}\nNM_AI_GATEWAY=https://gateway.lab.internal/mumbai\nHOOK_${hook.toUpperCase().replace(/-/g, '_')}=http://localhost:8088/hooks/${hook}`;
-    if (base === 'Caddyfile') return `:8088 {\n  handle /hooks/${hook} {\n    # TODO: answer 401 when the token header is missing or wrong\n    @bad not header X-Lab-Token {env.LAB_TOKEN}\n    respond @bad 401\n    reverse_proxy activepieces:80\n  }\n}`;
-    if (ext === 'py') return `# ${co} · ${path}\nimport json\nfrom pathlib import Path\n\nDATA = Path(__file__).parent / "data"\n\ndef handle(event: dict) -> dict:\n    # TODO: validate the event before saving it\n    if not event.get("id"):\n        return {"status": 400, "error": "id is required"}\n    return {"status": 202, "received": event["id"]}\n\nif __name__ == "__main__":\n    print(handle({"id": "evt_1042"}))`;
-    if (ext === 'ts') return `// ${co} · ${base}\n// Code step inside the Activepieces flow\nexport const code = async (inputs: { body: Record<string, unknown> }) => {\n  const missing = ["id"].filter((k) => !(k in inputs.body));\n  // TODO: return a clear error for each missing field\n  return { ok: missing.length === 0, missing };\n};`;
-    if (ext === 'sh') return `#!/usr/bin/env bash\n# Posts each sample event to the local webhook\nwhile read -r line; do\n  curl -s -o /dev/null -w "%{http_code}\\n" \\\n    -H "X-Lab-Token: $LAB_TOKEN" \\\n    -d "$line" http://localhost:8088/hooks/${hook}\ndone < samples.jsonl  # TODO: point at your sample file`;
-    if (ext === 'json') return `{\n  "name": "${hook}",\n  "trigger": { "type": "catch_webhook" },\n  "steps": [\n    { "type": "router", "if": "body.id is not empty" },\n    { "type": "return_response", "status": 202 },\n    { "type": "return_response", "status": 400 }\n  ]\n}`;
-    if (ext === 'jsonl') return `{"id": "evt_1041", "source": "${co}"}\n{"id": "evt_1042", "source": "${co}"}\n{"id": "evt_1042", "source": "${co}"}\n{"source": "${co}"}`;
-    if (ext === 'csv') return `id,name,region,updated\n1,${co.split(' ')[0]} Pune,West,2026-10-28\n2,${co.split(' ')[0]} Nashik,West,2026-10-29\n3,${co.split(' ')[0]} Indore,Central,2026-11-02`;
-    if (ext === 'yaml' || ext === 'yml') return `# ${co} reference data\nversion: 2026.11\nitems:\n  - id: A1\n    label: Standard\n  - id: A2\n    label: Priority`;
-    if (ext === 'http') return `### Valid call\nPOST http://localhost:8088/hooks/${hook}\nX-Lab-Token: {{LAB_TOKEN}}\nContent-Type: application/json\n\n{ "id": "evt_1042" }`;
+    const co = coFor(field);
+    const lec = D().lectures.find((l) => l.id === st.lecture) || { topic: '', practical: '' };
+    const pid = curPid();
+    if (base === 'README.md' && !path.includes('/')) {
+      const run = { '43': ['  docker build -t practical-43 .   # build the image', '  docker run --rm practical-43 whoami'], '90': ['  python harness/run.py   # runs the cases against the authorised practice target', '  make check               # the same checks as the auto-grader'], '65': ['  make up        # start the lab services', '  make check     # run the same checks as the auto-grader'], '26': ['  python triage_call.py   # one Claude call through the lab key'] }[pid] || ['  make check     # run the same checks as the auto-grader'];
+      return `# ${co} lab ${hasCloud() ? 'workspace' : 'files'}\n\nOwner: ${st.name} (${st.id})\nField: ${st.month < 4 ? 'Common foundation (Months 1-3)' : field.name}\n\n## This week\n- Lecture ${st.lecture}: ${lec.topic}\n- Practical: ${lec.practical}\n\n## Run\n${run.join('\n')}`;
+    }
+    if (base === '.env' && !path.includes('/')) {
+      const extraEnv = { '43': ['DOCKER_BUILDKIT=1', 'FAKE_DB_PASSWORD=change-me   # stays out of the image (.dockerignore)'], '90': ['TARGET_URL=http://127.0.0.1:7070/chat   # authorised practice target only'], '65': [`LAB_TOKEN=lab_${hash(field.id).toString(16).slice(0, 8)}`, `HOOK_${hookOf(field).toUpperCase().replace(/-/g, '_')}=http://localhost:8088/hooks/${hookOf(field)}`] }[pid] || [];
+      return ['# Filled in by the lab. Do not share.', `NM_AI_KEY=nmk_••••••••${S.key.suffix}`, 'NM_AI_GATEWAY=https://gateway.lab.internal/mumbai', ...extraEnv].join('\n');
+    }
+    // Practical files: the same starter files the practical lab shows (the finished version for practicals already done).
+    const m = path.match(/^lecture-(\d+)\/(.+)$/);
+    if (m) {
+      const k = String(+m[1]); const spec = specFor(k, field);
+      if (spec) {
+        const done = +m[1] < st.lecture;
+        const f = spec.files.find((x) => x.path.replace(/^p\d+\//, '') === m[2]);
+        if (f) return (done && spec.fixed[f.path]) || f.content;
+      }
+    }
+    if (base === 'Caddyfile') return `:8088 {\n  handle /hooks/${hookOf(field)} {\n    @bad not header X-Lab-Token {env.LAB_TOKEN}\n    respond @bad 401\n    reverse_proxy activepieces:80\n  }\n}`;
+    if (ext === 'py') return `# ${co} · ${path}\nimport json\nfrom pathlib import Path\n\nDATA = Path(__file__).parent / "data"\n\nif __name__ == "__main__":\n    print(sorted(p.name for p in DATA.iterdir()))`;
+    if (ext === 'csv') return `id,name,region,updated\n1,${co.split(' ')[0]} Pune,West,2026-10-28\n2,${co.split(' ')[0]} Nashik,West,2026-10-29`;
     return `# ${path}\n# Demo file from ${co}`;
   }
 
@@ -118,7 +168,7 @@
   }
   const tokCount = (s) => tokenize(s).length;
   function samples(field) {
-    const co = field.company;
+    const co = coFor(field);
     return {
       en: `Hello, please send the ${co} sales report before Friday's team meeting. Thank you!`,
       hi: `Namaste, kripya ${co} ki sales report Friday ki team meeting se pehle bhej dijiye. Dhanyavaad!`,
@@ -132,48 +182,56 @@
     nova: { id: 'nova', name: 'Amazon Nova Lite', tag: 'Fast and cheap', speed: 130, lat: 260, inK: 0.005, outK: 0.02, blurb: 'Quick answers for short, simple questions.' },
   };
   const STOP = new Set('explain points could would should about their there which where these those simple keep short write three using with from that this what when your into have will been them they make like give help tips ways company intern people every daily time save saves bullet bullets words'.split(' '));
+  // Scripted answers follow the student's own lecture topic.
+  const TOPICS = {
+    '26': { ask: (co, f) => `In 3 short points, explain how ${co} could use the Claude API to sort customer enquiries. Keep it simple for a Class 11 student.`, fill: ['enquiry', 'replies', 'urgency'], thing: 'enquiry',
+      b1: ['1. Send each ${k1} message to Claude with a clear system prompt that lists the categories.', '1. Give Claude the ${k1} text plus a short rulebook, so it knows what each category means.', '1. Hand Claude the messy ${k1} message and a rulebook, like briefing a new receptionist.'],
+      b2: ['2. Ask for JSON only, and check it with a Pydantic model before saving it.', '2. Make the answer JSON, then let your code check every field before it is used.', '2. Insist on tidy JSON and let a checker reject anything odd, like a strict exam invigilator.'],
+      b3: ['3. Check stop_reason, and send unclear or risky ${k3}s to a person.', '3. If Claude stopped early or is unsure, pass the ${k3} to a staff member.', '3. When in doubt, a human decides: risky ${k3}s never get an automatic promise.'],
+      tail: ['This turns hours of reading into minutes.', 'Check: keep the API key in .env, never in the code.'] },
+    '43': { ask: (co, f) => `In 3 short points, explain how ${co} could use Docker containers to ship its apps safely. Keep it simple for a new ${f.short} intern.`, fill: ['web', 'servers', 'image'], thing: 'image',
+      b1: ['1. Package each ${k1} app with its exact Python version and libraries in one image.', '1. Put the ${k1} app and everything it needs into one image, so it runs the same everywhere.', '1. Pack the ${k1} app like a tiffin box: everything it needs, sealed in one container.'],
+      b2: ['2. Run the container as a normal user, never as root, and keep secrets out of the image.', '2. Use a slim base image and a non-root user so a bug cannot take over the server.', '2. Give the container a visitor badge, not the master key: no root, no secrets inside.'],
+      b3: ['3. Add a health check and rebuild the ${k3} on every change, so broken builds never ship.', '3. Let a health check restart a stuck container, and rebuild the ${k3} for each release.', '3. A health check is a heartbeat monitor: if the ${k3} stops responding, it gets restarted.'],
+      tail: ['Result: the same app on every laptop and server.', 'Check: run docker run IMAGE whoami and make sure it is not root.'] },
+    '65': { ask: (co, f) => `In 3 short points, explain how ${co} could use a webhook to save time every day. Keep it simple for a new ${f.short} intern.`, fill: ['webhook', 'report', 'workflow'], thing: 'event',
+      b1: ['1. Pick one task around the ${k1} that people repeat every day and write down its steps.', '1. Start with the ${k1} task the team complains about most, and map each step on paper.', '1. Hunt for the ${k1} chore everyone quietly dreads, the one done by hand every morning.'],
+      b2: ['2. Let the ${k2} send an event to a webhook, so a flow runs the moment it happens.', '2. Connect the ${k2} to a webhook. The flow starts on its own instead of someone checking.', '2. Wire the ${k2} to a webhook so the work kicks off by itself, like a domino push.'],
+      b3: ['3. Reply with a clear status (202 when accepted, 400 when data is missing) and log each ${k3}.', '3. Answer the caller quickly with a status code, and keep a short log of every ${k3} for checking later.', '3. Send back a quick "got it" and keep a diary of each ${k3}, so nothing slips through the cracks.'],
+      tail: ['This saves time and avoids missed updates.', 'Check: test it with one valid and one broken ${k3} before you rely on it.'] },
+    '90': { ask: (co, f) => `In 3 short points, explain how ${co} could protect its AI assistant from prompt injection. Keep it simple for a new ${f.short} intern.`, fill: ['assistant', 'documents', 'tools'], thing: 'attack',
+      b1: ['1. Treat every ${k1} input and every retrieved document as untrusted data, not as instructions.', '1. Remember that the ${k1} reads documents too, and attackers can hide instructions inside them.', '1. Assume someone has slipped a fake note into the ${k1}\'s reading pile, because one day they will.'],
+      b2: ['2. Keep secrets out of the system prompt and ask a person before any tool call that changes data.', '2. Never put secrets in the prompt, and make risky tool calls wait for human approval.', '2. Give the bot no keys worth stealing, and a human guard at every door that changes data.'],
+      b3: ['3. Test it often on an authorised practice target and map each ${k3} to the OWASP LLM Top 10.', '3. Run injection tests regularly, only on systems you may test, and record each ${k3} with its OWASP ID.', '3. Play attacker on a lab copy, never the live system, and file each ${k3} under its OWASP name.'],
+      tail: ['Result: fewer surprises when real customers use it.', 'Check: include indirect attacks hidden in documents, not just typed ones.'] },
+  };
+  const topic = () => TOPICS[curPid()] || TOPICS[ST().month <= 3 ? '26' : ST().month <= 5 ? '43' : ST().month >= 11 ? '90' : '65'];
   function keywords(prompt, field) {
-    const words = (prompt.toLowerCase().match(/[a-z][a-z-]{3,}/g) || []).filter((w) => !STOP.has(w) && !field.company.toLowerCase().includes(w));
+    // Words the student added to the starting prompt steer the answer; otherwise the topic's own words are used.
+    const base = new Set(defaultPrompt(field).toLowerCase().match(/[a-z][a-z-]{3,}/g) || []);
+    const words = (prompt.toLowerCase().match(/[a-z][a-z-]{3,}/g) || []).filter((w) => !STOP.has(w) && !base.has(w) && !coFor(field).toLowerCase().includes(w));
     const uniq = [...new Set(words)];
-    const fill = ['webhook', 'report', 'workflow'];
+    const fill = topic().fill;
     while (uniq.length < 3) uniq.push(fill[uniq.length]);
     return uniq.slice(0, 3);
   }
-  function defaultPrompt(field) {
-    return `In 3 short points, explain how ${field.company} could use a webhook to save time every day. Keep it simple for a new ${field.short} intern.`;
-  }
+  function defaultPrompt(field) { return topic().ask(coFor(field), field); }
   function answer(modelId, prompt, field, temp) {
-    const [k1] = keywords(prompt, field); const co = field.company; const mi = Object.keys(MODELS).indexOf(modelId);
-    const k2 = `${co.split(' ')[0]} system`; const k3 = hookOf(field).replace(/-/g, ' ');
+    const T = topic();
+    const [k1] = keywords(prompt, field); const co = coFor(field); const mi = Object.keys(MODELS).indexOf(modelId);
+    const k2 = `${co.split(' ')[0]} system`; const k3 = T.thing;
+    const fill = (t) => t.replace(/\$\{k1\}/g, k1).replace(/\$\{k2\}/g, k2).replace(/\$\{k3\}/g, k3);
     const band = temp < 0.34 ? 0 : temp < 0.67 ? 1 : 2;
     const open = [
-      [`Here are three steps for ${co}.`, `Three points, kept simple.`, `Short answer for ${co}:`],
-      [`Good question. Here is how ${co} could do it.`, `Here is a practical way to look at it.`, `Let us keep this simple for a new intern.`],
-      [`Picture a doorbell for software: when something happens, ${co} gets told right away.`, `Imagine never refreshing a page to check for news again.`, `Think of it like a helpful neighbour who knocks the moment a parcel arrives.`],
+      [`Here are three steps for ${co}.`, 'Three points, kept simple.', `Short answer for ${co}:`],
+      [`Good question. Here is how ${co} could do it.`, 'Here is a practical way to look at it.', 'Let us keep this simple.'],
+      [`Picture this from ${co}'s side for a moment.`, 'Imagine explaining this over chai.', 'Think of it like a well-run kitchen: clear steps, nothing left to chance.'],
     ][band];
-    const b1 = [
-      `1. Pick one task around the ${k1} that people repeat every day and write down its steps.`,
-      `1. Start with the ${k1} task the team complains about most, and map each step on paper.`,
-      `1. Hunt for the ${k1} chore everyone quietly dreads, the one done by hand every morning.`,
-    ][band];
-    const b2 = [
-      `2. Let the ${k2} send an event to a webhook, so a flow runs the moment it happens.`,
-      `2. Connect the ${k2} to a webhook. The flow starts on its own instead of someone checking.`,
-      `2. Wire the ${k2} to a webhook so the work kicks off by itself, like a domino push.`,
-    ][band];
-    const b3 = [
-      `3. Reply with a clear status (202 when accepted, 400 when data is missing) and log each ${k3}.`,
-      `3. Answer the caller quickly with a status code, and keep a short log of every ${k3} for checking later.`,
-      `3. Send back a quick "got it" and keep a diary of each ${k3}, so nothing slips through the cracks.`,
-    ][band];
-    const tail = {
-      oss: band === 2 ? 'Result: fewer manual checks and faster replies.' : 'This saves time and avoids missed updates.',
-      haiku: `Check: test it with one valid and one broken ${k3} before you rely on it.`,
-      nova: '',
-    }[modelId];
+    const b1 = fill(T.b1[band]), b2 = fill(T.b2[band]), b3 = fill(T.b3[band]);
+    const tail = { oss: fill(T.tail[0]), haiku: fill(T.tail[1]), nova: '' }[modelId];
     const first = open[(hash(prompt) + mi) % open.length];
     let lines = [first, b1, b2, b3];
-    if (modelId === 'nova') lines = [first, b1, b2.replace(/, so a flow.*$|\. The flow.*$|, like.*$/, '.'), b3.replace(/,? and (log|keep).*$/, '.')];
+    if (modelId === 'nova') lines = [first, b1, b2.replace(/, (so|and|like) .*$/, '.'), b3.replace(/, (so|and) .*$/, '.')];
     if (tail) lines.push(tail);
     return lines.join('\n');
   }
@@ -243,6 +301,7 @@
 .m-workspace .wsx-meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--amber); border-radius: 2px }
 .m-workspace .wsx-between { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline }
 .m-workspace .wsx-files { display: grid }
+.m-workspace .table-wrap td:first-child { min-width: 150px }
 .m-workspace .wsx-file { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 8px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; cursor: pointer; border-radius: 6px; width: 100% }
 .m-workspace .wsx-file:first-child { border-top: 0 }
 .m-workspace .wsx-file:hover { background: var(--surface-2) }
@@ -386,7 +445,7 @@
       return;
     }
     const files = filesFor(field);
-    let cur = startPath && files.some((f) => f.path === startPath) ? startPath : (files.find((f) => f.path.startsWith('lecture-65/')) || files[0]).path;
+    const curDir = files.find((f) => /^lecture-/.test(f.path)); let cur = startPath && files.some((f) => f.path === startPath) ? startPath : (curDir || files[0]).path;
     const user = D().demo_student.github;
     const tree = h('div', { class: 'vs-tree', role: 'tree', 'aria-label': 'Files' });
     const tabName = h('div', { class: 'vs-tabname' });
@@ -405,25 +464,33 @@
     }
     function drawFile() { tabName.textContent = cur; code.innerHTML = codeHTML(fileBody(cur, field), esc); }
     const hook = hookOf(field);
-    const CMDS = [
-      ['make check', () => [`<span class="dim">Running the same checks as the auto-grader...</span>`, `<span class="ok">PASS</span> flow answers 202 for a valid event`, `<span class="bad">FAIL</span> missing token should give 401 (got 202)`, `<span class="dim">1 of 2 checks passed. Fix the Caddyfile TODO, then run again.</span>`]],
-      [`curl /hooks/${hook}`, () => [`HTTP/1.1 202 Accepted`, `{"received": true}`]],
-      ['git status', () => [`On branch main`, `modified:   ${cur}`, `<span class="dim">Push with: git push origin main (goes to github.com/${esc(user)})</span>`]],
-      ['touch notes.md', () => {
-        const list = S.extraFiles[field.id] = S.extraFiles[field.id] || [];
-        const name = list.length ? `notes-${list.length + 1}.md` : 'notes.md';
-        list.push({ path: name, body: `# My notes\n\nSaved in the workspace on ${new Date().toLocaleDateString('en-IN')}.\nStays here after the workspace stops.` });
-        cur = name; drawTree(); drawFile(); paint();
-        return [`<span class="ok">created</span> ~/lab/${name} <span class="dim">(saved to your disk; it stays after the workspace stops)</span>`];
-      }],
-    ];
+    const pid = curPid();
+    const touch = ['touch notes.md', () => {
+      const list = S.extraFiles[field.id] = S.extraFiles[field.id] || [];
+      const name = list.length ? `notes-${list.length + 1}.md` : 'notes.md';
+      list.push({ path: name, body: `# My notes\n\nSaved in the workspace on ${new Date().toLocaleDateString('en-IN')}.\nStays here after the workspace stops.` });
+      cur = name; drawTree(); drawFile(); paint();
+      return [`<span class="ok">created</span> ~/lab/${name} <span class="dim">(saved to your disk; it stays after the workspace stops)</span>`];
+    }];
+    const git = ['git status', () => [`On branch main`, `modified:   ${esc(cur)}`, `<span class="dim">Push with: git push origin main (goes to github.com/${esc(user)})</span>`]];
+    const BY = {
+      '65': [['make check', () => [`<span class="dim">Running the same checks as the auto-grader...</span>`, `<span class="ok">PASS</span> flow answers 202 for a valid event`, `<span class="bad">FAIL</span> missing token should give 401 (got 202)`, `<span class="dim">1 of 2 checks passed. Fix the Caddyfile TODO, then run again.</span>`]],
+        [`curl /hooks/${hook}`, () => [`HTTP/1.1 202 Accepted`, `{"received": true}`]]],
+      '43': [['docker build -t practical-43 .', () => ['[+] Building 38.2s (10/10) FINISHED', ' => CACHED [4/6] RUN pip install --no-cache-dir -r requirements.txt', ' => exporting to image · practical-43:latest · 168 MB', '<span class="ok">Built.</span> <span class="dim">Docker runs inside your Large 6 GB workspace.</span>']],
+        ['docker run --rm practical-43 whoami', () => ['root', '<span class="bad">Runs as root.</span> <span class="dim">The practical asks for a normal user. Open the Dockerfile.</span>']],
+        ['ssh practice-vps', () => [`Welcome to Ubuntu 24.04 LTS · ${esc(ST().name.split(' ')[0].toLowerCase())}@10.42.17.86`, '<span class="dim">Your practice server, on the private lab network.</span>']]],
+      '90': [['python harness/run.py', () => ['direct     3 of 20 broke the target  (15%)', 'indirect   0 of  5 broke the target  (0%)', '<span class="dim">Only the authorised practice target at 127.0.0.1 was contacted.</span>']],
+        ['curl 127.0.0.1:7070/health', () => ['HTTP/1.1 200 OK', '{"target": "practice", "internet": false}']],
+        ['curl https://example.com', () => ['<span class="bad">Blocked by the lab firewall.</span>', '<span class="dim">Security practice only reaches authorised practice targets.</span>']]],
+    };
+    const CMDS = (hasCloud() ? BY[pid] || [['make check', () => ['<span class="dim">Running the same checks as the auto-grader...</span>', '<span class="ok">PASS</span> all visible checks']]] : [['python --version', () => ['Python 3.12.7']], ['ls', () => [esc(files.filter((f) => !f.path.includes('/') || /^lecture-/.test(f.path)).map((f) => f.path.split('/')[0]).filter((x, i, a) => a.indexOf(x) === i).join('   '))]]]).concat([git, touch]);
     const chips = h('div', { class: 'row', style: { gap: '6px' } }, CMDS.map(([label, run]) => h('button', { type: 'button', class: 'btn sm', onclick: () => { termLines.push(`<span class="dim">$</span> ${esc(label)}`); run().forEach((l) => termLines.push(l)); drawTerm(); } }, label)));
     let m;
     const content = h('div', { class: 'm-workspace wsx-vs' },
       h('div', { class: 'vs-bar' }, h('div', { class: 'vs-dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), h('span', { class: 'url' }, `workspace.lab › ${user} › VS Code`), h('span', { class: 'pill green' }, h('span', { class: 'dot' }), 'Running'), h('span', { class: 'demo-tag' }, 'Demo')),
       h('div', { class: 'vs-body' }, tree, h('div', { class: 'vs-ed' }, tabName, code)),
       h('div', { class: 'vs-term' }, h('div', { class: 'wsx-between' }, h('b', { class: 'small' }, 'Terminal'), h('span', { class: 'tiny muted' }, 'Click a command to run it')), chips, term),
-      h('div', { class: 'vs-foot' }, h('span', { class: 'small muted' }, `A mock of the real editor. Students get full VS Code with ${field.company} files already set up.`),
+      h('div', { class: 'vs-foot' }, h('span', { class: 'small muted' }, `A mock of the real editor. Students get full VS Code with ${coFor(field)} files already set up.`),
         h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn sm', onclick: () => { m.close(); c.go('practical'); } }, 'Open the practical'), h('button', { type: 'button', class: 'btn sm primary', onclick: () => m.close() }, 'Close'))));
     drawTree(); drawFile(); drawTerm();
     m = c.modal(content);
@@ -432,7 +499,65 @@
   }
 
   /* ---------- panels ---------- */
+  // A student before Month 4 codes in the browser: no cloud workspace yet, but the investor can preview it.
+  function panelBrowser(c) {
+    const { h, icon, field, esc } = c; const st = ST(); const first = st.name.split(' ')[0];
+    const m4 = firstOfMonth(4);
+    const B = S.browser;
+    const term = h('div', { class: 'term', 'aria-live': 'polite', style: { minHeight: '96px', maxHeight: '180px', overflow: 'auto' } });
+    const draw = () => { term.innerHTML = (B.lines.length ? B.lines : ['<span class="dim">&gt;&gt;&gt; Python 3.12 is running inside this page. Click a line to try it.</span>']).slice(-10).join('\n'); term.scrollTop = term.scrollHeight; };
+    const TRY = [['import sys; print(sys.version)', ['3.12.7 (in-browser build)']], ['print("Namaste, Sahyadri")', ['Namaste, Sahyadri']], ['from models import TriageResult', ['<span class="ok">ok</span> <span class="dim">(your Lecture 24 model loads)</span>']]];
+    const env = h('section', { class: 'card stack' },
+      h('div', { class: 'card-head', style: { marginBottom: 0 } },
+        h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb on', html: icon('code') }),
+          h('div', {}, h('div', { class: 'eyebrow' }, `${first}'s environment`), h('div', { class: 'wsx-big' }, 'In-browser Python'), h('div', { class: 'small muted' }, 'Python 3.12 inside this page · nothing to install · works on a basic laptop'))),
+        h('span', { class: 'pill green' }, h('span', { class: 'dot' }), 'Ready')),
+      h('p', { class: 'small' }, 'Months 1 to 3 need no server. Practicals, the lab AI key and the AI tutor all work right here, so a student can start on day one with any laptop.'),
+      h('div', { class: 'row', style: { gap: '6px' } }, TRY.map(([cmd, out]) => h('button', { type: 'button', class: 'btn sm', onclick: () => { B.lines.push(`<span class="dim">&gt;&gt;&gt;</span> ${esc(cmd)}`, ...out); draw(); } }, cmd))),
+      term,
+      h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary', onclick: () => c.go('practical'), html: icon('play') + `<span>Open Lecture ${st.lecture} practical</span>` })));
+    draw();
+    const hrs = h('section', { class: 'card stack' },
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Time this week'), h('span', { class: 'pill' }, 'No weekly cap')),
+      h('div', { class: 'wsx-between' }, h('span', {}, h('b', { class: 'num' }, fmtH((st.workspace || {}).hours_used_min || 0)), h('span', { class: 'muted' }, ' coding in the browser')), h('span', { class: 'small muted' }, 'Costs the lab nothing')),
+      h('p', { class: 'small muted' }, 'Browser time runs on the student\u2019s own laptop, so it has no limit. The 12-hour weekly cap starts with the cloud workspace.'));
+    const unlock = h('section', { class: 'card stack' },
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('div', { class: 'eyebrow' }, 'Next step'), h('h3', {}, 'Cloud workspace unlocks in Month 4')), h('span', { class: 'pill', html: icon('lock') + '<span>Month 4</span>' })),
+      h('p', { class: 'small' }, `From Lecture ${m4} (Month 4, ${D().months[4]}) ${first} gets VS Code in the browser with a terminal, up to 12 hours a week. Docker and the Large size follow in Month 5.`),
+      h('div', { class: 'row', style: { gap: '8px' } },
+        h('button', { type: 'button', class: 'btn', onclick: () => { S.preview = true; paint(); }, html: icon('cloud') + '<span>Preview the cloud workspace</span>' }),
+        h('button', { type: 'button', class: 'btn sm ghost', onclick: () => openLecture(c, m4) }, `See Lecture ${m4}`)));
+    const files = filesFor(field, true);
+    const view = (f) => { let m; const box = h('div', { class: 'stack' }, h('div', { class: 'eyebrow' }, 'In-browser Python · read-only view'), h('h3', {}, f.path), h('pre', { class: 'code', style: { maxHeight: '340px', overflow: 'auto', margin: 0 }, html: codeHTML(fileBody(f.path, field), esc) }), h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn primary sm', onclick: () => { m.close(); c.go('practical'); } }, 'Edit it in the practical'), h('button', { type: 'button', class: 'btn sm', onclick: () => m.close() }, 'Close'))); m = c.modal(box); };
+    const filesCard = h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Your files'), h('p', { class: 'small muted' }, `Saved to ${first}\u2019s lab account, so they open on any laptop. ${D().common.company} practicals.`)), h('span', { class: 'pill' }, `${files.length} files`)),
+      h('div', { class: 'wsx-files' }, files.map((f) => h('button', { type: 'button', class: 'wsx-file', title: f.desc || f.path, onclick: () => view(f), html: icon(/\.(py|ts|sh|json|txt)$/.test(f.path) ? 'code' : 'book') }, h('code', {}, f.path), h('span', { class: 'meta num' }, `${f.size} · ${f.when}`)))),
+      h('p', { class: 'tiny muted', style: { marginTop: '8px' } }, 'Click a file to view it.'));
+    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, env, h('div', { class: 'stack', style: { gap: '16px' } }, hrs, unlock)), filesCard);
+  }
+
+  // Month 11 security labs: deliberately weak lab targets the student is allowed to attack.
+  function targetsCard(c) {
+    const { h, icon, field } = c; const T = S.target;
+    const p = field.practicals['90'] || { task: '', starter: [] };
+    const all = [p.task, ...(p.checks || []), ...(p.starter || []).map((x) => x.desc)].join(' ');
+    const url = (all.match(/https?:\/\/[\w.-]+(?::\d+)?(?:\/[\w/.-]*)?/) || [])[0] || 'http://127.0.0.1:7070/chat';
+    const name = (p.task.match(/against (?:the |your )?([A-Z][\w-]*(?: [A-Z][\w-]*)?)/) || p.task.match(/against (?:the |your own )?([a-z][\w ]+?)(?: \(|,| and|$)/) || [])[1] || 'Lab support bot';
+    const busy = T.status === 'resetting';
+    return h('section', { class: 'card stack' },
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('div', { class: 'eyebrow' }, 'Authorised practice targets'), h('h3', {}, 'Weak on purpose, safe to attack')), h('span', { class: 'pill ' + (busy ? 'blue' : 'green') }, h('span', { class: 'dot' }), busy ? 'Resetting…' : '1 running')),
+      h('div', { class: 'table-wrap' }, h('table', {},
+        h('thead', {}, h('tr', {}, h('th', {}, 'Target'), h('th', {}, 'Address'), h('th', {}, 'Internet'), h('th', {}, 'Used in'))),
+        h('tbody', {}, h('tr', { class: 'clickable', title: 'Open the practical', onclick: () => c.go('practical') }, h('td', {}, h('b', {}, name.charAt(0).toUpperCase() + name.slice(1))), h('td', { class: 'num small' }, url.replace(/^https?:\/\//, '')), h('td', {}, h('span', { class: 'pill' }, 'None')), h('td', {}, 'Lecture 90 practical'))))),
+      h('p', { class: 'small muted' }, `Runs in a container next to ${ST().name.split(' ')[0]}\u2019s workspace with a planted fake secret (a canary). The harness may only call this address; the lab firewall blocks everything else.`),
+      h('div', { class: 'row', style: { gap: '8px' } },
+        h('button', { type: 'button', class: 'btn', disabled: busy, onclick: () => { T.status = 'resetting'; paint(); later(() => { T.status = 'running'; T.resets++; c.toast('Practice target reset to a clean copy', 'green'); paint(); }, reduced() ? 150 : 1200); } }, 'Reset the target'),
+        h('button', { type: 'button', class: 'btn sm', onclick: () => c.go('practical'), html: icon('shield') + '<span>Open the practical</span>' }),
+        T.resets ? h('span', { class: 'tiny muted' }, `Reset ${T.resets} time${T.resets > 1 ? 's' : ''} in this demo.`) : null));
+  }
+
   function panelWorkspace(c) {
+    if (!hasCloud() && !S.preview) return panelBrowser(c);
     const { h, icon, field } = c; const w = S.ws;
     const busy = w.status === 'starting' || w.status === 'stopping';
     const atLimit = w.usedMin >= WEEK_CAP;
@@ -472,8 +597,8 @@
         } }, s === 'small' ? 'Small' : 'Large', h('small', {}, s === 'small' ? '2 GB memory' : '6 GB memory'));
       })),
       h('p', { class: 'small' }, (w.pending || w.size) === 'large'
-        ? 'Large is for Docker lectures (Month 5) and monitoring lectures (Month 10), where several services run at once.'
-        : 'Small is enough for most practicals, including this week’s Lecture 65.'),
+        ? `Large is for Docker lectures (Month 5), monitoring (Month 10) and security labs (Month 11), where several services run at once.${hasCloud() && /Large/.test(ST().workspace.size) ? ` Switched on for ${ST().name.split(' ')[0]} this month.` : ''}`
+        : `Small is enough for most practicals${hasCloud() ? `, including this week’s Lecture ${ST().lecture}` : ''}.`),
       w.pending && w.status === 'running' ? h('div', { class: 'note' }, `Switching size needs a restart. Your files stay where they are. Press "Restart as ${sizeName(w.pending).split(' ')[0]}".`) : h('div', { class: 'note' }, 'Switching size while it runs needs a restart. Files are kept.'));
 
     const pct = Math.min(100, (w.usedMin / WEEK_CAP) * 100);
@@ -496,7 +621,7 @@
       meter,
       h('p', { class: 'small muted' }, 'Hours only count while the workspace runs. In this demo the clock is sped up: one minute every three seconds.'),
       h('div', { class: 'row', style: { gap: '8px' } },
-        atLimit ? h('button', { type: 'button', class: 'btn sm', onclick: () => { w.usedMin = 220; w.limitNotified = false; c.toast('Demo reset to 3 h 40 m used'); paint(); } }, 'Reset the week (demo)')
+        atLimit ? h('button', { type: 'button', class: 'btn sm', onclick: () => { w.usedMin = w.base || 0; w.limitNotified = false; c.toast(`Demo reset to ${fmtH(w.usedMin)} used`); paint(); } }, 'Reset the week (demo)')
           : h('button', { type: 'button', class: 'btn sm', onclick: () => {
             accrue(); w.usedMin = Math.min(WEEK_CAP, w.usedMin + 240);
             if (w.usedMin >= WEEK_CAP) {
@@ -521,28 +646,42 @@
 
     const files = filesFor(field);
     const filesCard = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Your files'), h('p', { class: 'small muted' }, `Saved between sessions. Stop or restart and they are still here. Set up for ${field.company}.`)), h('span', { class: 'pill' }, `${files.length} files`)),
+      h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Your files'), h('p', { class: 'small muted' }, `Saved between sessions. Stop or restart and they are still here. Set up for ${field.company}${hasCloud() ? '' : ' when Month 4 starts'}.`)), h('span', { class: 'pill' }, `${files.length} files`)),
       h('div', { class: 'wsx-files' }, files.map((f) => h('button', { type: 'button', class: 'wsx-file', title: f.desc || f.path, onclick: () => openVS(c, f.path), html: icon(/\.(py|ts|sh|json|http)$|Caddyfile/.test(f.path) ? 'code' : 'book') }, h('code', {}, f.path), h('span', { class: 'meta num' }, `${f.size} · ${f.when}`)))),
       h('p', { class: 'tiny muted', style: { marginTop: '8px' } }, 'Click a file to open it in VS Code.'));
 
+    const first = ST().name.split(' ')[0];
+    const banner = !hasCloud() ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--violet)' } },
+      h('div', { class: 'wsx-between' }, h('span', {}, h('b', {}, 'Preview. '), h('span', { class: 'small' }, `${first} gets this cloud workspace in Month 4 (Lecture ${firstOfMonth(4)}). Until then ${his()} practicals run in the browser. Try every button: nothing here touches her real work.`)),
+        h('button', { type: 'button', class: 'btn sm', onclick: () => { stopWS(c, true); S.preview = false; paint(); } }, 'Back to in-browser Python'))) : null;
     return h('div', { class: 'wsx-panel' },
+      banner,
       h('div', { class: 'grid-2' }, statusCard, sizeCard),
       h('div', { class: 'grid-2' }, hoursCard, idleCard),
+      ST().month >= 11 ? targetsCard(c) : null,
       filesCard);
   }
 
-  function keyString() { return `nmk_live_S1001_4f8c2a91d03e7b56${S.key.suffix}`; }
+  function keyString() { return `nmk_live_${ST().id}_${hash(ST().id + 'k').toString(16).padStart(8, '0')}${hash(ST().name).toString(16).slice(0, 8)}${S.key.suffix}`; }
+  // Usage rows: the lectures this student has actually done this month, sized so they add up to the profile's spend.
   function usageRows(c) {
-    const base = [[57, 'Basic MCP server', 9.4, 41], [60, 'MCP tool with input checks', 12.6, 55], [62, 'Agent tool-calling exercise', 14.2, 63], [63, 'Activepieces AI step', 11.3, 48], [65, 'Webhook practical', 8.1, 37], [0, 'AI tutor hints', 6.4, 72]];
-    const rows = base.map(([lec, name, inr, calls]) => ({ lec, name: lec ? `L${lec} · ${name}` : name, inr, calls }));
+    const st = ST();
+    const lecs = D().lectures.filter((l) => l.month === st.month && l.id <= st.lecture).slice(-5);
+    const tutor = Math.round(S.key.base * 0.12 * 10) / 10;
+    const spend = Math.max(0, S.key.base - tutor);
+    const wts = lecs.map((l) => 2 + (hash(st.id + l.id) % 5) + (l.id === st.lecture ? 1 : 0));
+    const sum = wts.reduce((a, b) => a + b, 0) || 1;
+    const rows = lecs.map((l, i) => { const inr = Math.round(spend * wts[i] / sum * 10) / 10; return { lec: l.id, name: `L${l.id} · ${l.practical}`, inr, calls: Math.max(1, Math.round(inr * 4.5)) }; });
+    if (rows.length) { const drift = Math.round((spend - rows.reduce((a, r) => a + r.inr, 0)) * 10) / 10; rows[rows.length - 1].inr = Math.round((rows[rows.length - 1].inr + drift) * 10) / 10; }
+    rows.push({ lec: 0, name: 'AI tutor hints', inr: tutor, calls: Math.max(1, Math.round(tutor * 11)) });
     if (S.key.playground > 0) rows.push({ lec: -1, name: 'AI playground', inr: S.key.playground, calls: Math.max(1, Math.round(S.key.playground * 20)) });
     const known = rows.reduce((a, r) => a + r.inr, 0);
-    if (S.key.used - known > 0.05) rows.push({ lec: -2, name: 'Agent practice run (heavy use)', inr: S.key.used - known, calls: Math.round((S.key.used - known) * 4) });
+    if (S.key.used - known > 0.05) rows.push({ lec: -2, name: 'Extra practice calls (heavy use)', inr: S.key.used - known, calls: Math.round((S.key.used - known) * 4) });
     return rows;
   }
 
   function panelKey(c) {
-    const { h, icon } = c; const k = S.key;
+    const { h, icon } = c; const k = S.key; const BUDGET = budgetCap(); const first = ST().name.split(' ')[0];
     const pct = Math.min(100, (k.used / BUDGET) * 100);
     const masked = `nmk_live_••••••••••••${k.suffix}`;
     const keyCard = h('section', { class: 'card stack' },
@@ -550,7 +689,7 @@
       h('div', { class: 'wsx-key' }, h('code', { 'data-test': 'key' }, k.reveal ? keyString() : masked),
         h('button', { type: 'button', class: 'btn sm', onclick: () => { k.reveal = !k.reveal; paint(); } }, k.reveal ? 'Hide' : 'Show'),
         h('button', { type: 'button', class: 'btn sm', onclick: () => copyText(c, keyString(), 'Key') }, 'Copy')),
-      h('div', { class: 'callout' }, h('b', {}, 'No personal AI account needed. '), h('span', { class: 'small' }, 'The lab gives every student this key. It is already set in the workspace, so code just works. No card, no sign-up with an AI company.')),
+      h('div', { class: 'callout' }, h('b', {}, 'No personal AI account needed. '), h('span', { class: 'small' }, `The lab gives every student this key. It is already set in ${hasCloud() ? 'the workspace' : 'in-browser Python'}, so code just works. No card, no sign-up with an AI company.`)),
       k.confirm
         ? h('div', { class: 'wsx-confirm' }, h('b', {}, 'Rotate this key?'), h('p', { class: 'small' }, 'The old key stops working right away. The workspace picks up the new key by itself. Do this if the key was shared by mistake, for example in a GitHub commit.'),
           h('div', { class: 'row', style: { gap: '8px' } },
@@ -563,13 +702,14 @@
       h('div', { class: 'wsx-between' }, h('span', { class: 'wsx-big num' }, rupee(k.used, 0), h('span', { class: 'small muted', style: { fontFamily: 'var(--body)', fontWeight: 600 } }, ` of ${rupee(BUDGET)} used this month`)), h('span', { class: 'small muted num' }, `${rupee(Math.max(0, BUDGET - k.used), 0)} left`)),
       h('div', { class: 'wsx-meter ' + (pct >= 100 ? 'full' : pct >= 80 ? 'warn' : ''), role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(BUDGET), 'aria-valuenow': String(Math.round(k.used)), 'aria-label': 'AI budget used' }, h('i', { style: { width: pct + '%' } }), h('b', { style: { left: '80%' }, title: 'Alert at 80%' })),
       h('p', { class: 'small muted' }, 'The amber mark is the 80% alert. The budget resets on the 1st of each month.'),
+      pct >= 80 ? h('div', { class: 'callout', style: { borderLeftColor: pct >= 100 ? 'var(--red)' : 'var(--amber)' } }, h('b', {}, pct >= 100 ? 'Budget used up. ' : '80% alert sent. '), h('span', { class: 'small' }, pct >= 100 ? 'AI calls pause until the 1st, or until a mentor tops up the key.' : `${first} and ${his()} mentor were told: ${rupee(Math.round(k.used))} of ${rupee(BUDGET)} used. Requests slow down near the cap. The AI tutor keeps working on the shared local model.`)) : null,
       h('div', { class: 'row', style: { gap: '8px' } },
         h('button', { type: 'button', class: 'btn', disabled: pct >= 85, onclick: () => {
           k.used = Math.max(k.used, BUDGET * 0.85);
           if (!k.alerted) { k.alerted = true; c.notify('AI key at 85% of this month’s budget', `${rupee(Math.round(k.used))} of ${rupee(BUDGET)} used. Requests slow down near the cap. Your mentor can see this too.`, 'workspace'); }
           c.toast('Budget alert: 85% of this month’s AI budget used', 'amber'); paint();
         } }, 'Simulate heavy use'),
-        h('button', { type: 'button', class: 'btn sm ghost', disabled: k.used <= 62 + k.playground + 0.01, onclick: () => { k.used = 62 + k.playground; k.alerted = false; c.toast('Demo usage reset'); paint(); } }, 'Reset demo usage')));
+        h('button', { type: 'button', class: 'btn sm ghost', disabled: k.used <= k.base + k.playground + 0.01, onclick: () => { k.used = k.base + k.playground; k.alerted = k.used / BUDGET >= ALERT_AT; c.toast('Demo usage reset'); paint(); } }, 'Reset demo usage')));
 
     const rows = usageRows(c);
     const total = rows.reduce((a, r) => a + r.inr, 0);
@@ -581,7 +721,7 @@
           h('td', {}, r.name), h('td', { class: 'num' }, String(r.calls)), h('td', { class: 'num' }, rupee(r.inr, 2)),
           h('td', { style: { minWidth: '110px' } }, h('div', { class: 'progress' }, h('i', { style: { width: (r.inr / Math.max(total, 1) * 100) + '%' } })))))),
         h('tfoot', {}, h('tr', {}, h('td', {}, h('b', {}, 'Total this month')), h('td', { class: 'num' }, String(rows.reduce((a, r) => a + r.calls, 0))), h('td', { class: 'num' }, h('b', {}, rupee(total, 2))), h('td', {}))))),
-      h('p', { class: 'tiny muted' }, 'Click a lecture row to open it.'));
+      h('p', { class: 'tiny muted' }, `${D().months[ST().month]} lectures ${first} has done this month. Click a lecture row to open it.`));
 
     const modelsCard = h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Models this key can call'), h('span', { class: 'small muted' }, 'All through the lab gateway, Amazon Bedrock in Mumbai')),
@@ -719,6 +859,13 @@
 
   function panelVPS(c) {
     const { h, icon } = c; const V = S.vps;
+    if (!hasVPS() && !S.vpsPreview) {
+      const first = ST().name.split(' ')[0];
+      return h('div', { class: 'wsx-panel' }, h('section', { class: 'card stack' },
+        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', { class: 'wsx-status' }, h('div', { class: 'wsx-orb', html: icon('lock') }), h('div', {}, h('div', { class: 'eyebrow' }, 'Practice server (VPS)'), h('div', { class: 'wsx-big' }, 'Unlocks in Month 5'), h('div', { class: 'small muted' }, `${D().months[5]} · from Lecture ${firstOfMonth(5)}`))), h('span', { class: 'pill' }, 'Locked')),
+        h('p', { class: 'small' }, `In Month 5 ${first} gets ${his()} own Ubuntu server to learn SSH, firewalls and deployment. It sits on a private lab network, so mistakes cannot reach the internet or other students.`),
+        h('div', { class: 'row', style: { gap: '8px' } }, h('button', { type: 'button', class: 'btn', onclick: () => { S.vpsPreview = true; paint(); }, html: icon('terminal') + '<span>Preview the practice server</span>' }), h('button', { type: 'button', class: 'btn sm ghost', onclick: () => openLecture(c, 41) }, 'See Lecture 41'))));
+    }
     const ip = '10.42.17.86'; const user = D().demo_student.name.split(' ')[0].toLowerCase();
     const ssh = `ssh ${user}@${ip}`;
     const resetting = V.status === 'resetting';
@@ -779,7 +926,8 @@
         : h('div', { class: 'callout', style: { borderLeftColor: 'var(--green)' } }, h('b', {}, 'All three open. '), h('span', { class: 'small' }, 'SSH for you, HTTP and HTTPS for website visitors. Every other port stays closed, which is the safe default.')),
       h('div', { class: 'term', html: ufw.join('\n') }));
 
-    return h('div', { class: 'wsx-panel' }, h('div', { class: 'grid-2' }, serverCard, h('div', { class: 'stack', style: { gap: '16px' } }, resetCard, h('section', { class: 'card stack' }, h('h3', {}, 'Why a real server?'), h('p', { class: 'small' }, 'Jobs ask for Linux and cloud skills. Here each student practises on an isolated server on a private lab network. Nothing they do can reach the public internet or other students.')))), fwCard);
+    const vpsBanner = !hasVPS() ? h('div', { class: 'callout', style: { borderLeftColor: 'var(--violet)' } }, h('div', { class: 'wsx-between' }, h('span', {}, h('b', {}, 'Preview. '), h('span', { class: 'small' }, 'This server opens in Month 5.')), h('button', { type: 'button', class: 'btn sm', onclick: () => { S.vpsPreview = false; paint(); } }, 'Close preview'))) : null;
+    return h('div', { class: 'wsx-panel' }, vpsBanner, h('div', { class: 'grid-2' }, serverCard, h('div', { class: 'stack', style: { gap: '16px' } }, resetCard, h('section', { class: 'card stack' }, h('h3', {}, 'Why a real server?'), h('p', { class: 'small' }, 'Jobs ask for Linux and cloud skills. Here each student practises on an isolated server on a private lab network. Nothing they do can reach the public internet or other students.')))), fwCard);
   }
   function finishReset(c) {
     const V = S.vps; if (V.status !== 'resetting') return;
@@ -814,13 +962,16 @@
   function summary(c) {
     const { h } = c; const w = S.ws; const k = S.key;
     const wsLabel = { stopped: 'Stopped', starting: 'Starting…', running: 'Running', stopping: 'Stopping…' }[w.status];
-    const kp = k.used / BUDGET;
+    const BUDGET = budgetCap(); const kp = k.used / BUDGET;
     const btn = (tab, cls, text) => h('button', { type: 'button', class: 'pill ' + cls, onclick: () => { S.tab = tab; paint(true); } }, text);
+    const budgetPill = btn('key', kp >= 0.8 ? 'amber' : 'blue', `AI budget: ${rupee(Math.round(k.used))} of ${rupee(BUDGET)}${kp >= 0.8 ? ' · 80% alert' : ''}`);
+    if (!hasCloud()) return h('div', { class: 'wsx-sum' }, btn('ws', 'green', 'Environment: In-browser Python'), btn('ws', '', 'Cloud workspace: Month 4'), budgetPill, btn('vps', '', 'Practice server: Month 5'));
     return h('div', { class: 'wsx-sum' },
-      btn('ws', w.status === 'running' ? 'green' : w.status === 'stopped' ? '' : 'blue', `Workspace: ${wsLabel}`),
+      btn('ws', w.status === 'running' ? 'green' : w.status === 'stopped' ? '' : 'blue', `Workspace (${w.size === 'large' ? 'Large 6 GB' : 'Small 2 GB'}): ${wsLabel}`),
       btn('ws', w.usedMin >= WEEK_CAP ? 'red' : '', `${fmtH(w.usedMin)} of 12 h`),
-      btn('key', kp >= 0.8 ? 'amber' : 'blue', `AI budget: ${rupee(Math.round(k.used))} of ${rupee(BUDGET)}`),
-      btn('vps', S.vps.status === 'running' ? 'green' : 'blue', `Practice server: ${S.vps.status === 'running' ? 'Running' : 'Resetting'}`));
+      budgetPill,
+      hasVPS() ? btn('vps', S.vps.status === 'running' ? 'green' : 'blue', `Practice server: ${S.vps.status === 'running' ? 'Running' : 'Resetting'}`) : null,
+      ST().month >= 11 ? btn('ws', S.target.status === 'running' ? 'green' : 'blue', 'Practice target: Running') : null);
   }
 
   function paint(focusTab) {
@@ -830,7 +981,7 @@
     const keepY = window.scrollY;
     root.textContent = '';
     const s = c.data.demo_student;
-    const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'My lab sections' }, TABS.map(([id, label]) =>
+    const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'My lab sections' }, TABS.map(([id, label]) => [id, id === 'ws' && !hasCloud() ? 'Workspace' : label]).map(([id, label]) =>
       h('button', { type: 'button', class: 'tab', role: 'tab', id: `wsx-tab-${id}`, 'aria-selected': S.tab === id ? 'true' : 'false', 'aria-controls': 'wsx-panel', tabindex: S.tab === id ? '0' : '-1',
         onclick: () => { if (S.tab === id) return; S.tab = id; paint(true); },
         onkeydown: (e) => { const i = TABS.findIndex((t) => t[0] === S.tab); if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); S.tab = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0]; paint(true); } } }, label)));
@@ -838,7 +989,7 @@
     try { panel = PANELS[S.tab](c); } catch (e) { console.error(e); panel = h('div', { class: 'card' }, 'This section failed to load.'); }
     root.append(h('div', { class: 'm-workspace' },
       h('section', { class: 'card wsx-hero' },
-        h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, `${s.name} · ${s.batch} · ${c.field.name}`), h('h2', {}, 'My lab'), h('p', { class: 'small muted' }, 'Everything a student needs to code, in the browser. No installs, no personal AI account, works on a basic laptop.')),
+        h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, `${s.name} · ${s.batch} · Month ${s.month} · ${s.month < 4 ? 'Common foundation' : c.field.name}`), h('h2', {}, 'My lab'), h('p', { class: 'small muted' }, 'Everything a student needs to code, in the browser. No installs, no personal AI account, works on a basic laptop.')),
         h('div', { class: 'stack', style: { gap: '8px', justifyItems: 'start' } }, summary(c), h('span', { class: 'demo-tag' }, 'Demo data'))),
       tabs,
       h('div', { id: 'wsx-panel', role: 'tabpanel', 'aria-labelledby': `wsx-tab-${S.tab}` }, panel)));
@@ -850,6 +1001,8 @@
     label: 'My lab', title: 'My lab: workspace and AI key', icon: 'cloud', group: 'Student', order: 35,
     render(root, c) {
       injectCSS();
+      initStudent();
+      if (NM.state.labTab) { S.tab = NM.state.labTab; NM.state.labTab = null; }
       if (live && live.root === root && live.root.isConnected) { live.c = c; paint(); return; } // field switch: same screen, new field
       if (live) this.destroy();
       live = { root, c, timers: new Set(), intervals: new Set(), refs: {} };
@@ -865,7 +1018,7 @@
         const stopped = accrue();
         if (stopped) { paint(); return; }
         if (S.tab === 'ws' && live.refs.drawMeter) live.refs.drawMeter();
-        const sum = live.root.querySelector('.wsx-sum button:nth-child(2)'); if (sum) sum.textContent = `${fmtH(S.ws.usedMin)} of 12 h`;
+        const sum = live.root.querySelector('.wsx-sum button:nth-child(2)'); if (sum && hasCloud()) sum.textContent = `${fmtH(S.ws.usedMin)} of 12 h`;
       }, 1000);
     },
     destroy() {
