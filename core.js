@@ -5,6 +5,13 @@
   const D = window.NM_DATA;
   const listeners = {};
   const modules = {};
+  // Demo student: one of 4 fictional students in batch NM-2027-A, each at a different point of the year.
+  // The choice is remembered and applied before anything renders, so every screen follows that student.
+  const STUDENTS = D.demo_students || [];
+  let studentId = 'S1001';
+  try { const sid = localStorage.getItem('nm-demo-student'); if (sid && STUDENTS.some((x) => x.id === sid)) studentId = sid; } catch (e) {}
+  const P = STUDENTS.find((x) => x.id === studentId);
+  if (P) Object.assign(D.demo_student, P);
   const state = {
     field: 'data_analytics',            // currently selected career field (id from NM_DATA.fields)
     route: null,
@@ -12,9 +19,20 @@
     // Shared demo progress: modules write here and emit events so other views (mentor console, home) reflect it live.
     role: 'student',                    // 'student' | 'mentor' | 'admin', follows the group of the open screen
     notifications: [],                  // [{id, title, body, route, ts, read}] filled through notify()
-    progress: { lecturesWatched: 64, mcqCorrect: 0, mcqAnswered: 0, practicalScore: null, examScore: null, milestoneStatus: 'in_progress', portfolioPublished: false, certificates: 3 },
+    progress: { lecturesWatched: P ? P.lecturesWatched : 64, mcqCorrect: 0, mcqAnswered: 0, practicalScore: null, examScore: null, milestoneStatus: P ? P.milestone_status : 'in_progress', portfolioPublished: false, certificates: P ? P.certificates.length : 3 },
+    student: D.demo_student,            // the active demo student profile (see data.demo_students)
   };
   try { const f = localStorage.getItem('nm-demo-field'); if (f && D.fields.some((x) => x.id === f)) state.field = f; } catch (e) {}
+  if (P) { let pinned = null; try { pinned = localStorage.getItem('nm-demo-field-for'); } catch (e) {} if (pinned !== P.id) state.field = P.field; }
+
+  // Switch demo student: remember the choice, open their home screen and reload so every screen starts fresh.
+  function setStudent(id, route) {
+    if (!STUDENTS.some((x) => x.id === id)) return;
+    const st = STUDENTS.find((x) => x.id === id);
+    try { localStorage.setItem('nm-demo-student', id); localStorage.setItem('nm-demo-field', st.field); localStorage.setItem('nm-demo-field-for', id); } catch (e) {}
+    location.hash = route || 'home';
+    location.reload();
+  }
 
   const ICONS = {
     home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -94,7 +112,7 @@
   const field = () => D.fields.find((f) => f.id === state.field) || D.fields[0];
   function setField(id) {
     if (!D.fields.some((f) => f.id === id) || id === state.field) return;
-    state.field = id; try { localStorage.setItem('nm-demo-field', id); } catch (e) {}
+    state.field = id; try { localStorage.setItem('nm-demo-field', id); localStorage.setItem('nm-demo-field-for', studentId); } catch (e) {}
     const sel = document.getElementById('fieldSel'); if (sel) sel.value = id;
     emit('field', field()); renderRoute();
   }
@@ -134,7 +152,7 @@
     emit('route', id);
     try { m.render(view, ctx()); } catch (e) { console.error(e); view.append(h('div', { class: 'card' }, 'This screen failed to load: ' + e.message)); }
   }
-  function ctx() { return { data: D, field: field(), state, h, esc, icon, on, emit, toast, addXP, modal, go, setField, notify }; }
+  function ctx() { return { data: D, field: field(), state, h, esc, icon, on, emit, toast, addXP, modal, go, setField, notify, setStudent, student: D.demo_student, students: STUDENTS }; }
 
   function boot() {
     const sel = document.getElementById('fieldSel');
@@ -529,6 +547,6 @@
     seedNotifications(); renderBell();
   }
 
-  window.NM = { data: D, state, register, go, on, emit, toast, addXP, modal, h, esc, icon, field, setField, ctx, boot, notify, modules,
+  window.NM = { data: D, state, register, setStudent, students: STUDENTS, student: () => D.demo_student, go, on, emit, toast, addXP, modal, h, esc, icon, field, setField, ctx, boot, notify, modules,
     tour: tourApi, setTheme, openSearch, closeSearch, markRead, markAllRead, openDrawer, closeDrawer };
 })();
