@@ -179,7 +179,7 @@
   function specGeneric(lec, field, data) {
     const B = BANK[lec.id] || {};
     const theme = data.months[lec.month];
-    const points = B.points || [`What "${lec.topic}" means, in plain words`, `How it fits the ${theme.toLowerCase()} work of Month ${lec.month}`, `What you build next: ${lec.practical}`];
+    const points = B.points || [`What "${lec.topic}" means, in plain words`, `How it fits the ${/^[A-Z][A-Z]/.test(theme) ? theme : theme.charAt(0).toLowerCase() + theme.slice(1)} work of Month ${lec.month}`, `What you build next: ${lec.practical}`];
     const nodes = B.nodes || [['Trigger', 'starts the run'], ['This lecture', 'the new idea'], ['Practical', 'you build it'], ['Checks', 'within a minute']];
     const code = B.code || `{\n  "displayName": "L${lec.id} practice flow",\n  "trigger": { "type": "WEBHOOK" },\n  "steps": ["${lec.practical}"]\n}`;
     const pitfalls = (B.pitfalls || ['Skipping the test run before publishing', 'Changing many things at once', 'Not reading the run history when something fails']).map((p, i) => [['First', 'Second', 'Third'][i], p]);
