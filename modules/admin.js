@@ -257,7 +257,8 @@
 .m-admin .fbar.cur { color: var(--brand); font-weight: 700 }
 .m-admin .fbar.cur .trk i { background: var(--brand); opacity: 1 }
 .m-admin .fbar .num { text-align: right }
-.m-admin .bt2 { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start }
+.m-admin .bt2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start }
+.m-admin td b.id, .m-admin td .nw { white-space: nowrap }
 .m-admin td .sub { display: block; font-size: 12px; color: var(--muted) }
 .m-admin td.n, .m-admin th.n { text-align: right; font-variant-numeric: tabular-nums }
 .m-admin tfoot td { font-weight: 800; background: var(--surface-2) }
@@ -438,6 +439,8 @@
     TABS.forEach(([id, label]) => tabs.append(h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onclick: () => openTab(id) }, label)));
     const panel = h('div', { class: 'panel', role: 'tabpanel' });
     ROOT.append(tabs, panel);
+    const selTab = tabs.querySelector('[aria-selected="true"]');
+    if (selTab && tabs.scrollWidth > tabs.clientWidth) tabs.scrollLeft = Math.max(0, selTab.offsetLeft - tabs.offsetLeft - 24);
     refs.panel = panel;
     ({ overview: drawOverview, batches: drawBatches, content: drawContent, exam: drawExam, cost: drawCost, audit: drawAudit })[S.tab](panel);
   }
@@ -590,9 +593,9 @@
     S.batches.forEach((b) => {
       const consentCell = b.pending.length ? h('span', { class: 'pill ' + (b.pending.every((p) => p.sent) ? 'blue' : 'amber') }, `${b.pending.length} pending`) : h('span', { class: 'pill green' }, 'All in');
       tbody.append(h('tr', { class: 'clickable', tabindex: '0', onclick: () => openBatch(b), onkeydown: (e) => { if (e.key === 'Enter') openBatch(b); } },
-        h('td', {}, h('b', {}, b.id), h('span', { class: 'sub' }, `Lead mentor: ${b.mentor}`)),
+        h('td', {}, h('b', { class: 'id' }, b.id), h('span', { class: 'sub nw' }, `Lead mentor: ${b.mentor}`)),
         h('td', { class: 'n' }, fmt(b.students)),
-        h('td', {}, `Month ${b.month}`, h('span', { class: 'sub' }, D().months[b.month])),
+        h('td', {}, h('span', { class: 'nw' }, `Month ${b.month}`), h('span', { class: 'sub' }, D().months[b.month])),
         h('td', { class: 'n' }, `${b.active}%`),
         h('td', { class: 'n' }, String(b.u18)),
         h('td', {}, consentCell),
@@ -604,17 +607,16 @@
       tbody,
       h('tfoot', {}, h('tr', {}, h('td', {}, 'All batches'), h('td', { class: 'n' }, fmt(total)), h('td', {}, ''), h('td', { class: 'n' }, '89%'), h('td', { class: 'n' }, String(u18)), h('td', {}, `${totalPending()} pending`), h('td', {}, '')))));
     const pend = totalPending(), uns = unsentPending();
-    panel.append(h('div', { class: 'bt2' },
+    panel.append(
       h('section', { class: 'card stack' },
         h('div', { class: 'card-head', style: { marginBottom: 0 } },
           h('div', {}, h('h3', {}, 'Batches'), h('p', { class: 'tiny muted' }, 'Tap a batch to see its career fields and parent consent.')),
           uns ? h('button', { class: 'btn sm primary', onclick: () => remindAll() }, `Remind all ${uns} pending parents`) : h('span', { class: 'pill ' + (pend ? 'blue' : 'green') }, pend ? 'Reminders sent' : 'All consents in')),
-        table),
-      inviteCard()));
+        table));
     const tot = fieldTotals(); const max = Math.max(...Object.values(tot));
-    panel.append(h('section', { class: 'card stack' },
+    panel.append(h('div', { class: 'bt2' }, inviteCard(), h('section', { class: 'card stack' },
       h('div', {}, h('h3', {}, 'All 3,000 students by career field'), h('p', { class: 'tiny muted' }, `Highlighted: ${field.short}. Change the field in the top bar to compare.`)),
-      fieldBars(field.id, tot, max)));
+      fieldBars(field.id, tot, max))));
   }
   function sendReminder(b, p, quiet) {
     p.sent = Date.now();
@@ -708,10 +710,10 @@
       if (r.bad.length) lines.push(h('li', { class: 'err' }, `${r.bad.length} not valid: ${r.bad.join(', ')} (missing @ or domain)`));
       if (r.dup.length) lines.push(h('li', { class: 'muted' }, `${r.dup.length} duplicate removed: ${r.dup.join(', ')}`));
       if (r.enrolled.length) lines.push(h('li', { class: 'muted' }, `${r.enrolled.length} already a student: ${r.enrolled.join(', ')}`));
-      res.append(
+      res.append(...[
         h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill ' + (r.valid.length ? 'green' : 'red') }, `${r.valid.length} ready to invite`), r.bad.length ? h('span', { class: 'pill red' }, `${r.bad.length} to fix`) : null),
         lines.length ? h('ul', { class: 'plain' }, lines) : null,
-        r.valid.length ? h('button', { class: 'btn primary', onclick: queue }, `Queue ${r.valid.length} invite${r.valid.length > 1 ? 's' : ''} to ${U.inviteBatch}`) : null);
+        r.valid.length ? h('button', { class: 'btn primary', onclick: queue }, `Queue ${r.valid.length} invite${r.valid.length > 1 ? 's' : ''} to ${U.inviteBatch}`) : null].filter(Boolean));
     }
     function queue() {
       const r = U.checked; if (!r || !r.valid.length) return;
@@ -798,7 +800,7 @@
         tbody.append(h('tr', { 'data-lec': l.id },
           h('td', { class: 'n' }, h('b', {}, String(l.id))),
           h('td', { class: 'lt' }, h('b', {}, l.topic), h('span', { class: 'sub' }, `Practical: ${l.practical}`)),
-          h('td', { class: 'small' }, `Month ${l.month}`, h('span', { class: 'sub' }, `Week ${l.week}`)),
+          h('td', { class: 'small' }, h('span', { class: 'nw' }, `Month ${l.month}`), h('span', { class: 'sub nw' }, `Week ${l.week}`)),
           h('td', { class: 'vc' }, videoCell(l.id)),
           h('td', { class: 'cc' }, capCell(l.id)),
           h('td', { class: 'n' }, String(S.videos[l.id].mcqs)),
@@ -850,7 +852,7 @@
     }
     function paintRun(j) {
       body.textContent = '';
-      const bar = h('i', { style: { width: '0%' } }); const pctEl = h('span', { class: 'num small' }, '0%');
+      const bar = h('i', { style: { width: '0%', transition: 'width .15s linear' } }); const pctEl = h('span', { class: 'num small' }, '0%');
       const checks = h('div', {});
       const doneBox = h('div', {});
       const foot = h('div', { class: 'foot' }, h('button', { class: 'btn', onclick: () => m.close() }, 'Close: keeps working in the background'));
@@ -1009,7 +1011,7 @@
       const pillEl = ex.status === 'scheduled' ? h('span', { class: 'pill blue' }, 'Scheduled') : ex.status === 'finished' ? h('span', { class: 'pill green' }, 'Finished') : h('span', { class: 'pill' }, 'Cancelled');
       const acts = h('div', { class: 'acts' });
       if (ex.status === 'scheduled') acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View'), h('button', { class: 'btn sm', onclick: () => cancelExam(ex) }, 'Cancel'));
-      else if (ex.status === 'finished') acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View'), ex.month === 7 ? h('button', { class: 'btn sm', onclick: () => C.go('mentor') }, 'Integrity flags') : null);
+      else if (ex.status === 'finished') { acts.append(h('button', { class: 'btn sm', onclick: () => viewExam(ex) }, 'View')); if (ex.month === 7) acts.append(h('button', { class: 'btn sm', onclick: () => C.go('mentor') }, 'Integrity flags')); }
       else acts.append(h('span', { class: 'tiny muted' }, 'Students were told'));
       tbody.append(h('tr', { class: ex.fresh ? 'fresh' : ex.status === 'cancelled' ? 'dim' : '' },
         h('td', {}, h('b', {}, ex.title), h('span', { class: 'sub' }, `${ex.n} questions · ${ex.duration} min`)),
@@ -1107,7 +1109,7 @@
       s += `<text class="${c.proj ? 'axb' : 'ax'}" x="${(x + w / 2).toFixed(1)}" y="${y(base) - 5}" text-anchor="middle" style="font-size:11px">${base.toFixed(2)}</text>`;
       s += `<text class="ax" x="${(x + w / 2).toFixed(1)}" y="${H - 9}" text-anchor="middle">${W < 480 && c.proj ? c.lab.replace(' (est.)', '*') : c.lab}</text>`;
     });
-    s += `<line class="bud" x1="${pl}" x2="${W - pr}" y1="${y(2)}" y2="${y(2)}"/><text class="budt" x="${W - pr}" y="${y(2) - 5}" text-anchor="end">${W < 480 ? 'Server budget ₹2 L' : 'Server budget ₹2 L (blue part)'}</text></svg>`;
+    s += `<line class="bud" x1="${pl}" x2="${W - pr}" y1="${y(2)}" y2="${y(2)}"/></svg>`;
     return s;
   }
   function drawCost(panel) {
@@ -1127,7 +1129,7 @@
       h('section', { class: 'card stack' },
         h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Last six months'), h('p', { class: 'tiny muted' }, 'This month is an estimate from the settings below.')), h('span', { class: 'pill amber' }, 'estimate · demo model')),
         stackBox,
-        h('div', { class: 'legend' }, h('span', {}, h('i'), 'Servers'), h('span', {}, h('i', { class: 'v' }), 'AI'), h('span', {}, h('i', { class: 'a' }), 'Test environment'), h('span', {}, h('i', { class: 'r' }), 'Server budget')),
+        h('div', { class: 'legend' }, h('span', {}, h('i'), 'Servers'), h('span', {}, h('i', { class: 'v' }), 'AI'), h('span', {}, h('i', { class: 'a' }), 'Test environment'), h('span', {}, h('i', { class: 'r' }), 'Server budget ₹2 L (compare with the blue part)')),
         sofar)));
 
     // governor

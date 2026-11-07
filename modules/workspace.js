@@ -21,7 +21,6 @@
 
   /* ---------- helpers ---------- */
   function hash(s) { let a = 2166136261; for (const ch of String(s)) { a ^= ch.charCodeAt(0); a = Math.imul(a, 16777619); } return a >>> 0; }
-  const pick = (arr, seed) => arr[hash(seed) % arr.length];
   const fmtH = (min) => { min = Math.floor(min); const h = Math.floor(min / 60), m = min % 60; return m ? `${h} h ${m} m` : `${h} h`; };
   const rupee = (v, d) => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: d == null ? 0 : d, maximumFractionDigits: d == null ? 2 : d });
   const reduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
@@ -144,7 +143,8 @@
     return `In 3 short points, explain how ${field.company} could use a webhook to save time every day. Keep it simple for a new ${field.short} intern.`;
   }
   function answer(modelId, prompt, field, temp) {
-    const [k1, k2, k3] = keywords(prompt, field); const co = field.company; const seed = prompt + modelId;
+    const [k1] = keywords(prompt, field); const co = field.company; const mi = Object.keys(MODELS).indexOf(modelId);
+    const k2 = `${co.split(' ')[0]} system`; const k3 = hookOf(field).replace(/-/g, ' ');
     const band = temp < 0.34 ? 0 : temp < 0.67 ? 1 : 2;
     const open = [
       [`Here are three steps for ${co}.`, `Three points, kept simple.`, `Short answer for ${co}:`],
@@ -152,7 +152,7 @@
       [`Picture a doorbell for software: when something happens, ${co} gets told right away.`, `Imagine never refreshing a page to check for news again.`, `Think of it like a helpful neighbour who knocks the moment a parcel arrives.`],
     ][band];
     const b1 = [
-      `1. Pick one ${k1} task that people repeat every day and write down its steps.`,
+      `1. Pick one task around the ${k1} that people repeat every day and write down its steps.`,
       `1. Start with the ${k1} task the team complains about most, and map each step on paper.`,
       `1. Hunt for the ${k1} chore everyone quietly dreads, the one done by hand every morning.`,
     ][band];
@@ -171,8 +171,9 @@
       haiku: `Check: test it with one valid and one broken ${k3} before you rely on it.`,
       nova: '',
     }[modelId];
-    let lines = [pick(open, seed), b1, b2, b3];
-    if (modelId === 'nova') lines = [pick(open, seed), b1, b2.replace(/, so a flow.*$|\. The flow.*$|, like.*$/, '.'), b3.replace(/,? and (log|keep).*$/, '.')];
+    const first = open[(hash(prompt) + mi) % open.length];
+    let lines = [first, b1, b2, b3];
+    if (modelId === 'nova') lines = [first, b1, b2.replace(/, so a flow.*$|\. The flow.*$|, like.*$/, '.'), b3.replace(/,? and (log|keep).*$/, '.')];
     if (tail) lines.push(tail);
     return lines.join('\n');
   }
