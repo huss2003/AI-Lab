@@ -304,7 +304,7 @@
       const dueDay = String(nx.due || 'Friday').slice(0, 3);
       const deadlines = [
         ['Thu', `Practical ${lec.id}: ${lec.practical}`, `Auto-checked within a minute · ${pracCo}`, 'practical', pracDone],
-        [dueDay, nx.title, 'Lockdown exam · 45 minutes', 'exam', examDone],
+        [dueDay, nx.title, 'Lockdown exam · 30 minutes', 'exam', examDone],
         ['Sun', capLabel, msDone ? 'Submitted · waiting for mentor review' : 'Submit for mentor review', 'projects', msDone],
         ['Mon', `Lecture ${nextLec.id} unlocks`, nextLec.topic, 'lecture', false],
       ];

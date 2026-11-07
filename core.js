@@ -580,14 +580,14 @@
         ['Your doubt was answered', '“Why does my container stop right after docker run?” The AI answered and a mentor confirmed it.', 'forum', 38 * M],
       ],
       S1004: [
-        ['Demo Day booking opens', 'Pick your 10-minute slot for Demo Day in Month 12. Mentors and visiting employers watch the final capstones.', 'projects', 3 * H],
+        ['Demo Day booking opens', 'Pick your 10-minute slot for Demo Day in Month 12. Mentors and invited guests watch the final capstones.', 'projects', 3 * H],
         ['Capstone 3 certificate approved', `${cert('C3') ? cert('C3').detail : 'Capstone 3'} passed review. Your certificate has a QR code anyone can verify.`, 'achievements', 26 * H],
         ['Lab AI key at 80% of budget', `₹${s.ai_budget ? s.ai_budget.used : 97} of ₹${s.ai_budget ? s.ai_budget.cap : 120} used this month. Hard questions still go to the backup model until the cap.`, 'workspace', 7 * H],
         ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Test only the authorised practice targets.`, 'lecture', 5 * H],
       ],
     };
     const fallback = [
-      ['Mentor feedback on Capstone 2', `Kavita Rao reviewed your final Capstone 2 milestone${cert('C2') ? ' (' + cert('C2').detail.split(':')[0] + ')' : ''}: 84/100, approved with two notes on your README.`, 'projects', 26 * H],
+      ['Mentor feedback on Capstone 2', `Kavita Rao reviewed your final Capstone 2 milestone${cert('C2') ? ' (' + cert('C2').detail.split(':')[0] + ')' : ''}: 91/100, approved with two notes on your README.`, 'projects', 26 * H],
       ['New lecture unlocked', `Lecture ${lec.id}: ${lec.topic}. Watch it, then do the 20-minute practical.`, 'lecture', 5 * H],
       ['Your doubt was answered', '“Why does my Router send everything to the fallback branch?” The AI answered and a mentor confirmed it.', 'forum', 42 * M],
     ];

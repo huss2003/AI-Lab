@@ -70,7 +70,8 @@
     NM.on('exam:submitted', (p) => {
       A.exam = { score: pct(p && p.score), flags: parseFlags(p && p.flags), ts: Date.now() }; delete STORE.exam[SID()];
       const fl = A.exam.flags, n = fl.tab + fl.fs + fl.paste;
-      logA(`Submitted the ${ME().next_exam.title}${A.exam.score == null ? '' : `: ${A.exam.score}%`}${n ? `, ${n} integrity flag${n > 1 ? 's' : ''}` : ', no integrity flags'}`);
+      const exTitle = (p && p.title) || (p && p.month ? `Month ${p.month} assessment` : ME().next_exam.title);
+      logA(`Submitted the ${exTitle}${A.exam.score == null ? '' : `: ${A.exam.score}%`}${n ? `, ${n} integrity flag${n > 1 ? 's' : ''}` : ', no integrity flags'}`);
     });
     NM.on('milestone:submitted', (p) => {
       const cap = p && p.capstone; const slotM = /C[1-4]/.exec(typeof cap === 'object' && cap ? (cap.slot || cap.id || '') : String(cap || '')) || /C[1-4]/.exec(String((p && p.slot) || ''));
@@ -644,7 +645,7 @@
           STORE.reviews[q.key] = { decision, score: sc, scores: scores.slice(), comment: ta.value };
           if (q.sid === SID()) {
             c.state.progress.milestoneStatus = decision;
-            c.emit('milestone:reviewed', { capstone: cap.id, month: q.month, decision, score: sc, scores: scores.slice(), comment: ta.value, mentor: 'Kavita Rao', student: SID() });
+            c.emit('milestone:reviewed', { capstone: cap.id, slot: q.slot, month: q.month, decision, score: sc, scores: scores.slice(), comment: ta.value, mentor: 'Kavita Rao', student: SID() });
             A.activity.unshift({ t: Date.now(), text: `Mentor ${decision === 'approved' ? 'approved' : 'requested changes on'} ${cap.slot} Month ${q.month} (${sc}/100)` });
           }
           c.toast(decision === 'approved' ? `Approved with ${sc}/100. ${first(s.name)} gets your feedback now.` : `Changes requested. ${first(s.name)} sees your feedback and can resubmit.`, decision === 'approved' ? 'green' : 'amber');

@@ -62,12 +62,24 @@
     D.students.forEach((x) => usedNames.add(x.name));
     const batch = D.students.filter((x) => x.id !== S.id).map((x) => ({ id: x.id, name: x.name, field: x.field, batch: S.batch, all: x.xp }));
     const others = genPeople('nm-all-batches', 40, null, 2101);
-    const wk = batch.map((p) => periodXP(p, 'week')).sort((a, b) => b - a);
-    const mo = batch.map((p) => periodXP(p, 'month')).sort((a, b) => b - a);
-    // The active student sits at their profile rank this week (as on the home screen) and one place lower this month, so new XP moves them up live.
+    // The demo students (the active one and the 3 classmates who are also demo students) sit at their profile ranks this week
+    // (as on the home screen) and one place lower this month, so new XP moves the active student up live.
     const at = (arr, rank) => (rank <= 1 ? arr[0] + Math.max(40, Math.round(arr[0] * 0.08)) : rank > arr.length ? Math.max(1, arr[arr.length - 1] - 20) : Math.round((arr[rank - 2] + arr[rank - 1]) / 2));
-    const rk = Math.max(1, Math.min(batch.length + 1, S.rank || 3));
-    pool = { batch, others, meBase: { week: at(wk, rk), month: at(mo, rk === 1 ? 1 : rk + 1) } };
+    const demoIds = new Set((D.demo_students || []).map((x) => x.id));
+    const demos = (D.demo_students || []).filter((x) => x.rank).slice().sort((a, b) => a.rank - b.rank);
+    const meBase = {};
+    ['week', 'month'].forEach((period) => {
+      const vals = batch.filter((p) => !demoIds.has(p.id)).map((p) => periodXP(p, period)).sort((a, b) => b - a);
+      demos.forEach((d) => {
+        const rk = Math.max(1, Math.min(vals.length + 1, period === 'week' || d.rank === 1 ? d.rank : d.rank + 1));
+        const v = at(vals, rk);
+        vals.push(v); vals.sort((a, b) => b - a);
+        if (d.id === S.id) meBase[period] = v;
+        else { const row = batch.find((p) => p.id === d.id); if (row) (row.fixed = row.fixed || {})[period] = v; }
+      });
+      if (meBase[period] == null) { const wk = vals; meBase[period] = at(wk, Math.max(1, Math.min(wk.length + 1, S.rank || 3))); }
+    });
+    pool = { batch, others, meBase };
     return pool;
   }
   function fieldState(f) {
@@ -78,6 +90,7 @@
   }
   function periodXP(p, period) {
     if (period === 'all') return p.all;
+    if (p.fixed && p.fixed[period] != null) return p.fixed[period];
     const [lo, hi] = period === 'month' ? [0.2, 0.45] : [0.07, 0.18];
     return Math.round(p.all * frac(p.id + ':' + period, lo, hi));
   }
