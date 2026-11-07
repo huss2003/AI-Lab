@@ -109,6 +109,11 @@
     st.testsDone = m.tests.length; st.checked = st.checked.map(() => true); st.reviewing = false;
     NM.state.progress.milestoneStatus = st.phase === 'approved' ? 'approved' : 'changes_requested';
     if (st.phase === 'approved') NM.state.progress.certificates = Math.max(4, NM.state.progress.certificates || 0);
+    if (NM.notify) {
+      const mentor = p.mentor || st.review.mentor || 'Your mentor', sc = p.score != null ? p.score : st.review.total;
+      if (st.phase === 'approved') NM.notify('Milestone approved', `${mentor} approved Capstone 3, Month ${NOW_MONTH} with ${sc}/100. Your Capstone 3 certificate is ready and you can publish to GitHub.`, 'projects');
+      else NM.notify('Changes requested', `${mentor} asked for changes on Capstone 3, Month ${NOW_MONTH} (${sc}/100). Read the feedback, fix it and resubmit.`, 'projects');
+    }
   });
 
   // ---------- QR code ----------
@@ -247,6 +252,12 @@
 @keyframes mp-flash{0%,40%{box-shadow:0 0 0 4px var(--green-soft);border-color:var(--green)}100%{box-shadow:0 0 0 0 transparent}}
 .m-projects .mp-pcard b{font-family:var(--display);font-size:14px;line-height:1.3}
 .m-projects .mp-pcard .mp-sub{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.m-projects .lnk{background:none;border:0;padding:0;font:inherit;text-align:left;cursor:pointer;justify-self:start}
+.m-projects .lnk:hover{text-decoration:underline}
+.m-projects button.mp-chip{cursor:pointer;font:inherit;font-size:12.5px;text-align:left}
+.m-projects button.mp-chip:hover{border-color:var(--brand);color:var(--brand)}
+.m-projects button.mp-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.m-projects .mp-flashcard{animation:mp-flash 1.6s ease}
 .m-projects .mp-repo{font-family:var(--mono);font-size:12px;color:var(--brand);overflow-wrap:anywhere}
 .m-projects .mp-certs{display:grid;gap:8px}
 .m-projects .mp-cert{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;min-width:0}
@@ -329,7 +340,7 @@
             h('div', { class: 'mp-mo' }, j.months.map((m) => h('i', { class: m < NOW_MONTH ? 'done' : m === NOW_MONTH ? 'now' : '' }, `M${m}`))));
         }));
         const minis = h('div', { class: 'mp-mini' }, h('span', { class: 'eyebrow', style: { marginRight: '4px' } }, 'Monthly mini-projects'),
-          (f.standalone || []).map((s) => h('span', { class: 'mp-chip ' + (s.month < NOW_MONTH ? 'done' : s.month === NOW_MONTH ? 'now' : ''), title: s.month < NOW_MONTH ? 'Done' : s.month === NOW_MONTH ? 'This month' : 'Upcoming',
+          (f.standalone || []).map((s) => h('button', { class: 'mp-chip ' + (s.month < NOW_MONTH ? 'done' : s.month === NOW_MONTH ? 'now' : ''), title: s.month < NOW_MONTH ? 'Done' : s.month === NOW_MONTH ? 'This month' : 'Upcoming', onclick: () => openMini(s),
             html: (s.month < NOW_MONTH ? icon('check') : '') + `<b>M${s.month}</b><span>${c.esc(s.title)}</span>` })));
         fill(secTimeline,
           h('div', { class: 'card-head' },
@@ -338,6 +349,17 @@
           h('p', { class: 'small muted' }, `Each capstone is a real tool built for a fictional company. Months 1 to 3 are the same for everyone; from Month 4 the work is for ${f.company}. Tap a capstone to see what it involves.`),
           caps, minis, capDetail(J.find((j) => j.slot === st.selected) || J[2]));
       }
+
+      function openMini(s) {
+        const done = s.month < NOW_MONTH, now = s.month === NOW_MONTH;
+        const m = c.modal(h('div', { class: 'm-projects mp-modal' },
+          h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${s.month} mini-project · ${f.short}`), h('h3', {}, s.title)),
+            h('span', { class: 'pill ' + (done ? 'green' : now ? 'blue' : '') }, done ? 'Done' : now ? 'This month' : 'Upcoming')),
+          h('p', { class: 'small muted' }, `A short standalone project for Month ${s.month}, "${data.months[s.month]}". It practises the month's skills on ${f.company} data, next to the capstone work.`),
+          h('div', { class: 'note' }, done ? `Finished in Month ${s.month}. Automatic checks passed and the code is in ${gh}'s GitHub with the rest of the lab work.` : now ? 'Open now. It runs in the cloud workspace and is checked automatically when submitted.' : `Opens in Month ${s.month}, after the earlier months are done.`),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, now ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('workspace'); } }, 'Open the cloud workspace') : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+      }
+      function flashEl(id) { const el = document.getElementById(id); if (!el) return; el.classList.remove('mp-flashcard'); void el.offsetWidth; el.classList.add('mp-flashcard'); }
 
       function capDetail(j) {
         const msState = (m) => {
@@ -354,7 +376,7 @@
             h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'The problem'), h('p', {}, j.cap.problem)),
             h('div', { class: 'stack', style: { gap: '4px' } }, h('div', { class: 'eyebrow' }, 'What students build'), h('p', {}, j.cap.build)),
             h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Tech stack'), h('div', { class: 'mp-tags' }, j.cap.stack.map((t) => h('span', { class: 'mp-tag' }, t)))),
-            j.slot === 'C3' ? h('div', {}, h('button', { class: 'btn primary sm', onclick: () => scrollTo('mp-milestone') }, `Go to the Month ${NOW_MONTH} milestone`)) : null),
+            j.slot === 'C3' ? h('div', {}, h('button', { class: 'btn primary sm', onclick: () => { scrollTo('mp-milestone'); flashEl('mp-milestone'); } }, `Go to the Month ${NOW_MONTH} milestone`)) : null),
           h('div', { class: 'stack' },
             h('div', { class: 'eyebrow' }, 'Milestones'),
             j.cap.milestones.map((m) => {
@@ -545,8 +567,12 @@
           }, 900);
         }, 700);
       }
+      function pubNotify() {
+        if (st.pubNotified || !c.notify) return; st.pubNotified = true;
+        c.notify('Portfolio published', `${cap.title} is public at github.com/${gh}/${repo}, and your portfolio site https://${gh}.github.io has rebuilt.`, 'projects');
+      }
       function finishPublish() {
-        st.pub.stage = 6; st.flash = true;
+        st.pub.stage = 6; st.flash = true; pubNotify();
         state.progress.portfolioPublished = true;
         c.emit('portfolio:published', { repo: `${gh}/${repo}`, url: `https://github.com/${gh}/${repo}`, site: `https://${gh}.github.io`, capstone: cap.id, field: f.id, student: S.id });
         refreshAll();
@@ -646,7 +672,9 @@
                 h('div', { class: 'small muted' }, `${x.kind} · ${x.title.replace(' — available after approval', '')}`),
                 h('div', { class: 'tiny muted' }, `Issued by ${data.brand.org} · ID ${x.id}`),
                 h('div', { class: 'note tiny' }, 'Demo page. No real certificate or student exists.')))),
-          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close')));
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+            h('button', { class: 'btn', onclick: () => m.close() }, 'Close'),
+            h('button', { class: 'btn primary', onclick: () => { m.close(); state.verifyCertificate = x.id; c.emit('certificate:verified', { id: x.id }); c.go('achievements'); }, html: icon('shield') + '<span>Verify this certificate</span>' })));
         const m = c.modal(body);
         drawQR(qrBox, url, qrNote);
       }
@@ -670,7 +698,7 @@
             h('b', {}, j.cap.title),
             h('span', { class: 'mp-sub' }, firstSentence(j.cap.build)),
             h('div', { class: 'mp-tags', style: { marginTop: '2px' } }, j.cap.stack.slice(0, 3).map((t) => h('span', { class: 'mp-tag' }, cleanTech(t)))),
-            link ? h('span', { class: 'mp-repo' }, link) : null);
+            link ? h('button', { class: 'mp-repo lnk', onclick: () => repoToast(link) }, link) : null);
         };
         st.flash = false;
         fill(secPortfolio,
@@ -684,7 +712,7 @@
               h('div', { class: 'mp-hero' }, h('span', { class: 'mp-av' }, S.name.split(' ').map((s) => s[0]).join('')),
                 h('div', {}, h('h2', {}, S.name), h('b', { class: 'small', style: { color: 'var(--brand)' } }, `${f.name} · AI-assisted builder`),
                   h('p', { class: 'small muted' }, `Student in the Neuromind AI Creator Program, Batch ${S.batch}. I build working tools for ${f.company}, a fictional company used in the course, and every project here was reviewed by a mentor.`),
-                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('span', { class: 'mp-repo' }, `github.com/${gh}`), h('span', { class: 'muted' }, `${certs.length} verified certificates`)))),
+                  h('div', { class: 'row tiny', style: { gap: '14px', marginTop: '4px' } }, h('button', { class: 'mp-repo lnk', onclick: () => repoToast(`github.com/${gh}`) }, `github.com/${gh}`), h('button', { class: 'lnk muted', onclick: () => c.go('achievements') }, `${certs.length} verified certificates`)))),
               h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Skills'), h('div', { class: 'mp-tags' }, skills.slice(0, 14).map((t) => h('span', { class: 'mp-tag' }, t)))),
               h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Capstone projects'), h('div', { class: 'mp-pgrid' }, J.map(card))),
               h('div', { class: 'stack', style: { gap: '8px' } }, h('h4', {}, 'Certificates'),
@@ -692,6 +720,7 @@
               h('div', { class: 'tiny muted' }, 'Rebuilt automatically from GitHub · Demo data'))));
       }
 
+      function repoToast(link) { c.toast(`On the live site this opens ${link} on GitHub. The demo stays offline, so it does not leave this page.`); }
       function refreshAll() { fillTimeline(); fillMilestone(); fillPublish(); fillCerts(); fillPortfolio(); }
 
       // Mentor decisions (from this screen or the mentor console): the store was already updated by the module-level listener.
@@ -709,7 +738,7 @@
           // Finish anything mid-animation so a re-render shows a sensible end state.
           if (st.phase === 'testing') finishTestsQuiet();
           if (st.pub.stage >= 1 && st.pub.stage <= 3) { st.pub.stage = 4; st.pub.commits = 4; if (st.pub.readme == null) st.pub.readme = readmeDraft(); }
-          if (st.pub.stage === 5) { st.pub.stage = 6; state.progress.portfolioPublished = true; c.emit('portfolio:published', { repo: `${gh}/${repo}`, url: `https://github.com/${gh}/${repo}`, site: `https://${gh}.github.io`, capstone: cap.id, field: f.id, student: S.id }); }
+          if (st.pub.stage === 5) { st.pub.stage = 6; state.progress.portfolioPublished = true; pubNotify(); c.emit('portfolio:published', { repo: `${gh}/${repo}`, url: `https://github.com/${gh}/${repo}`, site: `https://${gh}.github.io`, capstone: cap.id, field: f.id, student: S.id }); }
           st.reviewing = false;
           live = null;
         },

@@ -696,10 +696,10 @@
       view.innerHTML = toks.length ? toks.map((t, i) => (t.nl ? '\n' : '') + `<span class="t${i % 5}">${esc(t.t)}</span>`).join('') : '<span class="muted" style="background:none">Type something above to see its tokens.</span>';
       count.textContent = String(toks.length); chars.textContent = String(s.length); ratio.textContent = toks.length ? (s.length / toks.length).toFixed(1) : '0';
     }
-    ta.addEventListener('input', () => { T.text[field.id] = ta.value; draw(); });
+    ta.addEventListener('input', () => { T.text[field.id] = ta.value; draw(); seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', T.text[field.id] === sm[b.dataset.id] ? 'true' : 'false')); });
     draw();
     const seg = h('div', { class: 'wsx-seg', role: 'group', 'aria-label': 'Sample text' }, [['en', 'English'], ['hi', 'Hinglish']].map(([id, label]) =>
-      h('button', { type: 'button', 'aria-pressed': T.mode === id && T.text[field.id] === sm[id] ? 'true' : 'false', onclick: () => { T.mode = id; T.text[field.id] = sm[id]; paint(); } }, label)));
+      h('button', { type: 'button', 'data-id': id, 'aria-pressed': T.mode === id && T.text[field.id] === sm[id] ? 'true' : 'false', onclick: () => { T.mode = id; T.text[field.id] = sm[id]; paint(); } }, label)));
     const ne = tokCount(sm.en), nh = tokCount(sm.hi); const more = Math.round((nh / ne - 1) * 100);
     const mx = Math.max(ne, nh);
     const compare = h('section', { class: 'card stack' },

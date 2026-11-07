@@ -100,6 +100,11 @@
 .m-exam .alist { list-style: none; margin: 0; padding: 0 }
 .m-exam .alist li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line) }
 .m-exam .alist li:first-child { border-top: 0 }
+.m-exam .alist li.pick { cursor: pointer; border-radius: var(--radius-sm); margin: 0 -8px; padding-left: 8px; padding-right: 8px }
+.m-exam .alist li.pick:hover { background: var(--surface-2) }
+.m-exam .alist li.pick:hover .tx b { color: var(--brand) }
+.m-exam .rulescard.flash { animation: m-exam-flash 1.2s ease }
+@keyframes m-exam-flash { 30% { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft) } }
 .m-exam .alist .ix { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted) }
 .m-exam .alist .ix svg { width: 18px; height: 18px }
 .m-exam .alist li.due .ix { background: var(--brand-soft); color: var(--brand) }
@@ -261,11 +266,26 @@
     ];
     const list = h('section', { class: 'card' },
       h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'Assessments'), h('h2', {}, 'Your tests this term')), h('span', { class: 'pill' }, 'Demo data')),
-      h('ul', { class: 'alist' }, items.map((it) => h('li', { class: it.due ? 'due' : '' },
+      h('ul', { class: 'alist' }, items.map((it) => h('li', { class: (it.due ? 'due ' : '') + 'pick', tabindex: '0', role: 'button', 'aria-label': `${it.t}: details`, onclick: () => openItem(it), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(it); } } },
         h('span', { class: 'ix', html: icon(it.ok || (it.due && submitted) ? 'check' : 'exam') }),
         h('span', { class: 'tx' }, h('b', {}, it.t), h('span', { class: 'meta' }, it.m)), it.r))),
       h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Weekly quizzes take 10 minutes and run inside the lecture player. Monthly assessments run in lockdown mode.'));
 
+    function openItem(it) {
+      if (it.due) { const rc = root.querySelector('.rulescard'); if (rc) { rc.scrollIntoView({ behavior: 'smooth', block: 'start' }); rc.classList.remove('flash'); void rc.offsetWidth; rc.classList.add('flash'); } return; }
+      if (!it.ok) { c.toast('The final exam opens in Month 12. It covers the whole year and runs in the same lockdown mode.'); return; }
+      const score = it.r.textContent;
+      const quiz = /quiz/i.test(it.t);
+      const m = c.modal(h('div', { class: 'm-exam stack' },
+        h('div', {}, h('div', { class: 'eyebrow' }, quiz ? 'Weekly quiz · in the lecture player' : 'Monthly assessment · lockdown mode'), h('h3', {}, it.t)),
+        h('p', { class: 'small muted' }, `Topic: ${it.m}.`),
+        h('div', { class: 'grid-3' },
+          h('div', { class: 'stat' }, h('b', { class: 'num' }, score), h('span', {}, 'your score')),
+          h('div', { class: 'stat' }, h('b', { class: 'num' }, quiz ? '10 min' : '30 min'), h('span', {}, 'time allowed')),
+          h('div', { class: 'stat' }, h('b', { class: 'num' }, quiz ? '0' : '1'), h('span', {}, 'integrity events'))),
+        h('p', { class: 'note' }, quiz ? 'Marked straight away. Wrong answers link back to the exact minute of the lecture that explains them.' : 'One tab switch was recorded. Your mentor accepted the result. Nothing is failed automatically.'),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn', onclick: () => m.close() }, 'Close'), quiz ? h('button', { class: 'btn primary', onclick: () => { m.close(); c.go('lecture'); } }, 'Open the lecture player') : null)));
+    }
     const rule = (ic, b, sm, off) => h('li', { class: off ? 'off' : '' }, h('span', { html: icon(ic) }), h('span', {}, h('b', {}, b), h('small', {}, sm)));
     const timeLeft = running ? Math.max(0, EXAM_MIN * 60 - (Date.now() - s.sess.startedAt) / 1000) : 0;
     const startBtn = submitted
@@ -653,6 +673,7 @@
     c.state.progress.examFlags = flags;
     c.emit('exam:submitted', { score: sess.result.final, flags });
     c.addXP(150, 'Month 7 assessment submitted');
+    if (c.notify) c.notify('Exam results ready', `Month 7 assessment: ${sess.result.final}% (multiple-choice ${sess.result.mcq}/70, code ${code}/30). ${flags.total ? `${flags.total} integrity event${flags.total === 1 ? '' : 's'} sent to your mentor for review.` : 'No integrity events.'}`, 'exam');
     refresh();
   }
 

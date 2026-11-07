@@ -26,9 +26,9 @@
   const fmtDT = (ts) => `${fmtDate(ts)}, ${fmtTime(ts)}`;
   function rel(ts) {
     const s = (Date.now() - ts) / 1000;
-    if (s < 0) return `in ${Math.max(1, Math.round(-s / 86400))} days`;
+    if (s < 0) { const dd = Math.max(1, Math.round(-s / 86400)); return dd === 1 ? "tomorrow" : `in ${dd} days`; }
     if (s < 90) return 'Just now'; if (s < 3600) return `${Math.round(s / 60)} min ago`;
-    if (s < 86400) return `${Math.round(s / 3600)} h ago`; return `${Math.round(s / 86400)} days ago`;
+    if (s < 86400) return `${Math.round(s / 3600)} h ago`; const dd = Math.round(s / 86400); return dd === 1 ? 'Yesterday' : `${dd} days ago`;
   }
   const isoDay = (d) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
   const reduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
@@ -259,6 +259,10 @@
 .m-admin .fbar .num { text-align: right }
 .m-admin .bt2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start }
 .m-admin td b.id, .m-admin td .nw { white-space: nowrap }
+.m-admin table.wide { min-width: 680px }
+.m-admin .bstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+@media (max-width: 640px) { .m-admin .bstats { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.m-admin table.wide-s { min-width: 540px }
 .m-admin td .sub { display: block; font-size: 12px; color: var(--muted) }
 .m-admin td.n, .m-admin th.n { text-align: right; font-variant-numeric: tabular-nums }
 .m-admin tfoot td { font-weight: 800; background: var(--surface-2) }
@@ -602,7 +606,7 @@
         h('td', {}, h('span', { class: 'chev' }, 'Open'))));
     });
     const total = S.batches.reduce((a, b) => a + b.students, 0), u18 = S.batches.reduce((a, b) => a + b.u18, 0);
-    const table = h('div', { class: 'table-wrap' }, h('table', {},
+    const table = h('div', { class: 'table-wrap' }, h('table', { class: 'wide' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Batch'), h('th', { class: 'n' }, 'Students'), h('th', {}, 'Now in'), h('th', { class: 'n' }, 'Active this week'), h('th', { class: 'n' }, 'Under 18'), h('th', {}, 'Parent consent'), h('th', {}, ''))),
       tbody,
       h('tfoot', {}, h('tr', {}, h('td', {}, 'All batches'), h('td', { class: 'n' }, fmt(total)), h('td', {}, ''), h('td', { class: 'n' }, '89%'), h('td', { class: 'n' }, String(u18)), h('td', {}, `${totalPending()} pending`), h('td', {}, '')))));
@@ -642,7 +646,7 @@
         h('div', { class: 'card-head', style: { marginBottom: 0 } },
           h('div', {}, h('div', { class: 'eyebrow' }, `Month ${b.month} · ${D().months[b.month]}`), h('h2', {}, b.id)),
           h('button', { class: 'btn sm ghost', onclick: () => m.close(), 'aria-label': 'Close' }, 'Close')),
-        h('div', { class: 'grid-4' },
+        h('div', { class: 'bstats' },
           h('div', { class: 'stat' }, h('b', { class: 'num' }, fmt(b.students)), h('span', {}, 'students')),
           h('div', { class: 'stat' }, h('b', { class: 'num' }, `${b.active}%`), h('span', {}, 'active this week')),
           h('div', { class: 'stat' }, h('b', { class: 'num' }, `${b.attendance}%`), h('span', {}, 'lecture attendance')),
@@ -654,11 +658,11 @@
         h('div', { class: 'stack', style: { gap: '8px' } },
           h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('h3', {}, 'Parental consent'), h('span', { class: 'small num' }, `${b.u18} under 18 · ${consented} consented · ${b.pending.length} pending`)),
           h('div', { class: 'progress green' }, h('i', { style: { width: (consented / b.u18 * 100) + '%' } })),
-          b.pending.length ? h('div', { class: 'table-wrap' }, h('table', {},
+          b.pending.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'wide-s' },
             h('thead', {}, h('tr', {}, h('th', {}, 'Student'), h('th', {}, 'Parent phone'), h('th', {}, 'Status'), h('th', {}, ''))),
             h('tbody', {}, b.pending.map((p) => h('tr', {},
-              h('td', {}, h('b', {}, p.name), h('span', { class: 'sub' }, `Age ${p.age}`)),
-              h('td', { class: 'num small' }, p.phone),
+              h('td', {}, h('b', { class: 'nw' }, p.name), h('span', { class: 'sub' }, `Age ${p.age}`)),
+              h('td', { class: 'num small nw' }, p.phone),
               h('td', {}, p.sent ? h('span', { class: 'pill blue' }, `Reminder sent ${rel(p.sent).toLowerCase()}`) : h('span', { class: 'pill amber' }, 'Waiting for parent')),
               h('td', {}, h('div', { class: 'acts' },
                 h('button', { class: 'btn sm', onclick: () => { sendReminder(b, p); paint(); refresh(); } }, p.sent ? 'Send again' : 'Send reminder'),
@@ -1022,7 +1026,7 @@
     });
     panel.append(h('section', { class: 'card stack', id: 'adm-sched' },
       h('div', {}, h('h3', {}, 'Scheduled and past exams')),
-      h('div', { class: 'table-wrap' }, h('table', {}, h('thead', {}, h('tr', {}, ['Exam', 'Batches', 'When', 'Status', ''].map((t) => h('th', {}, t)))), tbody))));
+      h('div', { class: 'table-wrap' }, h('table', { class: 'wide' }, h('thead', {}, h('tr', {}, ['Exam', 'Batches', 'When', 'Status', ''].map((t) => h('th', {}, t)))), tbody))));
 
     panel.append(integrityCard());
   }
@@ -1232,7 +1236,7 @@
       const tbody = h('tbody');
       rows.forEach((a) => tbody.append(h('tr', { class: 'clickable' + (a.fresh ? ' fresh' : ''), tabindex: '0', onclick: () => openAudit(a), onkeydown: (e) => { if (e.key === 'Enter') openAudit(a); } },
         h('td', { class: 'au-t' }, fmtDT(a.ts), h('span', { class: 'sub' }, rel(a.ts))),
-        h('td', { class: 'small' }, h('b', {}, a.actor), h('span', { class: 'sub' }, a.role === 'system' ? 'Automatic' : a.role === 'admin' ? 'Admin' : 'Mentor')),
+        h('td', { class: 'small' }, h('b', { class: 'nw' }, a.actor), h('span', { class: 'sub' }, a.role === 'system' ? 'Automatic' : a.role === 'admin' ? 'Admin' : 'Mentor')),
         h('td', {}, h('span', { class: 'pill ' + ({ consent: 'green', exam: 'blue', grade: 'amber', key: 'violet', limits: 'red', content: '', students: 'blue' }[a.type] || '') }, typeLabel(a.type))),
         h('td', { class: 'au-d' }, h('b', {}, a.action), a.detail))));
       list.append(h('div', { class: 'table-wrap' }, h('table', {}, h('thead', {}, h('tr', {}, ['Time', 'Who', 'Type', 'What happened'].map((t) => h('th', {}, t)))), tbody)));
