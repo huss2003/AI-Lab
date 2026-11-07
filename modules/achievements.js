@@ -13,7 +13,7 @@
   const NOW_MONTH = S.month;
 
   // Demo state that survives navigation and field switches.
-  const ui = { tab: 'board', scope: 'batch', period: 'week', hidden: false, badgeFilter: 'all', verifyInput: '', verifyId: null };
+  const ui = { tab: 'board', scope: 'batch', period: 'week', hidden: false, badgeFilter: 'all', showAll: false, lockedOpen: false, verifyInput: '', verifyId: null };
   const perField = {};             // per field id: { extras: generated same-field rows, lastRank: {scopeKey: rank} }
   const verifiedOnce = new Set();  // certificate ids already announced to the active student
   let live = null;                 // the mounted screen (refs + cleanup)
@@ -381,15 +381,42 @@
   function injectCSS() {
     if (document.getElementById('m-' + ID)) return;
     const css = `
-.m-achievements{display:grid;gap:20px;min-width:0}
+.m-achievements{display:grid;gap:24px;min-width:0}
+.m-achievements .card{padding:24px}
+.m-achievements .ma-purpose{color:var(--muted);font-size:15px;margin:0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.m-achievements .ma-purpose .demo{font-size:12px;color:var(--faint)}
+.m-achievements .lnk{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--brand);cursor:pointer}
+.m-achievements .lnk:hover{text-decoration:underline}
+.m-achievements .lnk:disabled{opacity:.5;cursor:default}
+.m-achievements .mmenu{position:relative;display:inline-block}
+.m-achievements .mmenu-pop{position:absolute;left:0;top:calc(100% + 6px);z-index:5;width:240px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);padding:6px;display:grid;gap:2px}
+.m-achievements .mmenu-pop[hidden]{display:none}
+.m-achievements .mmenu-pop .mi{display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:9px 10px;font-weight:600;font-size:14px;cursor:pointer;color:var(--fg)}
+.m-achievements .mmenu-pop .mi:hover{background:var(--surface-2);color:var(--brand)}
+.m-achievements .ma-gap{text-align:center;color:var(--faint);font-weight:800;padding:2px 0;border-top:1px solid var(--line);background:var(--surface)}
+.m-achievements details.ma-locked{border-top:1px solid var(--line);padding-top:14px}
+.m-achievements details.ma-locked summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand);list-style:none;margin-bottom:2px}
+.m-achievements details.ma-locked summary::-webkit-details-marker{display:none}
+.m-achievements details.ma-locked summary::before{content:'+ '}
+.m-achievements details.ma-locked[open] summary::before{content:'– '}
+.m-achievements details.ma-locked[open] .ma-badges{margin-top:12px}
+.m-achievements .ma-cert-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+.m-achievements .ma-cert-tx{display:grid;gap:4px;min-width:0}
+.m-achievements .ma-cert-tx b{font-family:var(--display);font-size:16px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.m-achievements .ma-verify{display:grid;gap:16px;max-width:760px}
+.m-achievements .ma-vhelp{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.m-achievements .ma-vurl{font-family:var(--mono)}
+.m-achievements .ma-vurl svg{width:12px;height:12px;vertical-align:-2px;margin-right:4px;color:var(--green)}
+.m-achievements details.ma-full{border-top:1px solid var(--line);padding-top:12px}
+.m-achievements details.ma-full summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 .m-achievements .ma-intro{display:grid;gap:16px}
 .m-achievements .ma-intro-top{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap}
 .m-achievements .ma-intro-top > div{min-width:0;flex:1 1 320px}
 .m-achievements .ma-intro p{max-width:68ch}
-.m-achievements .ma-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.m-achievements .ma-stat{display:grid;gap:2px;text-align:left;background:var(--surface-2);border:1px solid transparent;border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;color:var(--fg);min-width:0}
+.m-achievements .ma-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.m-achievements .ma-stat{display:grid;gap:2px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;cursor:pointer;color:var(--fg);min-width:0}
 .m-achievements .ma-stat:hover{border-color:var(--brand)}
-.m-achievements .ma-stat b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.m-achievements .ma-stat b{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums;line-height:1.2}
 .m-achievements .ma-stat span{font-size:12.5px;color:var(--muted)}
 .m-achievements .ma-stat.bump b{animation:ma-pulse .9s ease}
 .m-achievements .tabs .tab{display:inline-flex;align-items:center;gap:7px}
@@ -402,14 +429,14 @@
 .m-achievements .ma-seg button{border:0;background:none;border-radius:9px;padding:6px 11px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .m-achievements .ma-seg button:hover{color:var(--fg)}
 .m-achievements .ma-seg button[aria-pressed="true"]{background:var(--surface);color:var(--brand);box-shadow:var(--shadow)}
-.m-achievements .ma-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end;margin:4px 0 14px}
+.m-achievements .ma-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end;margin:4px auto 14px;max-width:420px}
 .m-achievements .ma-pod{display:grid;justify-items:center;gap:6px;background:none;border:0;padding:0;cursor:pointer;color:var(--fg);min-width:0;text-align:center}
 .m-achievements .ma-pod .nm{font-weight:700;font-size:13px;overflow-wrap:anywhere;line-height:1.25}
 .m-achievements .ma-pod .xp{font-size:12px;color:var(--muted)}
-.m-achievements .ma-pod .base{width:100%;border-radius:10px 10px 0 0;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:22px}
-.m-achievements .ma-pod.p1 .base{height:84px;background:var(--amber-soft);color:var(--amber)}
-.m-achievements .ma-pod.p2 .base{height:62px;background:var(--surface-2);color:var(--muted)}
-.m-achievements .ma-pod.p3 .base{height:48px;background:var(--violet-soft);color:var(--violet)}
+.m-achievements .ma-pod .base{width:100%;border-radius:8px 8px 0 0;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:15px}
+.m-achievements .ma-pod.p1 .base{height:44px;background:var(--amber-soft);color:var(--amber)}
+.m-achievements .ma-pod.p2 .base{height:32px;background:var(--surface-2);color:var(--muted)}
+.m-achievements .ma-pod.p3 .base{height:24px;background:var(--violet-soft);color:var(--violet)}
 .m-achievements .ma-pod:hover .nm{color:var(--brand)}
 .m-achievements .ma-pod.me .ma-av{box-shadow:0 0 0 3px var(--brand)}
 .m-achievements .ma-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12.5px;background:var(--surface-2);color:var(--muted);flex:none}
@@ -420,7 +447,8 @@
 .m-achievements .ma-av.me{background:var(--brand);color:var(--on-brand)}
 .m-achievements .ma-next{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13.5px;margin-bottom:12px}
 .m-achievements .ma-next .moved{animation:ma-pop .6s ease}
-.m-achievements .ma-list{max-height:520px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overscroll-behavior:contain}
+.m-achievements .ma-list.all{max-height:540px;overflow-y:auto}
+.m-achievements .ma-list{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overscroll-behavior:contain}
 .m-achievements .ma-row{display:grid;grid-template-columns:40px 34px minmax(0,1fr) 48px auto;gap:10px;align-items:center;width:100%;padding:9px 12px;border:0;border-top:1px solid var(--line);background:var(--surface);text-align:left;cursor:pointer;color:var(--fg)}
 .m-achievements .ma-row:first-child{border-top:0}
 .m-achievements .ma-row:hover{background:var(--surface-2)}
@@ -469,9 +497,9 @@
 .m-achievements .ma-medal.locked{background:var(--surface-2);color:var(--faint)}
 .m-achievements .ma-medal .lk{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
 .m-achievements .ma-medal .lk svg{width:12px;height:12px}
-.m-achievements .ma-certs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:16px}
-.m-achievements .ma-cert{display:grid;gap:12px;align-content:start;min-width:0}
-.m-achievements .ma-paper{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(135deg,var(--brand-soft),var(--surface) 55%);padding:20px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;min-width:0}
+.m-achievements .ma-certs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.m-achievements .ma-cert{display:grid;gap:16px;align-content:space-between;min-width:0}
+.m-achievements .ma-paper{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:var(--brand-softer);padding:20px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;min-width:0}
 .m-achievements .ma-paper::before{content:'';position:absolute;inset:6px;border:1px dashed var(--line);border-radius:9px;pointer-events:none}
 .m-achievements .ma-paper > *{position:relative;min-width:0}
 .m-achievements .ma-paper .kind{font-family:var(--display);font-weight:700;font-size:15px;margin-top:4px}
@@ -482,12 +510,12 @@
 .m-achievements .ma-paper .meta b{display:block;color:var(--fg);font-size:12.5px}
 .m-achievements .ma-mono{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
 .m-achievements .ma-qrcol{display:grid;justify-items:center;gap:4px}
-.m-achievements .ma-qr{width:92px;height:92px;background:var(--code-fg);border-radius:8px;padding:3px;flex:none}
+.m-achievements .ma-qr{width:84px;height:84px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px;flex:none}
 .m-achievements .ma-qr svg{width:100%;height:100%;display:block}
-.m-achievements .ma-qr .qd{fill:var(--code-bg)}
+.m-achievements .ma-qr .qd{fill:var(--fg)}
 .m-achievements .ma-qr.lg{width:140px;height:140px}
 .m-achievements .ma-actions{display:flex;flex-wrap:wrap;gap:8px}
-.m-achievements .ma-lockcert{border:1px dashed var(--line);border-radius:var(--radius);padding:20px;display:grid;gap:10px;align-content:center;justify-items:start;background:var(--surface);min-height:180px}
+.m-achievements .ma-lockcert{border:1px dashed var(--line-strong);border-radius:var(--radius);padding:24px;display:grid;gap:8px;align-content:center;justify-items:start;background:transparent;min-height:160px}
 .m-achievements .ma-browser{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface);min-width:0}
 .m-achievements .ma-bbar{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);min-width:0}
 .m-achievements .ma-dots{display:inline-flex;gap:5px;flex:none}
@@ -496,18 +524,18 @@
 .m-achievements .ma-url svg{width:12px;height:12px;vertical-align:-2px;margin-right:4px;color:var(--green)}
 .m-achievements .ma-vsite{padding:22px;display:grid;gap:16px;min-width:0}
 .m-achievements .ma-vbrand{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.m-achievements .ma-vbrand .mk{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--green));display:grid;place-items:center;color:var(--on-brand);flex:none}
+.m-achievements .ma-vbrand .mk{width:40px;height:40px;border-radius:10px;background:var(--brand-soft);display:grid;place-items:center;color:var(--brand);flex:none}
 .m-achievements .ma-vbrand .mk svg{width:20px;height:20px}
-.m-achievements .ma-vform{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}
+.m-achievements .ma-vform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .m-achievements .ma-vform .field-input{font-family:var(--mono);font-size:14px;text-transform:uppercase}
 .m-achievements .ma-vform .field-input::placeholder{text-transform:none;font-family:var(--body)}
 .m-achievements .ma-try{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .m-achievements .ma-chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:4px 10px;font-size:12.5px;font-weight:600;cursor:pointer}
 .m-achievements .ma-chip:hover{border-color:var(--brand);color:var(--brand)}
 .m-achievements .ma-res{border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:grid;gap:14px;min-width:0;animation:nm-in .25s ease}
-.m-achievements .ma-res.ok{border-color:var(--green);background:linear-gradient(180deg,var(--green-soft),var(--surface) 110px)}
-.m-achievements .ma-res.bad{border-color:var(--red);background:linear-gradient(180deg,var(--red-soft),var(--surface) 110px)}
-.m-achievements .ma-res.rev{border-color:var(--amber);background:linear-gradient(180deg,var(--amber-soft),var(--surface) 110px)}
+.m-achievements .ma-res.ok{border-color:var(--green);background:var(--surface)}
+.m-achievements .ma-res.bad{border-color:var(--red);background:var(--surface)}
+.m-achievements .ma-res.rev{border-color:var(--amber);background:var(--surface)}
 .m-achievements .ma-res-head{display:flex;gap:12px;align-items:center}
 .m-achievements .ma-res-head .ic{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
 .m-achievements .ma-res-head .ic svg{width:22px;height:22px}
@@ -550,7 +578,7 @@
 .m-achievements .ma-pstats b{font-family:var(--display);font-size:19px;font-variant-numeric:tabular-nums}
 .m-achievements .ma-pstats span{font-size:12px;color:var(--muted)}
 .m-achievements .ma-site{padding:18px;display:grid;gap:14px}
-.m-achievements .ma-site-hero{display:flex;gap:12px;align-items:center;padding:14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--brand-soft),var(--surface-2))}
+.m-achievements .ma-site-hero{display:flex;gap:12px;align-items:center;padding:14px;border-radius:var(--radius-sm);background:var(--surface-2)}
 .m-achievements .ma-site-hero > div{min-width:0}
 .m-achievements .ma-site-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr));gap:10px}
 .m-achievements .ma-site-card{border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;display:grid;gap:6px;align-content:start;min-width:0}
@@ -566,13 +594,13 @@
 @keyframes ma-glow{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px var(--green-soft),0 0 0 5px var(--green)}}
 @keyframes ma-scan{0%,100%{top:14%}50%{top:84%}}
 @media (max-width:1100px){.m-achievements .ma-board{grid-template-columns:minmax(0,1fr)}.m-achievements .ma-side{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:760px){.m-achievements .ma-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.m-achievements .ma-side{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.m-achievements .ma-certs{grid-template-columns:minmax(0,1fr)}.m-achievements .ma-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.m-achievements .ma-side{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){
  .m-achievements .ma-row{grid-template-columns:30px 30px minmax(0,1fr) auto;gap:8px;padding:9px 10px}
  .m-achievements .ma-row .ma-av{width:30px;height:30px;font-size:11px}
  .m-achievements .ma-row .ma-trend{display:none}
- .m-achievements .ma-vform{grid-template-columns:1fr 1fr}
- .m-achievements .ma-vform .field-input{grid-column:1/-1}
+ .m-achievements .card{padding:18px}
+ .m-achievements .ma-vform{grid-template-columns:minmax(0,1fr)}
  .m-achievements .ma-dl{grid-template-columns:minmax(0,1fr)}
  .m-achievements .ma-paper{grid-template-columns:minmax(0,1fr)}
  .m-achievements .ma-qrcol{justify-items:start;grid-auto-flow:column;align-items:center;justify-content:start;gap:10px}
@@ -584,10 +612,30 @@
     document.head.append(Object.assign(document.createElement('style'), { id: 'm-' + ID, textContent: css }));
   }
 
+  // Small pop-up menu: a button that opens a list of actions; closes on outside click or Escape.
+  function makeMenu(h, label, build, cls) {
+    const pop = h('div', { class: 'mmenu-pop', role: 'menu', hidden: true });
+    const btn = h('button', { class: 'btn sm ' + (cls || ''), 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: (e) => { e.stopPropagation(); if (pop.hidden) open(); else close(); } }, label);
+    const wrap = h('div', { class: 'mmenu' }, btn, pop);
+    const onDoc = (e) => { if (!wrap.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') { close(); btn.focus(); } };
+    function open() {
+      pop.textContent = ''; build(pop, close); pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+      document.addEventListener('pointerdown', onDoc, true); document.addEventListener('keydown', onKey);
+    }
+    function close() {
+      if (pop.hidden) return; pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onDoc, true); document.removeEventListener('keydown', onKey);
+    }
+    wrap.close = close;
+    return wrap;
+  }
+
   // ---------- screen ----------
   function cleanup() {
     if (!live) return;
     live.offs.forEach((off) => { try { off(); } catch (e) { /* ignore */ } });
+    (live.menus || []).forEach((mn) => mn.close());
     live.timers.forEach(clearTimeout);
     live.rafs.forEach((r) => cancelAnimationFrame(r));
     live = null;
@@ -601,7 +649,7 @@
       injectCSS();
       const { h, icon, esc } = c;
       const f = c.field;
-      const L = { c, offs: [], timers: new Set(), rafs: new Set(), panelFns: {} };
+      const L = { c, offs: [], timers: new Set(), rafs: new Set(), panelFns: {}, menus: [] };
       live = L;
       const later = (fn, ms) => { const t = setTimeout(() => { L.timers.delete(t); if (live === L) fn(); }, reduced() ? Math.min(ms, 80) : ms); L.timers.add(t); return t; };
       const avClass = (p) => (p.me ? 'me' : 'c' + (hashStr(p.id) % 4));
@@ -615,7 +663,7 @@
       const statXP = h('b', { class: 'num' }), statRank = h('b', { class: 'num' }), statBadges = h('b', { class: 'num' }), statCerts = h('b', { class: 'num' });
       const statRankLbl = h('span', {}, '');
       const stats = h('div', { class: 'ma-stats' },
-        h('button', { class: 'ma-stat', 'data-k': 'xp', onclick: () => setTab('board') }, statXP, h('span', {}, 'XP earned so far')),
+        h('button', { class: 'ma-stat', 'data-k': 'xp', onclick: () => setTab('board') }, statXP, h('span', {}, 'XP earned')),
         h('button', { class: 'ma-stat', 'data-k': 'rank', onclick: () => { ui.scope = 'batch'; ui.period = 'week'; setTab('board'); } }, statRank, statRankLbl),
         h('button', { class: 'ma-stat', 'data-k': 'badges', onclick: () => setTab('badges') }, statBadges, h('span', {}, 'badges earned')),
         h('button', { class: 'ma-stat', 'data-k': 'certs', onclick: () => setTab('certs') }, statCerts, h('span', {}, 'certificates issued')));
@@ -623,18 +671,13 @@
         statXP.textContent = fmt(NM.state.xp);
         const r = board('batch', 'week', f).myRank;
         statRank.textContent = '#' + r;
-        statRankLbl.textContent = ui.hidden ? 'batch rank this week (only you see it)' : 'in the batch this week';
+        statRankLbl.textContent = ui.hidden ? 'private batch rank' : 'batch rank this week';
         statBadges.textContent = `${earnedCount()} of ${BADGES.length}`;
         statCerts.textContent = String(myCerts(f).length);
       }
-      wrap.append(h('section', { class: 'card ma-intro' },
-        h('div', { class: 'ma-intro-top' },
-          h('div', { class: 'stack', style: { gap: '6px' } },
-            h('div', { class: 'eyebrow' }, `${S.name} · ${S.batch} · ${f.name}`),
-            h('h2', {}, 'Progress you can see. Proof you can share.'),
-            h('p', { class: 'small muted' }, 'Students earn XP for learning, badges for milestones and certificates that any employer can check with one scan.')),
-          h('span', { class: 'pill amber' }, 'Demo data')),
-        stats));
+      wrap.append(
+        h('p', { class: 'ma-purpose' }, h('span', {}, 'Students earn XP and badges as they learn. Every certificate has a QR code anyone can verify.'), h('span', { class: 'demo' }, 'Demo data')),
+        stats);
 
       // ----- tabs -----
       const TABS = [['board', 'Leaderboard', 'trophy'], ['badges', 'Badges', 'star'], ['certs', 'Certificates', 'cert'], ['verify', 'Verify a certificate', 'shield']];
@@ -645,6 +688,7 @@
 
       function setTab(id) {
         ui.tab = id;
+        L.menus.forEach((mn) => mn.close()); L.menus = [];
         tabBar.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
         panel.setAttribute('aria-labelledby', 'ma-tab-' + id);
         panel.textContent = '';
@@ -661,7 +705,8 @@
         const next = h('div', { class: 'ma-next' });
         const privateBox = h('div');
         const list = h('div', { class: 'ma-list', role: 'list', 'aria-label': 'Leaderboard' });
-        const jumpBtn = h('button', { class: 'btn sm', onclick: jumpToMe, html: icon('search') + '<span>Jump to me</span>' });
+        const moreBtn = h('button', { class: 'btn sm ghost', onclick: () => { ui.showAll = !ui.showAll; paint(); if (!ui.showAll) list.scrollTop = 0; } });
+        const jumpBtn = h('button', { class: 'btn sm', onclick: jumpToMe, html: icon('search') + '<span>Find me</span>' });
 
         Object.entries(SCOPES).forEach(([k, label]) => scopeSeg.append(h('button', { 'data-scope': k, onclick: () => { ui.scope = k; paint(); } }, k === 'field' ? `My field: ${f.short}` : k === 'batch' ? `Batch ${S.batch}` : label)));
         Object.entries(PERIODS).forEach(([k, label]) => periodSeg.append(h('button', { 'data-period': k, onclick: () => { ui.period = k; paint(); } }, label)));
@@ -670,7 +715,7 @@
           h('div', { class: 'card-head' }, h('div', {}, h('h3', {}, 'Leaderboard'), subtitle), jumpBtn),
           h('div', { class: 'ma-controls' }, scopeSeg, periodSeg),
           podium, next, privateBox, list,
-          h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Click any student to see their profile and portfolio. Fictional students and numbers.'));
+          h('div', { class: 'row', style: { justifyContent: 'space-between', marginTop: '10px' } }, h('span', { class: 'tiny muted' }, 'Click a student to see their profile and portfolio.'), moreBtn));
 
         // How XP is earned
         const EARN = [
@@ -682,13 +727,22 @@
           ['github', 'Publish a capstone to your GitHub', '+60'],
           ['forum', 'Help a classmate in the forum (mentor confirmed)', '+25'],
         ];
+        const earnList = h('ul');
+        let earnAll = false;
+        const earnMore = h('button', { class: 'lnk small', onclick: () => { earnAll = !earnAll; paintEarn(); } });
+        const paintEarn = () => {
+          earnList.textContent = '';
+          (earnAll ? EARN : EARN.slice(0, 4)).forEach(([ic, t, pts]) => earnList.append(h('li', {}, h('span', { class: 'ix', html: icon(ic) }), h('span', {}, t), h('span', { class: 'pts' }, pts))));
+          earnMore.textContent = earnAll ? 'Show fewer' : `Show all (${EARN.length})`;
+        };
+        paintEarn();
         const earnCard = h('section', { class: 'card ma-earn' },
           h('h3', {}, 'How XP is earned'),
           h('p', { class: 'small muted', style: { margin: '4px 0 6px' } }, 'The same points in every field, so batches compare fairly.'),
-          h('ul', {}, EARN.map(([ic, t, pts]) => h('li', {}, h('span', { class: 'ix', html: icon(ic) }), h('span', {}, t), h('span', { class: 'pts' }, pts)))),
-          h('div', { class: 'row', style: { marginTop: '10px', gap: '8px' } },
-            h('button', { class: 'btn sm', onclick: () => c.go('lecture') }, 'Earn XP in a lecture'),
-            h('button', { class: 'btn sm', onclick: () => c.go('practical') }, 'Try a practical')));
+          earnList,
+          h('div', { class: 'row', style: { marginTop: '10px', gap: '12px', justifyContent: 'space-between' } },
+            earnMore,
+            h('button', { class: 'btn sm', onclick: () => c.go('lecture') }, 'Earn XP in a lecture')));
 
         // Privacy
         const sw = h('button', { class: 'ma-switch-row', role: 'switch', 'aria-checked': String(ui.hidden), onclick: () => {
@@ -699,7 +753,7 @@
         const privacy = h('section', { class: 'card' },
           h('h3', {}, 'Privacy comes first'),
           sw,
-          h('p', { class: 'small muted' }, 'Leaderboards are optional. Students who prefer privacy can hide themselves at any time. Their XP, badges and certificates still count, and only they and their mentor see their rank.'));
+          h('p', { class: 'small muted' }, 'Leaderboards are optional. Hidden students still earn XP, badges and certificates.'));
 
         panel.append(h('div', { class: 'ma-board' }, main, h('div', { class: 'ma-side' }, earnCard, privacy)));
 
@@ -731,7 +785,7 @@
           podium.textContent = '';
           [1, 0, 2].forEach((i) => { const p = B.list[i]; if (!p) return;
             podium.append(h('button', { class: `ma-pod p${i + 1}${p.me ? ' me' : ''}`, onclick: () => openProfile(p), 'aria-label': `Place ${i + 1}: ${p.name}` },
-              av(p, 'lg'), h('span', { class: 'nm' }, p.me ? 'You' : p.name), h('span', { class: 'xp num' }, `${fmt(p.xp)} XP`), h('span', { class: 'base' }, String(i + 1))));
+              av(p), h('span', { class: 'nm' }, p.me ? 'You' : p.name), h('span', { class: 'xp num' }, `${fmt(p.xp)} XP`), h('span', { class: 'base' }, String(i + 1))));
           });
 
           // next target line
@@ -750,11 +804,19 @@
               h('button', { class: 'btn sm', onclick: () => openProfile(B.me) }, 'My profile')));
           }
 
-          // rows
+          // rows: top 10 plus the student's own row, or everyone with "Show all"
           const st = list.scrollTop;
           list.textContent = '';
-          B.list.forEach((p) => list.append(rowEl(p, ui.period)));
-          list.scrollTop = st;
+          list.classList.toggle('all', !!ui.showAll);
+          if (ui.showAll) B.list.forEach((p) => list.append(rowEl(p, ui.period)));
+          else {
+            B.list.slice(0, 10).forEach((p) => list.append(rowEl(p, ui.period)));
+            const meRow = B.list.find((p) => p.me);
+            if (meRow && meRow.rank > 10) { list.append(h('div', { class: 'ma-gap', role: 'presentation' }, '⋯')); list.append(rowEl(meRow, ui.period)); }
+          }
+          moreBtn.textContent = ui.showAll ? 'Show top 10' : `Show all (${B.list.length})`;
+          moreBtn.hidden = B.list.length <= 10;
+          list.scrollTop = ui.showAll ? st : 0;
           lastMe = B.me;
           return B;
         }
@@ -848,25 +910,20 @@
 
       // ================= 2. Badges =================
       function renderBadges() {
-        const filterSeg = h('div', { class: 'ma-seg', role: 'group', 'aria-label': 'Filter badges' });
-        const FILTERS = { all: 'All', earned: 'Earned', progress: 'In progress', locked: 'Locked' };
-        Object.entries(FILTERS).forEach(([k, label]) => filterSeg.append(h('button', { 'data-filter': k, onclick: () => { ui.badgeFilter = k; paint(); } }, label)));
         const count = h('span', { class: 'small muted' });
         const bar = h('i');
         const grid = h('div', { class: 'ma-badges' });
-        const empty = h('div', { class: 'empty', hidden: true }, 'No badges here yet.');
-        panel.append(h('section', { class: 'card stack' },
-          h('div', { class: 'ma-bhead' }, h('div', {}, h('h3', {}, 'Badges'), count), filterSeg),
+        const lockedGrid = h('div', { class: 'ma-badges' });
+        const lockedSum = h('summary');
+        const lockedBox = h('details', { class: 'ma-locked', ontoggle: () => { ui.lockedOpen = lockedBox.open; } }, lockedSum, lockedGrid);
+        lockedBox.open = !!ui.lockedOpen;
+        const go = (label, route) => h('button', { class: 'lnk', onclick: () => c.go(route) }, label);
+        panel.append(h('section', { class: 'card stack ma-bcard' },
+          h('div', { class: 'ma-bhead' }, h('h3', {}, 'Badges'), count),
           h('div', { class: 'progress green' }, bar),
-          grid, empty,
-          h('div', { class: 'callout small' },
-            h('b', {}, 'Badges unlock by themselves. '),
-            'Do something in the lab and the matching badge updates here, with a notification under the bell. Try it:',
-            h('div', { class: 'row', style: { marginTop: '10px', gap: '8px' } },
-              h('button', { class: 'btn sm', onclick: () => c.go('practical') }, 'Submit a practical'),
-              h('button', { class: 'btn sm', onclick: () => c.go('lecture') }, 'Answer a lecture question'),
-              h('button', { class: 'btn sm', onclick: () => c.go('forum') }, 'Ask in the forum'),
-              h('button', { class: 'btn sm', onclick: () => c.go('exam') }, 'Take the assessment')))));
+          grid, lockedBox,
+          h('p', { class: 'small muted' }, 'Badges unlock by themselves, with a notification under the bell. Try it: ',
+            go('submit a practical', 'practical'), ', ', go('answer a lecture question', 'lecture'), ', ', go('ask in the forum', 'forum'), ' or ', go('take the assessment', 'exam'), '.')));
 
         function statusLine(b) {
           const st = bs[b.id], s = statusOf(b);
@@ -876,22 +933,24 @@
             h('div', { class: 'progress' }, h('i', { style: { width: `${Math.round((st.progress / b.goal) * 100)}%` } })),
             h('span', { class: 'st' }, b.id === 'perfect-exam' ? `Best score ${st.progress} · needs 90` : `${st.progress} of ${b.goal}${b.unit ? ' ' + b.unit : ''}`));
         }
+        const tile = (b) => {
+          const s = statusOf(b);
+          const el = h('button', { class: `ma-badge ${s === 'progress' ? 'inprog' : s}${bs[b.id].fresh ? ' fresh' : ''}`, 'data-badge': b.id, 'aria-label': `${b.name}: ${s === 'earned' ? 'earned' : s === 'locked' ? 'locked' : 'in progress'}`, onclick: () => openBadge(b) },
+            medal(b, ''), h('span', { class: 'nm' }, b.name), statusLine(b));
+          bs[b.id].fresh = false;
+          return el;
+        };
         function paint() {
-          filterSeg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === ui.badgeFilter)));
-          const n = earnedCount();
-          count.textContent = `${n} of ${BADGES.length} earned · ${BADGES.filter((b) => statusOf(b) === 'progress').length} in progress`;
+          const n = earnedCount(), inProg = BADGES.filter((b) => statusOf(b) === 'progress').length;
+          count.textContent = `${n} of ${BADGES.length} earned · ${inProg} in progress`;
           bar.style.width = `${Math.round((n / BADGES.length) * 100)}%`;
-          grid.textContent = '';
-          const order = { earned: 0, progress: 1, locked: 2 };
-          const items = BADGES.filter((b) => ui.badgeFilter === 'all' || statusOf(b) === ui.badgeFilter).sort((a, b) => order[statusOf(a)] - order[statusOf(b)]);
-          items.forEach((b) => {
-            const s = statusOf(b);
-            grid.append(h('button', { class: `ma-badge ${s === 'progress' ? 'inprog' : s}${bs[b.id].fresh ? ' fresh' : ''}`, 'data-badge': b.id, 'aria-label': `${b.name}: ${s === 'earned' ? 'earned' : s === 'locked' ? 'locked' : 'in progress'}`, onclick: () => openBadge(b) },
-              h('span', { class: 'cat' }, b.cat),
-              medal(b, ''), h('span', { class: 'nm' }, b.name), statusLine(b)));
-            bs[b.id].fresh = false;
-          });
-          empty.hidden = items.length > 0;
+          const order = { earned: 0, progress: 1 };
+          grid.textContent = ''; lockedGrid.textContent = '';
+          BADGES.filter((b) => statusOf(b) !== 'locked').sort((a, b) => order[statusOf(a)] - order[statusOf(b)]).forEach((b) => grid.append(tile(b)));
+          const locked = BADGES.filter((b) => statusOf(b) === 'locked');
+          locked.forEach((b) => lockedGrid.append(tile(b)));
+          lockedSum.textContent = `Locked badges (${locked.length})`;
+          lockedBox.hidden = !locked.length;
         }
         paint();
         L.panelFns.refresh = paint;
@@ -945,33 +1004,39 @@
       function renderCerts() {
         const grid = h('div', { class: 'ma-certs' });
         panel.append(
-          h('div', { class: 'callout small' }, h('b', {}, 'Every certificate can be checked. '), `Each one has a QR code and a public page on ${VERIFY_HOST}. An employer scans it and sees the record, the skills and the GitHub projects behind it.`),
-          grid,
-          h('p', { class: 'tiny muted' }, 'Demo certificates. Not real credentials.'));
+          h('p', { class: 'small muted' }, `Each certificate has a QR code and a public page on ${VERIFY_HOST}. Demo certificates, not real credentials.`),
+          grid);
         function paint() {
+          L.menus.forEach((mn) => mn.close()); L.menus = [];
           grid.textContent = '';
           const list = myCerts(f);
           list.forEach((x) => {
-            grid.append(h('article', { class: 'ma-cert', 'data-cert': x.key },
-              paperEl(x),
-              h('div', { class: 'ma-actions' },
-                h('button', { class: 'btn sm primary', onclick: () => shareModal(x) }, 'Share on LinkedIn'),
-                h('button', { class: 'btn sm', onclick: () => pdfModal(x) }, 'Download PDF'),
-                h('button', { class: 'btn sm', onclick: () => copyText(x.url, 'Verification link copied') }, 'Copy verification link'),
-                h('button', { class: 'btn sm ghost', onclick: () => { ui.verifyInput = x.id; setTab('verify'); L.panelFns.verify && L.panelFns.verify(x.id); } }, 'Verify'))));
+            const qr = h('div', { class: 'ma-qr' });
+            drawQR(qr, x.url);
+            const more = makeMenu(h, 'More', (pop, close) => {
+              const mi = (label, fn) => h('button', { class: 'mi', role: 'menuitem', onclick: () => { close(); fn(); } }, label);
+              pop.append(mi('Share on LinkedIn', () => shareModal(x)), mi('Download PDF', () => pdfModal(x)), mi('Copy verification link', () => copyText(x.url, 'Verification link copied')));
+            }, 'ghost');
+            L.menus.push(more);
+            grid.append(h('article', { class: 'card ma-cert', 'data-cert': x.key },
+              h('div', { class: 'ma-cert-top' },
+                h('div', { class: 'ma-cert-tx' }, h('div', { class: 'eyebrow' }, x.kind), h('b', { title: x.title }, x.title), h('span', { class: 'small muted' }, `Issued ${x.issued}`)),
+                qr),
+              h('div', { class: 'row', style: { gap: '8px' } },
+                h('button', { class: 'btn sm primary', onclick: () => { ui.verifyInput = x.id; setTab('verify'); L.panelFns.verify && L.panelFns.verify(x.id); }, html: icon('shield') + '<span>Verify</span>' }),
+                more)));
           });
           if (!list.length) {
             grid.append(h('article', { class: 'ma-lockcert', 'data-cert': 'empty' },
-              h('span', { class: 'pill amber' }, 'No certificates yet'),
               h('b', {}, `${S.name.split(' ')[0]}’s first certificates arrive after Month 3`),
-              h('p', { class: 'small muted' }, `Months 1 to 3 are the common foundation. Passing the Month 3 assessment issues the Months 1–3 completion certificate, and the mentor’s approval of the Month 3 capstone milestone issues Capstone 1. Both get a QR code and a public verification page.`),
+              h('p', { class: 'small muted' }, 'Passing the Month 3 assessment issues the Months 1–3 certificate. Approving the Month 3 capstone milestone issues Capstone 1.'),
               h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn sm primary', onclick: () => c.go('exam') }, 'Open the Month 3 assessment'), h('button', { class: 'btn sm', onclick: () => c.go('projects') }, 'Open Capstone 1'))));
           }
           const nx = nextCert(f);
           if (nx && list.length) {
             grid.append(h('article', { class: 'ma-lockcert', 'data-cert': 'next-locked' },
-              h('span', { class: 'pill' }, 'Next'),
-              h('b', {}, nx.title),
+              h('div', { class: 'eyebrow' }, 'Next certificate'),
+              h('b', { title: nx.title }, nx.title),
               h('p', { class: 'small muted' }, nx.text),
               h('button', { class: 'btn sm', onclick: () => c.go('projects') }, 'Open my capstone')));
           }
@@ -1020,40 +1085,41 @@
 
       // ================= 4. Verify (public page) =================
       function renderVerify() {
-        const url = h('span', { class: 'ma-url', html: icon('lock') + esc(`https://${VERIFY_HOST}`) });
-        const input = h('input', { class: 'field-input', type: 'text', placeholder: `Certificate ID, for example ${S.batch}-${S.id}-C1`, 'aria-label': 'Certificate ID', autocomplete: 'off', spellcheck: 'false' });
+        const url = h('span', { class: 'ma-vurl', html: icon('lock') + esc(`${VERIFY_HOST}`) });
+        const input = h('input', { class: 'field-input', type: 'text', placeholder: `Certificate ID, e.g. ${S.batch}-${S.id}-C1`, 'aria-label': 'Certificate ID', autocomplete: 'off', spellcheck: 'false' });
         input.value = ui.verifyInput || '';
         input.addEventListener('input', () => { ui.verifyInput = input.value; });
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(input.value); });
         const goBtn = h('button', { class: 'btn primary', onclick: () => run(input.value) }, 'Verify');
-        const scanBtn = h('button', { class: 'btn', onclick: scanModal, html: icon('search') + '<span>Scan QR</span>' });
+        const scanBtn = h('button', { class: 'lnk', onclick: scanModal }, 'Scan a QR code');
         const result = h('div', { 'aria-live': 'polite' });
         const mine = myCerts(f);
         const mate = classmates().filter((x) => (x.certificates || []).length).sort((a, b) => b.certificates.length - a.certificates.length)[0];
         const mateCert = mate ? mate.certificates[mate.certificates.length - 1] : null;
         const TRY = [
-          mine.length ? [`${S.name.split(' ')[0]}’s latest`, mine[mine.length - 1].id] : null,
+          mine.length ? [`${S.name.split(' ')[0]}’s latest certificate`, mine[mine.length - 1].id] : null,
           mateCert ? [`Classmate ${mate.name.split(' ')[0]}`, `${mate.batch}-${mate.id}-${mateCert.slot}`] : null,
           ['Another student', 'NM-2027-A-S1006-C2'],
           ['A past graduate', 'NM-2026-B-S0412-C4'],
           ['A revoked certificate', 'NM-2026-X-S9999-C2'],
           ['A wrong ID', `${S.batch}-${S.id}-C9`],
         ].filter(Boolean);
-        panel.append(
-          h('p', { class: 'small muted' }, 'This is the public page an employer sees after scanning a certificate. No login is needed.'),
-          h('div', { class: 'ma-browser' },
-            h('div', { class: 'ma-bbar' }, h('span', { class: 'ma-dots', html: '<i></i><i></i><i></i>' }), url),
-            h('div', { class: 'ma-vsite' },
-              h('div', { class: 'ma-vbrand' }, h('span', { class: 'mk', html: icon('shield') }), h('div', {}, h('b', {}, `${D.brand.org} certificate check`), h('div', { class: 'tiny muted' }, 'Type the ID printed on the certificate, or scan its QR code.'))),
-              h('div', { class: 'ma-vform' }, input, goBtn, scanBtn),
-              h('div', { class: 'ma-try' }, h('span', { class: 'tiny muted' }, 'Try:'), TRY.map(([label, id]) => h('button', { class: 'ma-chip', 'data-try': id, onclick: () => { input.value = id; ui.verifyInput = id; run(id); } }, label))),
-              result,
-              h('div', { class: 'tiny muted' }, 'Demo page. Records are fictional.'))));
+        const examples = makeMenu(h, 'Try an example', (pop, close) => {
+          TRY.forEach(([label, id]) => pop.append(h('button', { class: 'mi', role: 'menuitem', 'data-try': id, onclick: () => { close(); input.value = id; ui.verifyInput = id; run(id); } }, label)));
+        }, 'ghost');
+        L.menus.push(examples);
+        panel.append(h('section', { class: 'card ma-verify' },
+          h('div', { class: 'ma-vbrand' }, h('span', { class: 'mk', html: icon('shield') }),
+            h('div', {}, h('h3', {}, 'Check a certificate'), h('div', { class: 'small muted' }, 'The public page an employer sees after scanning a QR code. No login needed.'))),
+          h('div', { class: 'ma-vform' }, input, goBtn),
+          h('div', { class: 'ma-vhelp' }, h('span', { class: 'small muted' }, 'No ID to hand?'), scanBtn, h('span', { class: 'muted' }, '·'), examples),
+          result,
+          h('div', { class: 'tiny muted' }, url, ' · Demo page, records are fictional.')));
 
         function run(raw) {
           const id = String(raw || '').trim().toUpperCase().replace(/\s+/g, '');
           result.textContent = '';
-          if (!id) { result.append(h('div', { class: 'note' }, 'Type a certificate ID first, or press Scan QR.')); input.focus(); return; }
+          if (!id) { result.append(h('div', { class: 'note' }, 'Type a certificate ID first, or scan a QR code.')); input.focus(); return; }
           input.value = id; ui.verifyInput = id;
           goBtn.disabled = true; scanBtn.disabled = true;
           result.append(h('div', { class: 'row small muted' }, h('span', { class: 'spin', style: { color: 'var(--brand)' } }), 'Checking the certificate register…'));
@@ -1066,16 +1132,16 @@
         function showResult(id) {
           const rec = records(f)[id];
           result.textContent = '';
-          url.innerHTML = icon('lock') + esc(`https://${VERIFY_HOST}/c/${id}`);
+          url.innerHTML = icon('lock') + esc(`${VERIFY_HOST}/c/${id}`);
           if (!rec) {
             result.append(h('div', { class: 'ma-res bad' },
               h('div', { class: 'ma-res-head' }, h('span', { class: 'ic', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' }),
                 h('div', {}, h('h2', {}, 'Not found'), h('div', { class: 'small' }, h('span', { class: 'ma-mono' }, id), ' is not in the certificate register.'))),
               h('ul', { class: 'ma-guide' },
-                h('li', {}, 'Check each character. IDs look like ', h('span', { class: 'ma-mono' }, `${S.batch}-${S.id}-C1`), ' (batch, student, certificate).'),
-                h('li', {}, 'Scan the QR code on the certificate instead of typing. It opens the right page directly.'),
-                h('li', {}, `Still not found? Treat the certificate as unverified and contact ${D.brand.org}.`)),
-              h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { input.value = ''; ui.verifyInput = ''; input.focus(); result.textContent = ''; } }, 'Try another ID'), h('button', { class: 'btn sm', onclick: scanModal }, 'Scan QR instead'))));
+                h('li', {}, 'Check each character. IDs look like ', h('span', { class: 'ma-mono' }, `${S.batch}-${S.id}-C1`), '.'),
+                h('li', {}, 'Scan the QR code on the certificate instead of typing.'),
+                h('li', {}, `Still not found? Treat it as unverified and contact ${D.brand.org}.`)),
+              h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { input.value = ''; ui.verifyInput = ''; input.focus(); result.textContent = ''; } }, 'Try another ID'))));
             return;
           }
           if (rec.status === 'revoked') {
@@ -1084,25 +1150,26 @@
                 h('div', {}, h('h2', {}, 'Revoked'), h('div', { class: 'small' }, 'This certificate was issued but is no longer valid.'))),
               h('dl', { class: 'ma-dl' },
                 dlItem('Certificate ID', h('span', { class: 'ma-mono' }, rec.id)), dlItem('Awarded to', rec.name),
-                dlItem('Originally issued', rec.issued), dlItem('Revoked on', rec.revoked),
-                dlItem('Certificate', `${rec.kind} · ${rec.title}`), dlItem('Issuer', D.brand.org)),
+                dlItem('Originally issued', rec.issued), dlItem('Revoked on', rec.revoked)),
               h('div', { class: 'note' }, h('b', {}, 'Reason: '), rec.reason),
               h('p', { class: 'small' }, `Do not accept this certificate. If you think this is a mistake, contact ${D.brand.org}.`)));
             return;
           }
           result.append(h('div', { class: 'ma-res ok' },
             h('div', { class: 'ma-res-head' }, h('span', { class: 'ic', html: icon('check') }),
-              h('div', {}, h('h2', {}, 'Verified'), h('div', { class: 'small' }, `This certificate is genuine. It was issued by ${D.brand.org}.`))),
+              h('div', {}, h('h2', {}, 'Verified'), h('div', { class: 'small' }, `Genuine certificate, issued by ${D.brand.org}.`))),
             h('dl', { class: 'ma-dl' },
-              dlItem('Awarded to', rec.name), dlItem('Program', `${PROGRAM} · batch ${rec.batch}`),
-              dlItem('Certificate', `${rec.kind}: ${rec.title.replace(/^Capstone \d: /, '')}`), dlItem('Track', rec.track),
-              dlItem('Issued', rec.issued), dlItem('Mentor who signed off', rec.mentor),
-              dlItem('Issuer', D.brand.org), dlItem('Certificate ID', h('span', { class: 'ma-mono' }, rec.id))),
-            h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Skills shown in this work'), h('div', { class: 'ma-tags' }, rec.skills.map((s) => h('span', { class: 'ma-tag' }, s)))),
-            h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Linked GitHub projects'),
-              h('div', { class: 'ma-repos' }, rec.repos.map((r) => h('button', { class: 'ma-repo', onclick: () => repoModal(rec, r), html: icon('github') },
-                h('span', { class: 'tx' }, h('b', {}, `github.com/${rec.gh}/${r.name}`), h('span', {}, r.title)), h('span', { class: 'pill green' }, 'Tests pass'))))),
-            h('div', { class: 'tiny muted' }, 'Checked just now against the live register. Records cannot be edited by students.')));
+              dlItem('Awarded to', rec.name),
+              dlItem('Certificate', `${rec.kind}: ${rec.title.replace(/^Capstone \d: /, '')}`),
+              dlItem('Issued', rec.issued), dlItem('Mentor who signed off', rec.mentor)),
+            h('details', { class: 'ma-full' }, h('summary', {}, 'Full record: skills and GitHub projects'),
+              h('div', { class: 'stack', style: { gap: '14px', marginTop: '12px' } },
+                h('dl', { class: 'ma-dl' }, dlItem('Program', `${PROGRAM} · batch ${rec.batch}`), dlItem('Track', rec.track), dlItem('Issuer', D.brand.org), dlItem('Certificate ID', h('span', { class: 'ma-mono' }, rec.id))),
+                h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Skills shown in this work'), h('div', { class: 'ma-tags' }, rec.skills.map((s) => h('span', { class: 'ma-tag' }, s)))),
+                h('div', { class: 'stack', style: { gap: '6px' } }, h('div', { class: 'eyebrow' }, 'Linked GitHub projects'),
+                  h('div', { class: 'ma-repos' }, rec.repos.map((r) => h('button', { class: 'ma-repo', onclick: () => repoModal(rec, r), html: icon('github') },
+                    h('span', { class: 'tx' }, h('b', {}, `github.com/${rec.gh}/${r.name}`), h('span', {}, r.title)))))),
+                h('div', { class: 'tiny muted' }, 'Checked just now against the live register. Students cannot edit records.')))));
           c.emit('certificate:verified', { id: rec.id });
           if (rec.name === S.name && !verifiedOnce.has(rec.id)) {
             verifiedOnce.add(rec.id);

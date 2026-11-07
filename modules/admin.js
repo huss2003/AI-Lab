@@ -201,7 +201,7 @@
       scheduled: [],
     },
     cost: { hours: 12, idle: 20, ai: 120, saved: { hours: 12, idle: 20, ai: 120 }, autotrim: true, spike: false, alerted: false },
-    auditUI: { type: 'all', role: 'all', q: '' },
+    auditUI: { type: 'all', role: 'all', q: '', page: 0 },
   };
   const JOBS = {};
   function ensure() {
@@ -248,18 +248,30 @@
     if (document.getElementById('m-admin')) return;
     const st = document.createElement('style'); st.id = 'm-admin';
     st.textContent = `
-.m-admin { display: grid; gap: 18px; min-width: 0 }
+.m-admin { display: grid; gap: 24px; min-width: 0 }
+.m-admin .purpose p { color: var(--muted); font-size: 15px; margin: 0; line-height: 1.5 }
+.m-admin .purpose .demo { font-size: 12.5px; color: var(--faint); white-space: nowrap }
+.m-admin .linkbtn { background: none; border: 0; padding: 0; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13.5px; font-family: inherit; justify-self: start }
+.m-admin .linkbtn:hover { text-decoration: underline }
+.m-admin details.more { padding: 18px 22px }
+.m-admin details.more > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--display); font-weight: 700; font-size: 16px }
+.m-admin details.more > summary::-webkit-details-marker { display: none }
+.m-admin details.more > summary > span:first-child::before { content: "+"; display: inline-block; width: 18px; color: var(--muted) }
+.m-admin details.more[open] > summary > span:first-child::before { content: "\\2212" }
+.m-admin details.more[open] > summary { margin-bottom: 14px }
+.m-admin details.more[open] { display: grid; gap: 14px }
+.m-admin .c3 { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start }
 .m-admin .head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap }
 .m-admin .head > div { min-width: 0 }
 .m-admin .head p { margin-top: 4px }
 .m-admin .panel { display: grid; gap: 16px; min-width: 0 }
 .m-admin .svgbox { min-width: 0 }
 .m-admin .svgbox svg { display: block; width: 100%; height: auto }
-.m-admin .tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px }
-.m-admin .tile { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 4px; cursor: pointer; color: var(--fg); min-width: 0 }
+.m-admin .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px }
+.m-admin .tile { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: grid; gap: 4px; align-content: start; cursor: pointer; color: var(--fg); min-width: 0 }
 .m-admin .tile:hover { border-color: var(--brand) }
 .m-admin .tile .lab { font-size: 12.5px; color: var(--muted); font-weight: 600 }
-.m-admin .tile b { font-family: var(--display); font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.2 }
+.m-admin .tile b { font-family: var(--display); font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.2 }
 .m-admin .tile b small { font-size: 13px; color: var(--muted); font-weight: 600; font-family: var(--body) }
 .m-admin .tile .sub { font-size: 12px; color: var(--muted); overflow-wrap: anywhere }
 .m-admin .tile .progress { height: 5px; margin-top: 2px }
@@ -392,7 +404,9 @@
 .m-admin-modal { gap: 14px }
 .m-admin-modal h2 { overflow-wrap: anywhere }
 @media (max-width: 1100px) {
-  .m-admin .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .m-admin .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .m-admin .c3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) }
+  .m-admin .c3 > .proj { grid-column: 1 / -1 }
   .m-admin .ov2, .m-admin .bt2, .m-admin .c2, .m-admin .gov { grid-template-columns: minmax(0, 1fr) }
   .m-admin .cost-top { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-admin .pools { grid-template-columns: repeat(4, minmax(0, 1fr)) }
@@ -400,6 +414,7 @@
 @media (max-width: 640px) {
   .m-admin .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-admin .form { grid-template-columns: minmax(0, 1fr) }
+  .m-admin .c3 { grid-template-columns: minmax(0, 1fr) }
   .m-admin .pools { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .m-admin .fbar { grid-template-columns: minmax(0, 92px) minmax(0, 1fr) 44px }
   .m-admin .kv { grid-template-columns: minmax(0, 1fr) }
@@ -476,11 +491,8 @@
     if (!ROOT) return;
     const { h } = C;
     ROOT.textContent = ''; refs = {};
-    ROOT.append(h('div', { class: 'head' },
-      h('div', {}, h('div', { class: 'eyebrow' }, 'NeuroNetworks AI Ed · Lab operations'),
-        h('h1', {}, 'Admin console'),
-        h('p', { class: 'muted small' }, `Run the lab for 3,000 students in ${S.batches.length} batches: people, content, exams, money and a record of every change.`)),
-      h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill violet' }, `Signed in: ${ADMIN}, lab admin`), h('span', { class: 'pill' }, 'Demo data'))));
+    ROOT.append(h('div', { class: 'purpose' },
+      h('p', {}, `Run the lab for 3,000 students in ${S.batches.length} batches: people, content, exams and money. `, h('span', { class: 'demo' }, `Signed in as ${ADMIN}, lab admin · Demo data`))));
     const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Admin sections' });
     TABS.forEach(([id, label]) => tabs.append(h('button', { class: 'tab', role: 'tab', 'aria-selected': String(S.tab === id), onclick: () => openTab(id) }, label)));
     const panel = h('div', { class: 'panel', role: 'tabpanel' });
@@ -582,13 +594,18 @@
     }
     const m = costNow();
     out.push({ k: m.pct >= 90 ? 'red' : m.pct >= 75 ? 'amber' : 'green', t: `Servers at ${Math.round(m.pct)}% of the monthly budget`, b: `Projected ${lakh(m.servers)} of ${lakh(2)} this month.${m.trimmed ? ' Auto-trim is on.' : m.pct < 75 ? ' No action needed.' : ''}`, go: () => openTab('cost') });
+    const open = S.exam.scheduled.filter((e) => e.window && e.status === 'scheduled')[0];
+    if (open) out.push({ k: 'blue', t: `${open.title} is open now`, b: `${open.batches}: ${fmt(open.submitted || 0)} of ${fmt(open.students)} submitted. Closes ${fmtDay(open.ts)}.`, go: () => openTab('exam') });
     const go = S.audit.filter((a) => a.type === 'grade' && Date.now() - a.ts < DAY).length;
-    if (go) out.push({ k: 'blue', t: `${go} grade override${go > 1 ? 's' : ''} today`, b: 'Mentors changed a score. Check the reasons in the audit log.', go: () => { S.auditUI = { type: 'grade', role: 'all', q: '' }; openTab('audit'); } });
-    return out;
+    if (go) out.push({ k: 'blue', t: `${go} grade override${go > 1 ? 's' : ''} today`, b: 'Mentors changed a score. Check the reasons in the audit log.', go: () => { S.auditUI = { type: 'grade', role: 'all', q: '', page: 0 }; openTab('audit'); } });
+    const rank = { red: 0, amber: 1, blue: 2, green: 3 };
+    return out.map((x, i) => [x, i]).sort((a, b) => rank[a[0].k] - rank[b[0].k] || a[1] - b[1]).map((x) => x[0]);
   }
   function fillAlerts(box) {
     const { h } = C; box.textContent = '';
-    alertsList().forEach((a) => box.append(h('button', { class: 'alert ' + a.k, onclick: a.go }, h('i'), h('div', {}, h('b', {}, a.t), h('span', {}, a.b)), h('em', {}, 'Open'))));
+    const all = alertsList(); const list = S.alertsAll ? all : all.slice(0, 4);
+    list.forEach((a) => box.append(h('button', { class: 'alert ' + a.k, onclick: a.go }, h('i'), h('div', {}, h('b', {}, a.t), h('span', {}, a.b)), h('em', {}, 'Open'))));
+    if (all.length > 4) box.append(h('button', { class: 'linkbtn', onclick: () => { S.alertsAll = !S.alertsAll; fillAlerts(box); } }, S.alertsAll ? 'Show fewer' : `Show all (${all.length})`));
   }
   function fieldBars(cur, totals, max) {
     const { h } = C;
@@ -596,41 +613,30 @@
       h('span', { title: f.name }, f.short), h('span', { class: 'trk' }, h('i', { style: { width: (totals[f.id] / max * 100) + '%' } })), h('span', { class: 'num' }, fmt(totals[f.id])))));
   }
   function drawOverview(panel) {
-    const { h, field } = C; const L = S.live; const nx = nextExam();
-    const tile = (lab, valEl, sub, go, extra) => h('button', { class: 'tile', onclick: go }, h('span', { class: 'lab' }, lab), valEl, extra || null, h('span', { class: 'sub' }, sub));
+    const { h } = C; const L = S.live;
+    const tile = (lab, valEl, go, extra) => h('button', { class: 'tile', onclick: go }, valEl, h('span', { class: 'lab' }, lab), extra || null);
     const t = {
       online: h('span', {}, fmt(L.online)), onlineBar: h('i', { style: { width: (L.online / 3000 * 100) + '%' } }),
       ws: h('span', {}, fmt(L.workspaces)), checked: h('span', {}, fmt(L.checked)), ai: h('span', {}, fmt(L.ai)),
     };
     refs.tiles = t;
     panel.append(
-      h('div', { class: 'row', style: { justifyContent: 'space-between' } },
-        h('span', { class: 'pill green livepill' }, h('span', { class: 'dot' }), 'Live view · updates every few seconds'),
-        h('span', { class: 'tiny muted' }, 'Tap any number or alert to open the section behind it.')),
       h('div', { class: 'tiles' },
-        tile('Students online now', h('b', {}, t.online, h('small', {}, ' of 3,000')), 'signed in on any device', () => openTab('batches'), h('span', { class: 'progress green', style: { display: 'block' } }, t.onlineBar)),
-        tile('Workspaces running', h('b', {}, t.ws), S.batches.every((b) => b.month <= 3) ? 'in-browser Python labs open now (cloud workspaces from Month 4)' : 'cloud coding workspaces open now', () => openTab('cost')),
-        tile('Practicals checked today', h('b', {}, t.checked), 'auto-checked within a minute', () => openTab('content')),
-        tile('AI questions today', h('b', {}, t.ai), 'tutor hints, never full answers', () => openTab('cost')),
-        (() => { const open = S.exam.scheduled.filter((e) => e.window && e.status === 'scheduled'); const o = open[0];
-          return tile('Exams in progress', h('b', {}, String(open.length)), o ? `${o.title}, open until ${fmtDay(o.ts)}` : nx ? `Next: ${nx.title}, ${fmtDate(nx.ts)}` : 'None scheduled', () => openTab('exam')); })()));
+        tile('students online now', h('b', {}, t.online, h('small', {}, ' of 3,000')), () => openTab('batches'), h('span', { class: 'progress green', style: { display: 'block' } }, t.onlineBar)),
+        tile(S.batches.every((b) => b.month <= 3) ? 'browser Python labs open' : 'cloud workspaces running', h('b', {}, t.ws), () => openTab('cost')),
+        tile('practicals auto-checked today', h('b', {}, t.checked), () => openTab('content')),
+        tile('AI tutor questions today', h('b', {}, t.ai), () => openTab('cost'))));
     const act = svgEl(''); refs.act = act;
     const alerts = h('div', { class: 'alerts' }); refs.alerts = alerts; fillAlerts(alerts);
     panel.append(h('div', { class: 'ov2' },
       h('section', { class: 'card stack' },
-        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Students online, last 24 hours'), h('p', { class: 'tiny muted' }, 'Busiest after college, 7 to 10 pm. Workspaces shut down after 20 minutes idle, so quiet hours cost little.'))),
+        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Students online, last 24 hours'), h('span', { class: 'pill green livepill' }, h('span', { class: 'dot' }), 'Live')),
         act,
-        h('div', { class: 'svc' }, ['AI on Amazon Bedrock (Mumbai)', 'Local model server', 'Cloud workspaces', 'Auto-checker'].map((x) => h('span', {}, h('span', { class: 'dot' }), x)), h('span', {}, 'All running normally'))),
+        h('p', { class: 'tiny muted' }, 'Busiest 7 to 10 pm. Idle workspaces shut down after 20 minutes, so quiet hours cost little. All services running normally.')),
       h('section', { class: 'card stack' },
         h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Needs your attention'), h('span', { class: 'tiny muted' }, 'Clears itself when fixed')),
         alerts)));
     act.innerHTML = activitySVG();
-    const tot = fieldTotals(); const max = Math.max(...Object.values(tot));
-    panel.append(h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', {}, h('h3', {}, 'Students by career field'), h('p', { class: 'tiny muted' }, `Highlighted: ${field.name}, the field picked in the top bar. Fields are chosen after Month 3.`)),
-        h('button', { class: 'btn sm', onclick: () => openTab('batches') }, 'See batches')),
-      fieldBars(field.id, tot, max)));
   }
 
   /* ============================================================
@@ -807,7 +813,7 @@
   /* ============================================================
      3. Content
      ============================================================ */
-  const PER_PAGE = 12;
+  const PER_PAGE = 10;
   function videoCell(id) {
     const { h } = C; const v = S.videos[id]; const j = JOBS[id];
     const lec = D().lectures.find((l) => l.id === id);
@@ -818,7 +824,7 @@
   function capCell(id) {
     const { h } = C;
     if (JOBS[id] && JOBS[id].stage <= 3) return h('span', { class: 'small muted' }, 'Generating…');
-    return h('div', { class: 'row', style: { gap: '4px', flexWrap: 'nowrap' } }, h('span', { class: 'pill' }, 'English'), h('span', { class: 'pill' }, 'Hindi auto'));
+    return h('span', { class: 'small muted nw' }, 'English, Hindi');
   }
   function updateVideoCell(id) {
     if (!ROOT || S.tab !== 'content') return;
@@ -831,11 +837,6 @@
     const { h } = C; const F = S.content;
     const counts = { published: 0, processing: 0, scheduled: 0 };
     D().lectures.forEach((l) => { counts[JOBS[l.id] ? 'processing' : S.videos[l.id].status] += 1; });
-    panel.append(h('div', { class: 'grid-4' },
-      h('div', { class: 'card stat' }, h('b', { class: 'num' }, '104'), h('span', {}, 'lectures in the library')),
-      h('div', { class: 'card stat' }, h('b', { class: 'num' }, String(counts.published)), h('span', {}, 'published to students')),
-      h('div', { class: 'card stat' }, h('b', { class: 'num' }, String(counts.scheduled)), h('span', {}, 'scheduled, release twice a week')),
-      h('div', { class: 'card stat' }, h('b', { class: 'num' }, String(counts.processing)), h('span', {}, 'processing now'))));
     const list = h('div', { class: 'stack' });
     const search = h('input', { class: 'field-input', type: 'search', placeholder: 'Search by number, topic or practical', value: F.q, 'aria-label': 'Search lectures', oninput: (e) => { F.q = e.target.value; F.page = 0; paint(); } });
     const month = h('select', { class: 'field-input', 'aria-label': 'Filter by month', onchange: (e) => { F.month = e.target.value; F.page = 0; paint(); } },
@@ -868,8 +869,8 @@
           h('td', { class: 'cc' }, capCell(l.id)),
           h('td', { class: 'n' }, String(S.videos[l.id].mcqs)),
           h('td', {}, h('div', { class: 'acts' },
-            h('button', { class: 'btn sm', onclick: () => { C.state.previewLecture = l.id; C.toast(`Opening the student lecture player to preview Lecture ${l.id}.`); C.go('lecture'); } }, 'Preview'),
-            h('button', { class: 'btn sm upbtn', disabled: !!JOBS[l.id] || null, onclick: () => uploadFlow(l) }, 'Upload new version')))));
+            h('button', { class: 'linkbtn', onclick: () => { C.state.previewLecture = l.id; C.toast(`Opening the student lecture player to preview Lecture ${l.id}.`); C.go('lecture'); } }, 'Preview'),
+            h('button', { class: 'btn sm upbtn', disabled: !!JOBS[l.id] || null, onclick: () => uploadFlow(l) }, 'New version')))));
       });
       list.append(h('div', { class: 'table-wrap' }, h('table', {},
         h('thead', {}, h('tr', {}, h('th', { class: 'n' }, '#'), h('th', {}, 'Lecture'), h('th', {}, 'When'), h('th', {}, 'Video'), h('th', {}, 'Captions'), h('th', { class: 'n' }, 'MCQs'), h('th', {}, 'Actions'))), tbody)),
@@ -882,7 +883,7 @@
     }
     panel.append(h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', {}, h('h3', {}, 'Lecture library'), h('p', { class: 'tiny muted' }, 'Each lecture is a 40-minute recorded lesson with 4 questions inside the video and captions in English and Hindi.'))),
+        h('div', {}, h('h3', {}, 'Lecture library'), h('p', { class: 'small muted' }, `${D().lectures.length} lectures · ${counts.published} published · ${counts.scheduled} scheduled · ${counts.processing} processing. Each is a 40-minute lesson with 4 in-video questions and English and Hindi captions.`))),
       h('div', { class: 'filters' }, search, month, status),
       list));
     paint();
@@ -980,18 +981,6 @@
   }
   function drawExam(panel) {
     const { h } = C; const d = S.exam.draft;
-    // pools
-    const pools = h('div', { class: 'pools' });
-    for (let mth = 1; mth <= 12; mth++) {
-      const p = pool(mth);
-      pools.append(h('button', { class: 'poolc', 'aria-pressed': String(d.month === mth), title: D().months[mth], onclick: () => { d.month = mth; if (mth === 1) d.codePct = 0; d.previewed = false; draw(); } },
-        h('b', {}, `Month ${mth}`), h('span', {}, `${p.mcq} MCQ · ${p.code} code`), h('span', {}, D().months[mth])));
-    }
-    panel.append(h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Question pools'), h('p', { class: 'tiny muted' }, 'Mentors write and review questions for each month. From Month 4, code questions use each field\'s company data. Tap a month to build its exam.')),
-        h('span', { class: 'pill' }, `${fmt(Array.from({ length: 12 }, (_, i) => pool(i + 1)).reduce((a, p) => a + p.mcq + p.code, 0))} questions in total`)),
-      pools));
-
     // builder
     const p = pool(d.month); const sm = examSummary(d); const mb = monthBatches(d.month);
     const err = h('div', { class: 'err', role: 'alert' });
@@ -1088,6 +1077,18 @@
       h('div', {}, h('h3', {}, 'Scheduled and past exams')),
       h('div', { class: 'table-wrap' }, h('table', { class: 'wide' }, h('thead', {}, h('tr', {}, ['Exam', 'Batches', 'When', 'Status', ''].map((t) => h('th', {}, t)))), tbody))));
 
+    // pools
+    const pools = h('div', { class: 'pools' });
+    for (let mth = 1; mth <= 12; mth++) {
+      const p = pool(mth);
+      pools.append(h('button', { class: 'poolc', 'aria-pressed': String(d.month === mth), title: D().months[mth], onclick: () => { d.month = mth; if (mth === 1) d.codePct = 0; d.previewed = false; draw(); } },
+        h('b', {}, `Month ${mth}`), h('span', {}, `${p.mcq} MCQ · ${p.code} code`), h('span', {}, D().months[mth])));
+    }
+    panel.append(h('details', { class: 'card more', open: S.exam.poolsOpen || null, ontoggle: (e) => { S.exam.poolsOpen = e.currentTarget.open; } },
+      h('summary', {}, h('span', {}, 'Question pools'), h('span', { class: 'tiny muted' }, `${fmt(Array.from({ length: 12 }, (_, i) => pool(i + 1)).reduce((a, p) => a + p.mcq + p.code, 0))} questions in 12 months`)),
+      h('p', { class: 'tiny muted' }, 'Mentors write and review questions for each month. From Month 4, code questions use each field\'s company data. Tap a month to build its exam.'),
+      pools));
+
     panel.append(integrityCard());
   }
   function viewExam(ex) {
@@ -1132,8 +1133,9 @@
     const mark = () => { const d = Object.keys(draft).some((k) => draft[k] !== I[k]); saveBtn.disabled = !d; dirty.hidden = !d; };
     const tabOut = h('output', { class: 'num', style: { fontWeight: 800, minWidth: '28px', textAlign: 'center' } }, String(draft.tabLimit));
     const step = (dv) => { draft.tabLimit = clamp(draft.tabLimit + dv, 1, 10); tabOut.textContent = draft.tabLimit; mark(); };
-    return h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Integrity settings'), h('p', { class: 'tiny muted' }, 'Apply to every exam. Nothing fails a student automatically: a mentor looks at flagged papers.')), dirty),
+    return h('details', { class: 'card more', open: S.exam.integOpen || null, ontoggle: (e) => { S.exam.integOpen = e.currentTarget.open; } },
+      h('summary', {}, h('span', {}, 'Integrity settings'), dirty),
+      h('p', { class: 'tiny muted' }, 'Apply to every exam. Nothing fails a student automatically: a mentor looks at flagged papers.'),
       h('div', { class: 'form' },
         h('div', { class: 'fld' }, h('div', { class: 'lbl' }, 'Tab-switch limit'),
           h('div', { class: 'row', style: { gap: '8px' } }, h('button', { class: 'btn sm', 'aria-label': 'Fewer', onclick: () => step(-1) }, '−'), tabOut, h('button', { class: 'btn sm', 'aria-label': 'More', onclick: () => step(1) }, '+'), h('span', { class: 'small muted' }, 'switches, then the paper is flagged'))),
@@ -1178,25 +1180,7 @@
   }
   function drawCost(panel) {
     const { h } = C; const lc = D().lab_costs; const K = S.cost;
-    panel.append(h('div', { class: 'cost-top' },
-      h('div', { class: 'card stat' }, h('b', {}, `₹${lc.monthly_total_lakh.toFixed(2)} L`), h('span', {}, 'typical month for the whole lab')),
-      h('div', { class: 'card stat' }, h('b', {}, `₹${lc.per_student_month_inr}`), h('span', {}, `per student a month (${fmt(lc.students)} students)`)),
-      h('div', { class: 'card stat' }, h('b', {}, '₹1.48 L'), h('span', {}, `servers, against a ₹${lc.server_budget_lakh.toFixed(2)} L budget`)),
-      h('div', { class: 'card stat' }, h('b', {}, '₹0.69 L + ₹0.15 L'), h('span', {}, 'AI tutor and keys + test environment'))));
-
     const stackBox = svgEl(''); const sofar = h('div', { class: 'stack', style: { gap: '8px' } });
-    panel.append(h('div', { class: 'c2' },
-      h('section', { class: 'card stack' },
-        h('div', {}, h('h3', {}, 'Where the money goes'), h('p', { class: 'tiny muted' }, 'A typical month. Demo data.')),
-        svgEl(donutSVG()),
-        h('div', { class: 'legend', style: { justifyContent: 'center' } }, h('span', {}, h('i'), 'Servers ₹1.48 L'), h('span', {}, h('i', { class: 'v' }), 'AI ₹0.69 L'), h('span', {}, h('i', { class: 'a' }), 'Test environment ₹0.15 L'))),
-      h('section', { class: 'card stack' },
-        h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Last six months'), h('p', { class: 'tiny muted' }, 'This month is an estimate from the settings below.')), h('span', { class: 'pill amber' }, 'estimate · demo model')),
-        stackBox,
-        h('div', { class: 'legend' }, h('span', {}, h('i'), 'Servers'), h('span', {}, h('i', { class: 'v' }), 'AI'), h('span', {}, h('i', { class: 'a' }), 'Test environment'), h('span', {}, h('i', { class: 'r' }), 'Server budget ₹2 L (compare with the blue part)')),
-        sofar)));
-
-    // governor
     const projBox = h('div', { class: 'proj' });
     const formula = h('pre', { class: 'code formula' });
     const statusBox = h('div', {});
@@ -1216,19 +1200,14 @@
       stackBox.innerHTML = stackSVG(mm, stackBox.clientWidth);
       projBox.textContent = '';
       projBox.append(
-        h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('span', { class: 'eyebrow' }, 'Projected this month'), h('span', { class: 'pill amber' }, 'estimate · demo model')),
+        h('div', { class: 'eyebrow' }, 'Projected this month'),
         h('div', { class: 'big' }, lakh(mm.total)),
-        h('div', { class: 'small muted' }, `≈ ₹${Math.round(mm.perStudent)} per student · typical month ₹2.32 L`),
-        h('div', { class: 'rowx' }, h('span', {}, 'Servers'), h('span', {}, lakh(mm.servers))),
-        h('div', { class: 'rowx' }, h('span', {}, 'AI'), h('span', {}, lakh(mm.ai))),
-        h('div', { class: 'rowx' }, h('span', {}, 'Test environment'), h('span', {}, lakh(mm.test))),
+        h('div', { class: 'small muted' }, `≈ ₹${Math.round(mm.perStudent)} per student · servers ${lakh(mm.servers)}, AI ${lakh(mm.ai)}, test ${lakh(mm.test)}`),
         h('div', { class: 'stack', style: { gap: '6px' } },
           h('div', { class: 'rowx' }, h('span', {}, 'Servers vs ₹2 L budget'), h('span', {}, `${Math.round(mm.pct)}%`)),
-          h('div', { class: 'budbar', title: 'Black line: 90% of budget' }, h('i', { class: mm.pct >= 90 ? 'red' : mm.pct >= 75 ? 'amber' : '', style: { width: Math.min(100, mm.pct) + '%' } }), h('b')),
-          h('span', { class: 'tiny muted' }, 'Black line: 90% of budget, where auto-trim starts.')));
+          h('div', { class: 'budbar', title: 'Black line: 90% of budget, where auto-trim starts' }, h('i', { class: mm.pct >= 90 ? 'red' : mm.pct >= 75 ? 'amber' : '', style: { width: Math.min(100, mm.pct) + '%' } }), h('b'))));
       const spikeF = K.spike ? ' × 1.27 (busy week)' : '';
       formula.innerHTML = `<span class="c"># Simple, transparent demo model (₹ lakh a month)</span>\nServers = 1.48 × (0.6 + 0.4 × <span class="n">${K.hours}</span> ÷ 12) × (0.9 + 0.1 × <span class="n">${mm.idle}</span> ÷ 20)${spikeF}\n        = <span class="s">${mm.servers.toFixed(2)}</span>\nAI      = 0.69 × (0.5 + 0.5 × ₹<span class="n">${K.ai}</span> ÷ ₹120) = <span class="s">${mm.ai.toFixed(2)}</span>\nTest    = 0.15 (fixed)\nTotal   = <span class="s">${mm.total.toFixed(2)}</span>  ÷ 3,000 students = ₹<span class="s">${Math.round(mm.perStudent)}</span> each`;
-      // so far this month
       const day = new Date().getDate(), days = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
       const spent = base.total * day / days * 0.97;
       sofar.textContent = '';
@@ -1245,32 +1224,46 @@
       const d = K.hours !== K.saved.hours || K.idle !== K.saved.idle || K.ai !== K.saved.ai;
       saveBtn.disabled = !d; dirty.hidden = !d;
     }
-    const sliders = h('div', { class: 'stack', style: { gap: '16px' } },
-      rangeField(h, 'Weekly lab hours per student (cap)', 8, 14, 1, K.hours, (v) => `${v} h`, (v) => { K.hours = v; upd(); }, 'Workspace time each student can use in a week. Most use 4 to 6 hours.'),
-      rangeField(h, 'Idle shutdown', 10, 40, 5, K.idle, (v) => `${v} min`, (v) => { K.idle = v; upd(); }, 'A workspace with no typing or running code stops after this long. Files are kept.'),
-      rangeField(h, 'AI budget per student', 60, 200, 10, K.ai, (v) => `₹${v}`, (v) => { K.ai = v; upd(); }, 'Monthly limit on each student\'s lab AI key. Most students use far less.'),
-      sw(h, 'Auto-trim idle time when servers reach 90% of budget', K.autotrim, (x) => {
+    const sliders = h('div', { class: 'stack', style: { gap: '18px' } },
+      rangeField(h, 'Weekly lab hours per student', 8, 14, 1, K.hours, (v) => `${v} h`, (v) => { K.hours = v; upd(); }, 'Most students use 4 to 6 hours.'),
+      rangeField(h, 'Idle shutdown', 10, 40, 5, K.idle, (v) => `${v} min`, (v) => { K.idle = v; upd(); }, 'An idle workspace stops after this long. Files are kept.'),
+      rangeField(h, 'AI budget per student', 60, 200, 10, K.ai, (v) => `₹${v}`, (v) => { K.ai = v; upd(); }, 'Monthly limit on each student\'s lab AI key.'),
+      sw(h, 'Auto-trim at 90% of the server budget', K.autotrim, (x) => {
         K.autotrim = x; K.alerted = false;
         log('limits', `Auto-trim turned ${x ? 'on' : 'off'}`, x ? 'When servers reach 90% of the monthly budget, idle shutdown drops to 10 minutes until the month ends.' : 'Servers can pass 90% of budget without any automatic change. Admin alerts still fire.');
         C.toast(`Auto-trim ${x ? 'on' : 'off'}.`, x ? 'green' : 'amber'); upd();
-      }, 'Cuts idle shutdown to 10 minutes until the month ends. Lectures, exams and saved work are never touched.'));
+      }, 'Idle shutdown drops to 10 minutes. Lectures, exams and saved work are never touched.'));
     panel.append(h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Budget governor'), h('p', { class: 'tiny muted' }, 'Move the sliders: the projected monthly cost updates straight away.')), dirty),
-      h('div', { class: 'gov' }, sliders, h('div', { class: 'stack' }, projBox, formula)),
+      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('h3', {}, 'Lab cost and limits'), h('p', { class: 'tiny muted' }, `A typical month is ₹${lc.monthly_total_lakh.toFixed(2)} lakh, about ₹${lc.per_student_month_inr} per student. Move a slider and the projection updates.`)), dirty),
+      h('div', { class: 'c3' },
+        h('div', { class: 'stack', style: { gap: '10px', alignContent: 'start' } },
+          svgEl(donutSVG()),
+          h('div', { class: 'legend', style: { justifyContent: 'center' } }, h('span', {}, h('i'), 'Servers ₹1.48 L'), h('span', {}, h('i', { class: 'v' }), 'AI ₹0.69 L'), h('span', {}, h('i', { class: 'a' }), 'Test ₹0.15 L'))),
+        sliders,
+        projBox),
       statusBox,
       h('div', { class: 'foot' },
         h('button', { class: 'btn', onclick: () => { K.spike = !K.spike; K.alerted = false; C.toast(K.spike ? 'Simulating a busy exam week: 27% more server time.' : 'Back to a normal week.', K.spike ? 'amber' : 'green'); draw(); } }, K.spike ? 'End busy-week simulation' : 'Simulate a busy exam week'),
-        h('button', { class: 'btn', onclick: () => { Object.assign(K, COST_DEF); draw(); C.toast('Sliders back to the standard limits. Save to apply.'); } }, 'Reset to standard'),
+        h('button', { class: 'btn', onclick: () => { Object.assign(K, COST_DEF); draw(); C.toast('Sliders back to the standard limits. Save to apply.'); } }, 'Reset'),
         saveBtn)));
 
-    panel.append(h('section', { class: 'card stack' },
-      h('h3', {}, 'What happens near the budget'),
-      h('ol', { class: 'steps' },
-        h('li', {}, h('span', { class: 'pill green' }, '75%'), h('div', {}, h('b', {}, 'You get an alert. '), h('span', { class: 'muted' }, 'A notification and email to the admin team. Nothing changes for students.'))),
-        h('li', {}, h('span', { class: 'pill amber' }, '90%'), h('div', {}, h('b', {}, 'Auto-trim, if it is on. '), h('span', { class: 'muted' }, 'Idle workspaces stop after 10 minutes instead of 20, and new workspaces start in Small (2 GB) unless a practical needs Large.'))),
-        h('li', {}, h('span', { class: 'pill red' }, '100%'), h('div', {}, h('b', {}, 'Extra hours pause, learning does not. '), h('span', { class: 'muted' }, 'Exams and practicals already running finish normally. Lectures, the forum and each student\'s AI key keep working; extra workspace hours wait until the next week.'))),
-        h('li', {}, h('span', { class: 'pill blue' }, 'AI'), h('div', {}, h('b', {}, 'AI has its own limit. '), h('span', { class: 'muted' }, 'Each student\'s lab AI key stops at the monthly budget above, so one heavy user cannot raise the bill for everyone.')))),
-      h('p', { class: 'tiny muted' }, 'Every automatic step is written to the audit log.')));
+    panel.append(h('details', { class: 'card more', open: S.cost.moreOpen || null, ontoggle: (e) => { S.cost.moreOpen = e.currentTarget.open; if (e.currentTarget.open) upd(); } },
+      h('summary', {}, h('span', {}, 'More: last six months and how the estimate works'), h('span', { class: 'tiny muted' }, 'Demo model')),
+      h('div', { class: 'gov' },
+        h('div', { class: 'stack' },
+          h('div', {}, h('b', { class: 'small' }, 'Last six months'), h('p', { class: 'tiny muted' }, 'This month is an estimate from the settings above.')),
+          stackBox,
+          h('div', { class: 'legend' }, h('span', {}, h('i'), 'Servers'), h('span', {}, h('i', { class: 'v' }), 'AI'), h('span', {}, h('i', { class: 'a' }), 'Test environment'), h('span', {}, h('i', { class: 'r' }), 'Server budget ₹2 L')),
+          sofar),
+        h('div', { class: 'stack' },
+          h('b', { class: 'small' }, 'What happens near the budget'),
+          h('ol', { class: 'steps' },
+            h('li', {}, h('span', { class: 'pill green' }, '75%'), h('div', {}, h('b', {}, 'You get an alert. '), h('span', { class: 'muted' }, 'Nothing changes for students.'))),
+            h('li', {}, h('span', { class: 'pill amber' }, '90%'), h('div', {}, h('b', {}, 'Auto-trim, if it is on. '), h('span', { class: 'muted' }, 'Idle workspaces stop after 10 minutes, and new ones start Small (2 GB) unless a practical needs Large.'))),
+            h('li', {}, h('span', { class: 'pill red' }, '100%'), h('div', {}, h('b', {}, 'Extra hours pause, learning does not. '), h('span', { class: 'muted' }, 'Running exams and practicals finish. Lectures, the forum and AI keys keep working.'))),
+            h('li', {}, h('span', { class: 'pill blue' }, 'AI'), h('div', {}, h('b', {}, 'AI has its own limit. '), h('span', { class: 'muted' }, 'Each lab AI key stops at its monthly budget, so one heavy user cannot raise the bill for everyone.')))),
+          formula,
+          h('p', { class: 'tiny muted' }, 'Every automatic step is written to the audit log.')))));
     upd();
   }
 
@@ -1293,23 +1286,31 @@
       const rows = auditRows();
       count.textContent = `${rows.length} of ${S.audit.length} records`;
       if (!rows.length) { list.append(h('div', { class: 'empty' }, 'No records match these filters.')); return; }
+      const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)); U.page = clamp(U.page || 0, 0, pages - 1);
+      const slice = rows.slice(U.page * PER_PAGE, U.page * PER_PAGE + PER_PAGE);
       const tbody = h('tbody');
-      rows.forEach((a) => tbody.append(h('tr', { class: 'clickable' + (a.fresh ? ' fresh' : ''), tabindex: '0', onclick: () => openAudit(a), onkeydown: (e) => { if (e.key === 'Enter') openAudit(a); } },
+      slice.forEach((a) => tbody.append(h('tr', { class: 'clickable' + (a.fresh ? ' fresh' : ''), tabindex: '0', onclick: () => openAudit(a), onkeydown: (e) => { if (e.key === 'Enter') openAudit(a); } },
         h('td', { class: 'au-t' }, fmtDT(a.ts), h('span', { class: 'sub' }, rel(a.ts))),
         h('td', { class: 'small' }, h('b', { class: 'nw' }, a.actor), h('span', { class: 'sub' }, a.role === 'system' ? 'Automatic' : a.role === 'admin' ? 'Admin' : 'Mentor')),
-        h('td', {}, h('span', { class: 'pill ' + ({ consent: 'green', exam: 'blue', grade: 'amber', key: 'violet', limits: 'red', content: '', students: 'blue' }[a.type] || '') }, typeLabel(a.type))),
+        h('td', { class: 'small muted nw' }, typeLabel(a.type)),
         h('td', { class: 'au-d' }, h('b', {}, a.action), a.detail))));
       list.append(h('div', { class: 'table-wrap' }, h('table', {}, h('thead', {}, h('tr', {}, ['Time', 'Who', 'Type', 'What happened'].map((t) => h('th', {}, t)))), tbody)));
+      if (pages > 1) list.append(h('div', { class: 'pager' },
+        h('span', { class: 'small muted' }, `Showing ${U.page * PER_PAGE + 1} to ${U.page * PER_PAGE + slice.length} of ${rows.length}`),
+        h('div', { class: 'row', style: { gap: '6px' } },
+          h('button', { class: 'btn sm', disabled: U.page === 0 || null, onclick: () => { U.page -= 1; paint(); } }, 'Previous'),
+          h('span', { class: 'small num' }, `Page ${U.page + 1} of ${pages}`),
+          h('button', { class: 'btn sm', disabled: U.page >= pages - 1 || null, onclick: () => { U.page += 1; paint(); } }, 'Next'))));
     }
-    const typeSel = h('select', { class: 'field-input', 'aria-label': 'Filter by type', onchange: (e) => { U.type = e.target.value; paint(); } }, TYPES.map(([v, t]) => h('option', { value: v, selected: U.type === v || null }, t)));
-    const roleSel = h('select', { class: 'field-input', 'aria-label': 'Filter by who', onchange: (e) => { U.role = e.target.value; paint(); } }, ROLES.map(([v, t]) => h('option', { value: v, selected: U.role === v || null }, t)));
-    const q = h('input', { class: 'field-input', type: 'search', placeholder: 'Search names, batches, lectures', value: U.q, 'aria-label': 'Search the audit log', oninput: (e) => { U.q = e.target.value; paint(); } });
+    const typeSel = h('select', { class: 'field-input', 'aria-label': 'Filter by type', onchange: (e) => { U.type = e.target.value; U.page = 0; paint(); } }, TYPES.map(([v, t]) => h('option', { value: v, selected: U.type === v || null }, t)));
+    const roleSel = h('select', { class: 'field-input', 'aria-label': 'Filter by who', onchange: (e) => { U.role = e.target.value; U.page = 0; paint(); } }, ROLES.map(([v, t]) => h('option', { value: v, selected: U.role === v || null }, t)));
+    const q = h('input', { class: 'field-input', type: 'search', placeholder: 'Search names, batches, lectures', value: U.q, 'aria-label': 'Search the audit log', oninput: (e) => { U.q = e.target.value; U.page = 0; paint(); } });
     panel.append(h('section', { class: 'card stack' },
       h('div', { class: 'card-head', style: { marginBottom: 0 } },
         h('div', {}, h('h3', {}, 'Audit log'), h('p', { class: 'tiny muted' }, 'Every change by an admin, a mentor or the system. Records cannot be edited or deleted.')),
         h('button', { class: 'btn', onclick: exportCSV }, 'Export CSV')),
       h('div', { class: 'filters' }, q, typeSel, roleSel,
-        h('button', { class: 'btn sm ghost', onclick: () => { S.auditUI = { type: 'all', role: 'all', q: '' }; draw(); } }, 'Clear')),
+        h('button', { class: 'btn sm ghost', onclick: () => { S.auditUI = { type: 'all', role: 'all', q: '', page: 0 }; draw(); } }, 'Clear')),
       count, list));
     paint();
   }

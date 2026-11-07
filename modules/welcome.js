@@ -32,6 +32,7 @@
   let busy = null;            // key of the button showing a spinner
   let pendingFocus = false;   // move focus + scroll to the simulator after the next render
   let loginOpener = null;     // opens the demo-student login step (set on each render)
+  let simOpen = false;        // the sign-up expander is open (kept across re-renders, e.g. after a field change)
   const timers = new Set();
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const every = (fn, ms) => { const t = setInterval(fn, ms); timers.add(t); return t; };
@@ -68,28 +69,56 @@
   function injectStyles() {
     if (document.getElementById('m-welcome')) return;
     const css = `
-.m-welcome { display: grid; gap: 20px; min-width: 0; container-type: inline-size }
-.m-welcome .wl-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 28px;
-  background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--brand) 13%, transparent), transparent 60%),
-              radial-gradient(80% 70% at 0% 100%, color-mix(in srgb, var(--green) 9%, transparent), transparent 60%), var(--surface) }
-.m-welcome .wl-copy { display: grid; gap: 16px; align-content: center; min-width: 0 }
-.m-welcome .wl-tags { display: flex; gap: 8px; flex-wrap: wrap }
-.m-welcome .wl-copy h1 { font-size: clamp(26px, 4.2cqi, 38px); line-height: 1.15; letter-spacing: -.02em; max-width: 20ch }
-.m-welcome .wl-copy h1 em { font-style: normal; color: var(--brand) }
-.m-welcome .wl-lead { font-size: 16px; color: var(--muted); max-width: 54ch }
-.m-welcome .wl-cta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
-.m-welcome .btn.lg { padding: 13px 20px; font-size: 15.5px; border-radius: 10px }
+.m-welcome { display: grid; gap: 40px; min-width: 0; container-type: inline-size }
+.m-welcome > * { min-width: 0 }
+.m-welcome .screen-intro { margin-bottom: -16px }
+.m-welcome .wl-hero { display: grid; gap: 14px; justify-items: start; padding: 36px 36px 34px; background: var(--surface); position: relative; overflow: hidden }
+.m-welcome .wl-hero::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--brand-grad) }
+.m-welcome .wl-hero h1 { font-size: clamp(26px, 3.6cqi, 36px); line-height: 1.18; letter-spacing: -.02em; max-width: 24ch }
+.m-welcome .wl-hero h1 em { font-style: normal; color: var(--brand) }
+.m-welcome .wl-lead { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6 }
+.m-welcome .wl-cta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px }
+.m-welcome .btn.lg { padding: 12px 20px; font-size: 15px; border-radius: 10px }
 .m-welcome .btn.lg svg { width: 18px; height: 18px }
-.m-welcome .wl-mini { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted) }
-.m-welcome .wl-mini span { display: inline-flex; gap: 6px; align-items: center }
-.m-welcome .wl-mini svg { width: 15px; height: 15px; color: var(--green); flex: none }
+.m-welcome a.btn { user-select: none }
 
-.m-welcome .wl-win { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; min-width: 0; align-self: center }
-.m-welcome .wl-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line) }
-.m-welcome .wl-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: block }
-.m-welcome .wl-bar b { margin-left: 8px; font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
-.m-welcome .wl-wbody { padding: 16px; display: grid; gap: 12px }
-.m-welcome .wl-wbody h3 { font-size: 15px }
+.m-welcome .wl-sec-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px }
+.m-welcome .wl-sec-head > div { min-width: 0; display: grid; gap: 4px }
+.m-welcome .wl-login { scroll-margin-top: 84px }
+
+/* 4 student cards */
+.m-welcome .wl-stus { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px }
+.m-welcome .wl-stu { position: relative; display: grid; gap: 10px; align-content: start; text-align: left; cursor: pointer; padding: 20px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; min-width: 0; box-shadow: var(--shadow-xs); transition: border-color .15s, box-shadow .15s, transform .15s }
+.m-welcome .wl-stu:hover { border-color: color-mix(in srgb, var(--brand) 50%, var(--line)); box-shadow: var(--shadow); transform: translateY(-2px) }
+.m-welcome .wl-stu:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
+.m-welcome .wl-stu.cur { border-color: color-mix(in srgb, var(--green) 50%, var(--line)) }
+.m-welcome .wl-stu > span { min-width: 0 }
+.m-welcome .st-top { display: flex; gap: 12px; align-items: center; min-width: 0 }
+.m-welcome .avatar { width: 40px; height: 40px; border-radius: 11px; font-size: 14px }
+.m-welcome .avatar.av-0 { background: var(--violet-soft); color: var(--violet) }
+.m-welcome .avatar.av-1 { background: var(--brand-soft); color: var(--brand) }
+.m-welcome .avatar.av-2 { background: var(--amber-soft); color: var(--amber) }
+.m-welcome .avatar.av-3 { background: var(--green-soft); color: var(--green) }
+.m-welcome .st-who { display: grid; min-width: 0; flex: 1 }
+.m-welcome .st-who b { font-family: var(--display); font-size: 15.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-welcome .st-who small { font-size: 13px; color: var(--muted) }
+.m-welcome .st-cur { flex: none; align-self: start }
+.m-welcome .st-meta { font-size: 13.5px; font-weight: 700; color: var(--brand) }
+.m-welcome .st-story { font-size: 13.5px; color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.m-welcome .wl-stu .go { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13.5px; font-weight: 700; color: var(--brand); margin-top: 4px }
+
+/* login dialog */
+.wl-login-modal { container-type: normal; gap: 16px }
+.wl-login-modal .wl-form { max-width: none; gap: 12px }
+.wl-login-modal .wl-mnow { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2) }
+.wl-login-modal .wl-mnow b { font-size: 14px; line-height: 1.4 }
+.wl-login-modal .wl-mnums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px }
+.wl-login-modal .wl-mnum { display: grid; gap: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); min-width: 0 }
+.wl-login-modal .wl-mnum b { font-family: var(--display); font-size: 18px; font-weight: 700 }
+.wl-login-modal .wl-mnum span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+@media (max-width: 460px) { .wl-login-modal .wl-mnums { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+
+/* practical preview (dialog) */
 .m-welcome .wl-chk { display: flex; gap: 10px; align-items: center; font-size: 13px; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); min-width: 0;
   animation: wl-pop .45s ease both }
 .m-welcome .wl-chk span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
@@ -99,47 +128,52 @@
 .m-welcome .wl-hint p { color: var(--fg) }
 .m-welcome .wl-wfoot { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap }
 @keyframes wl-pop { from { opacity: 0; transform: translateY(6px) } }
+.m-welcome .wl-hint { display: grid; gap: 4px; font-size: 13.5px; padding: 10px 12px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--violet) 45%, var(--line)); background: var(--violet-soft) }
+.m-welcome .wl-hint p { color: var(--fg) }
+.m-welcome .wl-wfoot { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap }
 
-.m-welcome .wl-sec-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px }
-.m-welcome .wl-sec-head > div { min-width: 0 }
-.m-welcome .wl-sec-head h2 { margin-top: 2px }
-.m-welcome .wl-week { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; list-style: none; margin: 0; padding: 0 }
+/* a student's week: one simple row of 5 steps */
+.m-welcome .wl-week { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; list-style: none; margin: 0; padding: 0; counter-reset: wk }
 .m-welcome .wl-week li { min-width: 0; display: flex }
-.m-welcome .wl-step { position: relative; display: flex; gap: 12px; align-items: start; width: 100%; text-align: left; cursor: pointer; padding: 14px; border-radius: 10px;
-  border: 1px solid var(--line); background: var(--surface); transition: border-color .15s, transform .15s }
-.m-welcome .wl-step:hover { border-color: var(--brand); transform: translateY(-2px) }
+.m-welcome .wl-step { position: relative; display: flex; gap: 12px; align-items: start; width: 100%; text-align: left; cursor: pointer; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; transition: border-color .15s, background .15s }
+.m-welcome .wl-step:hover { border-color: color-mix(in srgb, var(--brand) 50%, var(--line)); background: var(--brand-softer) }
 .m-welcome .wl-step .ix { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); flex: none }
 .m-welcome .wl-step .ix svg { width: 19px; height: 19px }
-.m-welcome .wl-step .tx { display: grid; gap: 3px; min-width: 0 }
-.m-welcome .wl-step .tx small { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--faint) }
-.m-welcome .wl-step .tx b { font-size: 14.5px; font-family: var(--display) }
-.m-welcome .wl-step .tx span { font-size: 12.5px; color: var(--muted) }
-.m-welcome .wl-step .go { font-size: 12px; font-weight: 700; color: var(--brand); margin-top: 4px }
-.m-welcome .wl-week li:nth-child(3) .ix { background: var(--green-soft); color: var(--green) }
-.m-welcome .wl-week li:nth-child(4) .ix { background: var(--violet-soft); color: var(--violet) }
+.m-welcome .wl-step .tx { display: grid; gap: 2px; min-width: 0 }
+.m-welcome .wl-step .tx small { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint) }
+.m-welcome .wl-step .tx b { font-size: 14.5px; font-weight: 700 }
+.m-welcome .wl-step .tx span { font-size: 13px; color: var(--muted); line-height: 1.45 }
 
-.m-welcome .wl-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
-.m-welcome .wl-num { padding: 16px; border-radius: 12px; background: var(--surface-2); display: grid; gap: 2px; min-width: 0 }
-.m-welcome .wl-num b { font-family: var(--display); font-size: 30px; line-height: 1.1; color: var(--fg); font-variant-numeric: tabular-nums }
-.m-welcome .wl-num b small { font-size: 16px; color: var(--muted); margin-left: 2px }
-.m-welcome .wl-num span { font-size: 13px; color: var(--muted) }
+/* key numbers */
+.m-welcome .wl-nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px }
+.m-welcome .wl-num { padding: 18px 20px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); display: grid; gap: 2px; min-width: 0 }
+.m-welcome .wl-num b { font-family: var(--display); font-size: 30px; font-weight: 700; line-height: 1.15; color: var(--fg); font-variant-numeric: tabular-nums }
+.m-welcome .wl-num span { font-size: 13.5px; color: var(--muted) }
 
-.m-welcome .wl-roles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px }
-.m-welcome .wl-role { display: grid; gap: 10px; align-content: start; text-align: left; cursor: pointer; padding: 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); min-width: 0; transition: border-color .15s, box-shadow .15s, transform .15s }
-.m-welcome .wl-role:hover { border-color: var(--brand); box-shadow: var(--shadow); transform: translateY(-2px) }
-.m-welcome .wl-role .ix { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand) }
+/* roles */
+.m-welcome .wl-roles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px }
+.m-welcome .wl-role { display: flex; gap: 14px; align-items: center; text-align: left; cursor: pointer; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; min-width: 0; transition: border-color .15s, background .15s }
+.m-welcome .wl-role:hover { border-color: color-mix(in srgb, var(--brand) 50%, var(--line)); background: var(--brand-softer) }
+.m-welcome .wl-role .ix { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); flex: none }
 .m-welcome .wl-role.r-mentor .ix { background: var(--violet-soft); color: var(--violet) }
 .m-welcome .wl-role.r-admin .ix { background: var(--green-soft); color: var(--green) }
-.m-welcome .wl-role .ix svg { width: 21px; height: 21px }
-.m-welcome .wl-role b { font-family: var(--display); font-size: 16px }
-.m-welcome .wl-role p { font-size: 13px; color: var(--muted) }
-.m-welcome .wl-role .go { font-size: 13px; font-weight: 700; color: var(--brand) }
+.m-welcome .wl-role .ix svg { width: 20px; height: 20px }
+.m-welcome .wl-role .tx { display: grid; gap: 1px; min-width: 0 }
+.m-welcome .wl-role b { font-size: 14.5px }
+.m-welcome .wl-role .tx span { font-size: 13px; color: var(--muted) }
 
-/* sign-up simulator */
-.m-welcome .wl-sim { scroll-margin-top: 84px; padding: 0; overflow: hidden }
+/* sign-up simulator, behind the "Try the sign-up flow" expander */
+.m-welcome .wl-signup { scroll-margin-top: 84px }
+.m-welcome .wl-signup > summary { padding: 18px 20px }
+.m-welcome .wl-signup > summary::after { display: none }
+.m-welcome .wl-sum-tx { display: grid; gap: 2px; min-width: 0 }
+.m-welcome .wl-sum-tx b { font-size: 15.5px }
+.m-welcome .wl-sum-tx small { font-weight: 500 }
+.m-welcome .wl-sum-btn { pointer-events: none; flex: none }
+.m-welcome .wl-signup > .details-body { padding: 0 }
+.m-welcome .wl-sim { scroll-margin-top: 84px; min-width: 0 }
 .m-welcome .wl-sim-grid { display: grid; grid-template-columns: minmax(0, 1fr) }
-.m-welcome .wl-sim-side { padding: 20px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: grid; gap: 14px; align-content: start; min-width: 0 }
-.m-welcome .wl-sim-side h2 { font-size: 18px }
+.m-welcome .wl-sim-side { padding: 16px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: grid; gap: 12px; align-content: start; min-width: 0 }
 .m-welcome .wl-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin }
 .m-welcome .wl-steps li { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; padding: 6px 10px 6px 6px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); flex: none }
 .m-welcome .wl-steps .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; background: var(--surface-2); color: var(--muted); flex: none }
@@ -202,64 +236,33 @@
 .m-welcome .wl-sum .check > span:last-child { min-width: 0 }
 .m-welcome .wl-foot { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; text-align: center }
 
-/* log in as a demo student */
-.m-welcome .wl-login { scroll-margin-top: 84px }
-.m-welcome .wl-stus { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px }
-.m-welcome .wl-stu { position: relative; display: grid; gap: 10px; align-content: start; text-align: left; cursor: pointer; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; min-width: 0; transition: border-color .15s, box-shadow .15s, transform .15s }
-.m-welcome .wl-stu:hover { border-color: var(--brand); box-shadow: var(--shadow); transform: translateY(-2px) }
-.m-welcome .wl-stu:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px }
-.m-welcome .wl-stu.cur { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 55%, transparent) inset; background: color-mix(in srgb, var(--green-soft) 35%, var(--surface)) }
-.m-welcome .wl-stu > span { min-width: 0 }
-.m-welcome .st-top { display: flex; gap: 10px; align-items: center; min-width: 0 }
-.m-welcome .avatar { width: 40px; height: 40px; border-radius: 11px; font-size: 14px }
-.m-welcome .avatar.av-0 { background: var(--violet-soft); color: var(--violet) }
-.m-welcome .avatar.av-1 { background: var(--brand-soft); color: var(--brand) }
-.m-welcome .avatar.av-2 { background: var(--amber-soft); color: var(--amber) }
-.m-welcome .avatar.av-3 { background: var(--green-soft); color: var(--green) }
-.m-welcome .st-who { display: grid; min-width: 0 }
-.m-welcome .st-who b { font-family: var(--display); font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.m-welcome .st-who small { font-size: 12px; color: var(--muted) }
-.m-welcome .st-cur { justify-self: start }
-.m-welcome .st-tags { display: flex; gap: 6px; flex-wrap: wrap }
-.m-welcome .st-year { display: block; height: 5px; border-radius: 99px; background: var(--surface-2); overflow: hidden }
-.m-welcome .st-year i { display: block; height: 100%; background: var(--brand); border-radius: inherit }
-.m-welcome .st-now { display: grid; gap: 1px; font-size: 13px; font-weight: 700 }
-.m-welcome .st-now small { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--faint) }
-.m-welcome .st-story { font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
-.m-welcome .st-stats { display: flex; gap: 6px 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line) }
-.m-welcome .st-stats b { color: var(--fg); font-size: 13.5px }
-.m-welcome .st-minor { display: flex; gap: 6px; align-items: center; font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-soft); border-radius: 8px; padding: 6px 8px }
-.m-welcome .st-minor svg { width: 15px; height: 15px; flex: none }
-.m-welcome .wl-stu .go { font-size: 13px; font-weight: 700; color: var(--brand); margin-top: auto }
+.m-welcome .wl-foot { text-align: center; margin-top: -16px }
 .m-welcome .wl-or { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line-strong); border-radius: 10px }
 .m-welcome .wl-or .btn.cur { border-color: var(--green); color: var(--green) }
-.wl-login-modal { container-type: normal }
-.wl-login-modal .wl-form { max-width: none }
 @media (prefers-reduced-motion: reduce) { .m-welcome .wl-stu:hover { transform: none } }
 
 @container (min-width: 560px) {
   .m-welcome .wl-stus { grid-template-columns: repeat(2, minmax(0, 1fr)) }
-  .m-welcome .wl-nums { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .m-welcome .wl-fields { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-welcome .wl-week { grid-template-columns: repeat(2, minmax(0, 1fr)) }
   .m-welcome .wl-week li:last-child { grid-column: 1 / -1 }
 }
 @container (min-width: 700px) {
   .m-welcome .wl-roles { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .m-welcome .wl-nums { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+  .m-welcome .wl-roles .wl-role { flex-direction: column; align-items: start }
 }
 @container (min-width: 860px) {
   .m-welcome .wl-week { grid-template-columns: repeat(5, minmax(0, 1fr)) }
   .m-welcome .wl-week li:last-child { grid-column: auto }
   .m-welcome .wl-week .wl-step { flex-direction: column }
-  .m-welcome .wl-week li:not(:last-child) .wl-step::after { content: ""; position: absolute; top: 31px; right: -10px; width: 10px; height: 2px; background: var(--line) }
+  .m-welcome .wl-week li:not(:last-child) .wl-step::after { content: ""; position: absolute; top: 33px; right: -13px; width: 14px; height: 2px; background: var(--line-strong) }
 }
 @container (min-width: 1000px) {
   .m-welcome .wl-stus { grid-template-columns: repeat(4, minmax(0, 1fr)) }
 }
 @container (min-width: 900px) {
-  .m-welcome .wl-hero { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); padding: 36px; gap: 32px }
-  .m-welcome .wl-nums { grid-template-columns: repeat(6, minmax(0, 1fr)) }
-  .m-welcome .wl-sim-grid { grid-template-columns: 250px minmax(0, 1fr) }
+  .m-welcome .wl-sim-grid { grid-template-columns: 220px minmax(0, 1fr) }
   .m-welcome .wl-sim-side { border-bottom: 0; border-right: 1px solid var(--line) }
   .m-welcome .wl-steps { flex-direction: column; overflow: visible }
   .m-welcome .wl-steps li { background: transparent; border-color: transparent; padding: 6px 4px }
@@ -267,17 +270,18 @@
   .m-welcome .wl-fields { grid-template-columns: repeat(3, minmax(0, 1fr)) }
   .m-welcome .wl-sim-main { padding: 26px 28px }
 }
-@container (max-width: 420px) {
-  .m-welcome .wl-hero { padding: 20px }
+@container (max-width: 520px) {
+  .m-welcome { gap: 32px }
+  .m-welcome .wl-hero { padding: 24px 20px }
+  .m-welcome .wl-cta { width: 100% }
   .m-welcome .wl-cta .btn { width: 100% }
   .m-welcome .wl-otp { gap: 6px }
   .m-welcome .wl-otp input { height: 48px; font-size: 19px }
   .m-welcome .wl-sim-main { padding: 18px }
   .m-welcome .wl-actions .btn { flex: 1 1 auto }
+  .m-welcome .wl-signup > summary { flex-wrap: wrap }
 }
-@media (prefers-reduced-motion: reduce) {
-  .m-welcome .wl-step:hover, .m-welcome .wl-role:hover { transform: none }
-}`;
+`;
     document.head.append(Object.assign(document.createElement('style'), { id: 'm-welcome', textContent: css }));
   }
 
@@ -292,72 +296,61 @@
       const wrap = h('div', { class: 'm-welcome' });
       root.append(wrap);
 
-      /* ---------- hero ---------- */
+      /* ---------- purpose line + short hero ---------- */
       const S = data.demo_student;
       const commonPrac = S.practical_company === 'common';
       const pracSet = commonPrac ? (data.common.practicals || {}) : (field.practicals || {});
       const prac = pracSet[String(S.lecture)] || Object.values(pracSet)[0] || null;
       const checks = prac ? prac.checks.slice(0, 3) : [];
       const lec = data.lectures.find((l) => l.id === S.lecture) || data.lectures[0];
-      const preview = h('div', { class: 'wl-win', 'aria-label': 'Example of a checked practical' },
-        h('div', { class: 'wl-bar' }, h('i'), h('i'), h('i'), h('b', {}, `${S.name.split(' ')[0]}’s practical · Lecture ${lec.id} · ${commonPrac ? 'Foundation' : field.short}`)),
-        h('div', { class: 'wl-wbody' },
-          h('div', {}, h('div', { class: 'eyebrow' }, commonPrac ? data.common.company : field.company), h('h3', {}, prac ? prac.topic : lec.practical)),
-          h('div', { class: 'stack', style: { gap: '6px' } }, checks.map((t, i) =>
-            h('div', { class: 'wl-chk', style: { animationDelay: `${0.25 + i * 0.35}s` } }, h('span', { class: 'ic', html: icon('check') }), h('span', { title: t }, t)))),
-          h('div', { class: 'wl-wfoot' },
-            h('span', { class: 'pill green' }, h('span', { class: 'dot' }), `${checks.length} of ${checks.length} checks passed`),
-            h('span', { class: 'tiny muted' }, 'Checked automatically in 38 seconds')),
-          h('div', { class: 'wl-hint' }, h('div', {}, h('span', { class: 'ai-badge' }, 'AI tutor')),
-            h('p', {}, HINTS[lec.id] || 'Hint: run the checks once before you change anything. Which one fails first, and why?')),
-          h('div', { class: 'wl-wfoot' },
-            h('span', { class: 'tiny muted' }, commonPrac ? 'Months 1 to 3 are common. Fields open in Month 4.' : `Same lab, ${data.fields.length} fields. Switch the field at the top.`),
-            h('button', { class: 'btn sm', onclick: () => c.go('practical'), html: `${icon('code')}Open this practical` }))));
+      const first = (st) => String(st.name || '').split(' ')[0];
+      const smooth = () => (reduced() ? 'auto' : 'smooth');
 
-      const simAnchor = () => wrap.querySelector('.wl-sim');
+      const intro = h('div', { class: 'screen-intro' },
+        h('p', {}, 'Meet the lab in two minutes: log in as a demo student, or take the guided tour.'),
+        h('span', { class: 'demo-flag' }, 'Demo data'));
+
+      const toLogin = () => { const t = wrap.querySelector('.wl-login'); if (!t) return; t.scrollIntoView({ behavior: smooth(), block: 'start' }); const b = t.querySelector('.wl-stu'); if (b) b.focus({ preventScroll: true }); };
+      // Rendered as a link-styled button so it never competes with the real "Log in" button inside the login dialog.
+      const loginCta = h('a', { class: 'btn primary lg', role: 'button', tabindex: '0', 'data-act': 'login', onclick: toLogin, onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toLogin(); } }, html: `${icon('login')}Log in as a student` });
       const hero = h('section', { class: 'card wl-hero' },
-        h('div', { class: 'wl-copy' },
-          h('div', { class: 'wl-tags' }, h('span', { class: 'pill blue' }, `${data.brand.org}`), h('span', { class: 'pill amber' }, 'Investor demo · demo data')),
-          h('h1', { html: `The online practice lab that comes with our <em>one-year AI course</em>.` }),
-          h('p', { class: 'wl-lead' }, `${data.brand.name} is where students watch lectures, practise on real-looking company data, get instant feedback and ship projects to GitHub. It works on any basic laptop with a browser.`),
-          h('div', { class: 'wl-cta' },
-            h('button', { class: 'btn primary lg', 'data-act': 'tour', onclick: () => startTour(c), html: `${icon('play')}Take the 2-minute guided tour` }),
-            h('button', { class: 'btn lg', onclick: () => c.go('flowmap'), html: `${icon('flow')}How the lab works` })),
-          h('div', { class: 'wl-mini' },
-            h('span', { html: `${icon('check')}No install, runs in the browser` }),
-            h('span', { html: `${icon('check')}4 GB RAM laptop is enough` }),
-            h('span', {}, h('button', { class: 'wl-linkbtn', onclick: () => { const t = wrap.querySelector('.wl-login'); if (t) { t.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' }); const b = t.querySelector('.wl-stu'); if (b) b.focus({ preventScroll: true }); } } }, 'Log in as a student →')),
-            h('span', {}, h('button', { class: 'wl-linkbtn', onclick: () => { pendingFocus = true; focusSim(); } }, 'Try student sign-up →')))),
-        preview);
+        h('div', { class: 'eyebrow' }, `${data.brand.org} · investor demo`),
+        h('h1', { html: 'The online practice lab that comes with our <em>one-year AI course</em>.' }),
+        h('p', { class: 'wl-lead' }, 'Students watch short lectures, practise on real-looking company data, get instant feedback and ship projects to GitHub, all in a browser.'),
+        h('div', { class: 'wl-cta' },
+          loginCta,
+          h('button', { class: 'btn lg', type: 'button', 'data-act': 'tour', onclick: () => startTour(c), html: `${icon('spark')}Take the guided tour` })));
 
       /* ---------- log in as one of the 4 demo students ---------- */
       const students = (c.students && c.students.length ? c.students : [S]).slice().sort((a, b) => a.month - b.month);
-      const fieldLabel = (st) => { const f = fieldById(st.field); const n = f ? f.short : st.field; return st.month <= 3 ? `${n} from Month 4` : n; };
-      const loginSec = h('section', { class: 'card wl-login', id: 'wl-login', 'aria-labelledby': 'wlLoginH' },
+      const fieldLabel = (st) => { const f = fieldById(st.field); const n = f ? f.short : st.field; return st.month <= 3 ? `Foundation, ${n} next` : n; };
+      // One short line per demo student for the cards (the full story and numbers are in the login dialog).
+      const ONE_LINE = {
+        S1002: 'Class 11 student making her first Claude API call.',
+        S1003: 'College student shipping Docker containers for a cloud company.',
+        S1001: 'Class 12 pass-out automating data requests with webhooks.',
+        S1004: 'Engineering graduate testing AI apps for prompt injection.',
+      };
+      const oneLine = (st) => ONE_LINE[st.id] || String(st.tagline || st.story || '');
+      const cardField = (st) => { const f = fieldById(st.field); const n = f ? f.short : st.field; return st.month <= 3 ? `${n} next` : n; };
+      const loginSec = h('section', { class: 'wl-login', id: 'wl-login', 'aria-labelledby': 'wlLoginH' },
         h('div', { class: 'wl-sec-head' },
-          h('div', {}, h('div', { class: 'eyebrow' }, `Batch ${S.batch} · 4 demo students`), h('h2', { id: 'wlLoginH' }, 'Log in as a student'),
-            h('p', { class: 'small muted', style: { marginTop: '4px', maxWidth: '62ch' } }, 'Each student is at a different point of the year, in a different field. Pick one and every screen follows them: lecture, practical, exam, capstone and certificates.')),
-          h('span', { class: 'pill blue' }, `Currently viewing: ${S.name}`)),
+          h('div', {}, h('h2', { id: 'wlLoginH' }, 'Pick a student to follow'),
+            h('p', { class: 'small muted' }, `Four students in batch ${S.batch}, each at a different point of the year. Every screen follows the one you pick.`))),
         h('div', { class: 'wl-stus' }, students.map((st, i) => studentCard(st, i))));
 
       function studentCard(st, i) {
         const cur = st.id === S.id;
-        const l = data.lectures.find((x) => x.id === st.lecture) || data.lectures[0];
-        const nCert = (st.certificates || []).length;
-        return h('button', { class: 'wl-stu' + (cur ? ' cur' : ''), type: 'button', 'data-student': st.id, 'aria-label': `Log in as ${st.name}, Month ${st.month}, ${fieldLabel(st)}${cur ? ', currently viewing' : ''}`, onclick: () => openLogin(st),
+        return h('button', { class: 'wl-stu' + (cur ? ' cur' : ''), type: 'button', 'data-student': st.id, 'aria-label': `${st.name}, age ${st.age}, Month ${st.month}, ${fieldLabel(st)}${cur ? ', currently viewing' : ''}. Log in`, onclick: () => openLogin(st),
           html: `<span class="st-top"><span class="avatar av-${i % 4}">${c.esc(st.initials || st.name.split(' ').map((w) => w[0]).join(''))}</span>`
-            + `<span class="st-who"><b>${c.esc(st.name)}</b><small>Age ${st.age} · ${c.esc(st.education)}</small></span></span>`
-            + (cur ? '<span class="pill green st-cur"><span class="dot"></span>Currently viewing</span>' : '')
-            + `<span class="st-tags"><span class="pill blue">Month ${st.month} · Week ${st.week}</span><span class="pill violet">${c.esc(fieldLabel(st))}</span></span>`
-            + `<span class="st-year" aria-hidden="true"><i style="width:${Math.round((st.month / 12) * 100)}%"></i></span>`
-            + `<span class="st-now"><small>Now</small>Lecture ${l.id}: ${c.esc(l.topic)}</span>`
-            + `<span class="st-story">${c.esc(st.story || st.tagline || '')}</span>`
-            + `<span class="st-stats"><span><b class="num">${Number(st.xp).toLocaleString('en-IN')}</b> XP</span><span><b class="num">${nCert}</b> certificate${nCert === 1 ? '' : 's'}</span><span><b class="num">${st.streak}</b>-day streak</span></span>`
-            + (st.consent ? `<span class="st-minor">${icon('shield')}Under 18 · parent consent on file</span>` : '')
-            + `<span class="go">${cur ? 'Continue' : 'Log in'} as ${c.esc(st.name.split(' ')[0])} →</span>` });
+            + `<span class="st-who"><b>${c.esc(st.name)}</b><small>Age ${st.age}</small></span>`
+            + '</span>'
+            + `<span class="st-meta">Month ${st.month} · ${c.esc(cardField(st))}</span>`
+            + `<span class="st-story">${c.esc(oneLine(st))}</span>`
+            + `<span class="go"><span>${cur ? 'Continue' : 'Log in'} →</span>${cur ? '<span class="pill green">Viewing now</span>' : ''}</span>` });
       }
 
-      // Short login step: masked contact, demo code fills itself in, then the whole demo reloads as that student.
+      // Short login step: who the student is, their numbers, masked contact, a demo code that fills itself in, then the demo reloads as that student.
       function openLogin(st) {
         const cur = st.id === S.id;
         const L = LOGIN[st.id] || { mobile: '9800000000', email: 'student@example.com', otp: '123456' };
@@ -367,22 +360,30 @@
         const boxes = h('div', { class: 'wl-otp', role: 'group', 'aria-label': '6-digit demo code' },
           Array.from({ length: 6 }, (_, k) => h('input', { type: 'text', readonly: true, tabindex: '-1', 'aria-label': `Digit ${k + 1}`, value: '' })));
         const status = h('div', { class: 'small muted', 'aria-live': 'polite' }, 'Sending a demo code…');
-        const goBtn = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: () => doLogin() }, cur ? `Continue as ${st.name.split(' ')[0]}` : 'Log in');
+        const goBtn = h('button', { class: 'btn primary', type: 'button', disabled: true, onclick: () => doLogin() }, cur ? `Continue as ${first(st)}` : 'Log in');
         const l = data.lectures.find((x) => x.id === st.lecture) || data.lectures[0];
+        const nCert = (st.certificates || []).length;
+        const num = (v, t) => h('div', { class: 'wl-mnum' }, h('b', { class: 'num' }, v), h('span', {}, t));
         const body = h('div', { class: 'm-welcome wl-login-modal stack' },
           h('div', { class: 'row', style: { gap: '12px', flexWrap: 'nowrap', alignItems: 'center' } },
             h('span', { class: `avatar av-${students.indexOf(st) % 4}`, style: { width: '44px', height: '44px', fontSize: '15px', borderRadius: '12px' } }, st.initials || ''),
             h('div', { style: { minWidth: 0 } }, h('div', { class: 'eyebrow' }, 'Demo student login'), h('h3', {}, `Log in as ${st.name}`),
-              h('div', { class: 'small muted' }, `Month ${st.month} · ${fieldLabel(st)} · Lecture ${l.id}`))),
+              h('div', { class: 'small muted' }, `Age ${st.age} · ${st.education}`))),
+          h('p', { class: 'small muted' }, st.story || ''),
+          h('div', { class: 'wl-mnow' }, h('span', { class: 'eyebrow' }, `Month ${st.month} · Week ${st.week} · ${fieldLabel(st)}`), h('b', {}, `Now: Lecture ${l.id}, ${l.topic}`)),
+          h('div', { class: 'wl-mnums' },
+            num(Number(st.xp).toLocaleString('en-IN'), 'XP'),
+            num(String(nCert), nCert === 1 ? 'certificate' : 'certificates'),
+            num(`${st.streak}`, 'day streak'),
+            num(`#${st.rank}`, 'batch rank')),
           h('div', { class: 'wl-form' },
             h('label', { class: 'wl-lbl' }, 'Mobile number', h('div', { class: 'wl-phone' }, h('span', {}, '+91'), h('input', { class: 'field-input', readonly: true, value: maskMobile(L.mobile).replace('+91 ', ''), 'aria-label': 'Mobile number (demo)' }))),
-            h('label', { class: 'wl-lbl' }, 'or email', h('input', { class: 'field-input', readonly: true, value: L.email, 'aria-label': 'Email (demo)' })),
             h('div', { class: 'wl-lbl' }, 'One-time code', boxes), status),
           st.consent ? h('div', { class: 'callout small', style: { borderLeftColor: 'var(--green)' } }, h('b', {}, 'Under 18 · parent consent on file. '), `${st.consent.parent} (${st.consent.relation}) confirmed on ${st.consent.recorded} · ${st.consent.ref}. No extra step at login.`) : null,
-          h('p', { class: 'tiny muted' }, 'Demo only: no message is sent. The page reloads so every screen starts fresh for this student.'),
+          h('p', { class: 'tiny muted' }, `Demo only: no message is sent. Email on file: ${maskEmail(L.email)}. The page reloads so every screen starts fresh for this student.`),
           h('div', { class: 'wl-actions' }, h('button', { class: 'btn', type: 'button', onclick: () => close() }, 'Cancel'), h('span', { class: 'sp' }), goBtn));
         const md = c.modal(body);
-        md.box.style.maxWidth = '480px'; md.box.setAttribute('aria-label', `Log in as ${st.name}`);
+        md.box.style.maxWidth = '500px'; md.box.setAttribute('aria-label', `Log in as ${st.name}`);
         const ins = [...boxes.querySelectorAll('input')];
         function close() { lt.forEach((t) => clearTimeout(t)); lt.clear(); md.close(); }
         function fillAll() { ins.forEach((x, k) => { x.value = L.otp[k]; }); boxes.classList.add('ok'); filled = true; status.textContent = 'Demo code filled in automatically.'; goBtn.disabled = false; goBtn.focus(); }
@@ -400,65 +401,83 @@
       }
       loginOpener = openLogin;
 
+      // Example of a checked practical (opens from "Instant auto-check").
+      function openPreview() {
+        const md = c.modal(h('div', { class: 'm-welcome wl-prev-modal stack' },
+          h('div', {}, h('div', { class: 'eyebrow' }, `${first(S)}’s practical · Lecture ${lec.id} · ${commonPrac ? data.common.company : field.company}`), h('h3', {}, prac ? prac.topic : lec.practical)),
+          h('div', { class: 'stack', style: { gap: '6px' } }, checks.map((t, i) =>
+            h('div', { class: 'wl-chk', style: { animationDelay: `${0.15 + i * 0.3}s` } }, h('span', { class: 'ic', html: icon('check') }), h('span', { title: t }, t)))),
+          h('div', { class: 'wl-wfoot' },
+            h('span', { class: 'pill green' }, `${checks.length} of ${checks.length} checks passed`),
+            h('span', { class: 'tiny muted' }, 'Checked automatically in 38 seconds')),
+          h('div', { class: 'wl-hint' }, h('div', {}, h('span', { class: 'ai-badge' }, 'AI tutor')),
+            h('p', {}, HINTS[lec.id] || 'Hint: run the checks once before you change anything. Which one fails first, and why?')),
+          h('p', { class: 'tiny muted' }, commonPrac ? 'Months 1 to 3 are common. Fields open in Month 4.' : `Same lab, ${data.fields.length} fields. Switch the field at the top.`),
+          h('div', { class: 'wl-actions' }, h('button', { class: 'btn', type: 'button', onclick: () => md.close() }, 'Close'), h('span', { class: 'sp' }),
+            h('button', { class: 'btn primary', type: 'button', onclick: () => { md.close(); c.go('practical'); }, html: `${icon('code')}Open this practical` }))));
+        md.box.style.maxWidth = '520px'; md.box.setAttribute('aria-label', 'Example of a checked practical');
+      }
+
       /* ---------- a student's week ---------- */
       const week = [
-        ['play', '2 lectures', 'Two 40-minute recorded lessons, with quick questions inside the video', 'lecture', 'See a lecture'],
-        ['code', '20-minute practical', `A hands-on task after each lecture, on ${commonPrac ? data.common.company : field.company} data`, 'practical', 'Try a practical'],
-        ['check', 'Instant auto-check', 'Automatic checks mark the work within a minute', 'practical', 'Run the checks'],
-        ['spark', 'AI tutor hints', 'Stuck? The tutor gives hints, never the graded answer', 'practical', 'Ask the tutor'],
-        ['github', 'Projects to GitHub', 'Work goes to the student’s own GitHub and portfolio site', 'projects', 'See projects'],
+        ['play', '2 lectures', '40-minute lessons with quick questions inside', () => c.go('lecture')],
+        ['code', '20-minute practical', `A hands-on task on ${commonPrac ? data.common.company : field.company} data`, () => c.go('practical')],
+        ['check', 'Instant auto-check', 'Work is marked within a minute', openPreview],
+        ['spark', 'AI tutor hints', 'Hints, never the graded answer', () => c.go('practical')],
+        ['github', 'Projects to GitHub', 'Own GitHub and a portfolio site', () => c.go('projects')],
       ];
-      const weekSec = h('section', { class: 'card' },
-        h('div', { class: 'wl-sec-head' },
-          h('div', {}, h('div', { class: 'eyebrow' }, 'Every week, for 12 months'), h('h2', {}, 'How a student’s week works')),
-          h('span', { class: 'small muted' }, 'Click a step to see that screen')),
-        h('ol', { class: 'wl-week' }, week.map(([ic, t, sub, route, go], i) => h('li', {},
-          h('button', { class: 'wl-step', onclick: () => c.go(route), html:
-            `<span class="ix">${icon(ic)}</span><span class="tx"><small>Step ${i + 1}</small><b>${c.esc(t)}</b><span>${c.esc(sub)}</span><span class="go">${c.esc(go)} →</span></span>` })))));
+      const weekSec = h('section', { 'aria-labelledby': 'wlWeekH' },
+        h('div', { class: 'wl-sec-head' }, h('div', {}, h('h2', { id: 'wlWeekH' }, 'How a student’s week works'), h('p', { class: 'small muted' }, 'Every week for 12 months. Click a step to open that screen.'))),
+        h('ol', { class: 'wl-week' }, week.map(([ic, t, sub, fn], i) => h('li', {},
+          h('button', { class: 'wl-step', type: 'button', onclick: fn, html:
+            `<span class="ix">${icon(ic)}</span><span class="tx"><small>Step ${i + 1}</small><b>${c.esc(t)}</b><span>${c.esc(sub)}</span></span>` })))));
 
-      /* ---------- key numbers ---------- */
+      /* ---------- key numbers (max 4) ---------- */
       const L = data.lab_costs || {};
-      const capstones = 1 + ((field.capstones && field.capstones.length) || 3);
       const nums = [
-        [data.lectures.length, '', 'recorded lectures, 2 a week'],
-        [Object.keys(data.months).length, '', 'months, one course year'],
-        [data.fields.length, '', 'career fields, chosen after Month 3'],
-        [capstones, '', 'capstone projects per student'],
-        [12, 'h', 'lab time a week per student'],
-        [(L.students || 3000).toLocaleString('en-IN'), '', `students the lab is sized for, ${(L.concurrent_online || 1000).toLocaleString('en-IN')} online at once`],
+        [data.lectures.length, 'recorded lectures'],
+        [Object.keys(data.months).length, 'months, one course year'],
+        [data.fields.length, 'career fields'],
+        [(L.students || 3000).toLocaleString('en-IN'), 'students the lab is sized for'],
       ];
-      const numSec = h('section', { class: 'card' },
-        h('div', { class: 'wl-sec-head' },
-          h('div', {}, h('div', { class: 'eyebrow' }, 'The course and the lab'), h('h2', {}, 'Key numbers')),
-          h('span', { class: 'small muted' }, 'Planned course design and lab capacity')),
-        h('div', { class: 'wl-nums' }, nums.map(([n, unit, label]) => h('div', { class: 'wl-num' }, h('b', { class: 'num' }, String(n), unit ? h('small', {}, unit) : null), h('span', {}, label)))));
+      const numSec = h('section', { 'aria-labelledby': 'wlNumH' },
+        h('div', { class: 'wl-sec-head' }, h('div', {}, h('h2', { id: 'wlNumH' }, 'Key numbers'), h('p', { class: 'small muted' }, 'Planned course design and lab capacity.'))),
+        h('div', { class: 'wl-nums' }, nums.map(([n, label]) => h('div', { class: 'wl-num' }, h('b', { class: 'num' }, String(n)), h('span', {}, label)))));
 
       /* ---------- roles ---------- */
       const roles = [
-        ['student', 'home', 'home', 'See it as a student', `${data.demo_student.name.split(' ')[0]} is in Month ${data.demo_student.month}: today’s lecture, practical, exam and capstone.`, 'Open the student view'],
-        ['mentor', 'mentor', 'mentor', 'See it as a mentor', `A batch of ${data.students.length} students: who needs help, capstone reviews and exam flags.`, 'Open the mentor console'],
-        ['admin', 'admin', 'chart', 'See how it’s run', `Lab costs, server budget and AI usage for ${(L.students || 3000).toLocaleString('en-IN')} students.`, 'Open the admin view'],
+        ['student', 'home', 'home', 'Student view', `${first(S)}’s day: lecture, practical, exam and capstone.`],
+        ['mentor', 'mentor', 'mentor', 'Mentor console', `${data.students.length} students: who needs help and what to review.`],
+        ['admin', 'admin', 'chart', 'Admin view', `Costs, server budget and AI usage for ${(L.students || 3000).toLocaleString('en-IN')} students.`],
       ];
-      const roleSec = h('section', {},
-        h('div', { class: 'wl-sec-head' }, h('div', {}, h('div', { class: 'eyebrow' }, 'Explore freely'), h('h2', {}, 'Choose how you want to look around'))),
-        h('div', { class: 'wl-roles' }, roles.map(([k, route, ic, t, sub, go]) =>
-          h('button', { class: `wl-role r-${k}`, 'data-role': k, onclick: () => c.go(route), html:
-            `<span class="ix">${icon(ic)}</span><b>${c.esc(t)}</b><p>${c.esc(sub)}</p><span class="go">${c.esc(go)} →</span>` }))));
+      const roleSec = h('section', { 'aria-labelledby': 'wlRoleH' },
+        h('div', { class: 'wl-sec-head' }, h('div', {}, h('h2', { id: 'wlRoleH' }, 'Look around as anyone'))),
+        h('div', { class: 'wl-roles' }, roles.map(([k, route, ic, t, sub]) =>
+          h('button', { class: `wl-role r-${k}`, type: 'button', 'data-role': k, onclick: () => c.go(route), html:
+            `<span class="ix">${icon(ic)}</span><span class="tx"><b>${c.esc(t)}</b><span>${c.esc(sub)}</span></span>` }))));
 
       /* ---------- sign-up simulator ---------- */
+      const simAnchor = () => wrap.querySelector('.wl-signup');
       const simMain = h('div', { class: 'wl-sim-main', 'aria-live': 'polite' });
       const stepsList = h('ol', { class: 'wl-steps', 'aria-label': 'Sign-up steps' });
-      const sim = h('section', { class: 'card wl-sim', id: 'wl-signup' },
+      const sim = h('div', { class: 'wl-sim', id: 'wl-signup' },
         h('div', { class: 'wl-sim-grid' },
           h('div', { class: 'wl-sim-side' },
-            h('div', {}, h('div', { class: 'eyebrow' }, 'Try student sign-up'), h('h2', {}, 'Join a batch in about a minute')),
-            h('p', { class: 'small muted' }, 'Sign in with a one-time code, age check, parent consent for under-18s, field choice and a laptop check. Demo only: nothing is sent.'),
             stepsList,
-            h('button', { class: 'btn sm ghost', style: { justifySelf: 'start' }, onclick: () => { SIM = blank(); ERR = {}; cleanup(); pendingFocus = true; draw(); c.toast('Sign-up restarted', ''); }, html: `${icon('login')}Start over` })),
+            h('button', { class: 'btn sm ghost', type: 'button', style: { justifySelf: 'start' }, onclick: () => { SIM = blank(); ERR = {}; cleanup(); pendingFocus = true; draw(); c.toast('Sign-up restarted', ''); }, html: `${icon('login')}Start over` })),
           simMain));
+      // The sign-up simulator sits behind one button (an expander), so it does not fill the page.
+      const simBox = h('details', { class: 'details wl-signup', open: simOpen ? true : null },
+        h('summary', {}, h('span', { class: 'wl-sum-tx' }, h('b', {}, 'Try the sign-up flow'), h('small', {}, 'One-time code, age check, parent consent for under-18s, field and laptop check. About a minute.')), h('span', { class: 'btn sm wl-sum-btn', 'aria-hidden': 'true' }, simOpen ? 'Hide' : 'Open')),
+        h('div', { class: 'details-body' }, sim));
+      simBox.addEventListener('toggle', () => {
+        simOpen = simBox.open;
+        const b = simBox.querySelector('.wl-sum-btn'); if (b) b.textContent = simOpen ? 'Hide' : 'Open';
+        if (simOpen) { const t = simMain.querySelector('input:not([type=checkbox]):not([disabled])') || simMain.querySelector('h3'); if (t) t.focus({ preventScroll: true }); requestAnimationFrame(() => scrollToSim(true)); }
+      });
 
-      wrap.append(hero, loginSec, weekSec, numSec, roleSec, sim,
-        h('p', { class: 'wl-foot tiny muted' }, h('span', { class: 'pill amber' }, 'Demo data'), 'All people and companies are fictional. Numbers describe the planned course and lab, not real results.'));
+      wrap.append(intro, hero, loginSec, weekSec, numSec, roleSec, simBox,
+        h('p', { class: 'wl-foot tiny muted' }, 'All people and companies are fictional. Numbers describe the planned course and lab, not real results.'));
 
       function scrollToSim(smooth) {
         const s = simAnchor(); if (!s) return;

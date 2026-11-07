@@ -260,112 +260,139 @@
   function injectCSS() {
     if (document.getElementById('m-exam')) return;
     const css = `
-.m-exam { display: grid; gap: 20px; min-width: 0 }
-.m-exam .ex-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start }
+.m-exam { display: grid; gap: 28px; min-width: 0 }
+.m-exam .ex-purpose { color: var(--muted); font-size: 15px; margin: 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.m-exam .ex-purpose .demo { font-size: 12px; color: var(--faint) }
+.m-exam .ex-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start }
+.m-exam .card { padding: 24px }
+.m-exam .ex-start { display: grid; gap: 18px }
+.m-exam .ex-start h2 { font-size: 24px }
+.m-exam .ex-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.m-exam .ex-facts li { display: flex; gap: 12px; align-items: center; font-size: 15px; min-width: 0 }
+.m-exam .ex-facts li span:last-child { min-width: 0 }
+.m-exam .ex-facts .ix { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--brand-softer); color: var(--brand); flex: none }
+.m-exam .ex-facts .ix svg { width: 17px; height: 17px }
+.m-exam .ex-go { display: flex; gap: 12px; align-items: center; flex-wrap: wrap }
+.m-exam details.ex-more { border-top: 1px solid var(--line); padding-top: 14px }
+.m-exam details.ex-more summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--brand); list-style: none; display: inline-flex; gap: 6px; align-items: center }
+.m-exam details.ex-more summary::-webkit-details-marker { display: none }
+.m-exam details.ex-more summary::before { content: '+'; font-weight: 800; width: 14px }
+.m-exam details.ex-more[open] summary::before { content: '–' }
+.m-exam .ex-rules { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--fg) }
+.m-exam .ex-rules li::marker { color: var(--faint) }
+.m-exam .ex-cover { margin-top: 10px; font-size: 13px; color: var(--muted) }
 .m-exam .alist { list-style: none; margin: 0; padding: 0 }
-.m-exam .alist li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line) }
+.m-exam .alist li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 8px; margin: 0 -8px; border-top: 1px solid var(--line); cursor: pointer; border-radius: var(--radius-sm) }
 .m-exam .alist li:first-child { border-top: 0 }
-.m-exam .alist li.pick { cursor: pointer; border-radius: var(--radius-sm); margin: 0 -8px; padding-left: 8px; padding-right: 8px }
-.m-exam .alist li.pick:hover { background: var(--surface-2) }
-.m-exam .alist li.pick:hover .tx b { color: var(--brand) }
-.m-exam .rulescard.flash { animation: m-exam-flash 1.2s ease }
-@keyframes m-exam-flash { 30% { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft) } }
-.m-exam .alist .ix { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted) }
-.m-exam .alist .ix svg { width: 18px; height: 18px }
-.m-exam .alist li.due .ix { background: var(--brand-soft); color: var(--brand) }
-.m-exam .alist li.due { background: color-mix(in srgb, var(--brand-soft) 45%, transparent); border-radius: var(--radius-sm); padding-inline: 8px; margin-inline: -8px }
-.m-exam .alist b { display: block; font-size: 14px }
-.m-exam .alist .meta { font-size: 12.5px; color: var(--muted) }
+.m-exam .alist li:hover { background: var(--surface-2) }
+.m-exam .alist li:hover .tx b { color: var(--brand) }
+.m-exam .alist b { display: block; font-size: 14.5px; font-weight: 700 }
+.m-exam .alist .meta { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .m-exam .alist .tx { min-width: 0 }
-.m-exam .rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
-.m-exam .rules li { display: flex; gap: 10px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); min-width: 0; font-size: 13.5px }
-.m-exam .rules li svg { width: 18px; height: 18px; flex: none; color: var(--brand); margin-top: 1px }
-.m-exam .rules li.off svg { color: var(--amber) }
-.m-exam .rules li span { min-width: 0 }
-.m-exam .rules li b { display: block; font-size: 13.5px }
-.m-exam .rules li small { color: var(--muted); font-size: 12.5px }
-.m-exam .startbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-top: 4px }
+.m-exam .alist .sc { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 14.5px }
+.m-exam .alist .sc.ok { color: var(--green) } .m-exam .alist .sc.low { color: var(--amber) } .m-exam .alist .sc.dim { color: var(--muted); font-weight: 700; font-size: 13px }
+.m-exam .alist .grp { list-style: none; cursor: default; padding: 14px 0 4px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-top: 0 }
+.m-exam .alist .grp:hover { background: none }
 
 /* Lockdown layer */
-.m-exam.layer { position: fixed; inset: 0; z-index: 45; background: var(--bg); display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 0; overflow: hidden }
-.m-exam .xh { background: var(--surface); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 16px; align-items: center;
-  padding: 10px max(20px, env(safe-area-inset-right, 0px)) 10px max(20px, env(safe-area-inset-left, 0px)); padding-top: max(10px, env(safe-area-inset-top, 0px)) }
-.m-exam .xh .ttl { min-width: 0 }
-.m-exam .xh .ttl b { font-family: var(--display); font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.m-exam .xh .ttl small { color: var(--muted); font-size: 12px }
-.m-exam .lockpill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--red); }
+.m-exam.layer { position: fixed; inset: 0; z-index: 45; background: var(--bg); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 0; overflow: hidden }
+.m-exam .xh { background: var(--surface); display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; gap: 16px; align-items: center;
+  padding: 12px max(24px, env(safe-area-inset-right, 0px)) 12px max(24px, env(safe-area-inset-left, 0px)); padding-top: max(12px, env(safe-area-inset-top, 0px)) }
+.m-exam .xh .ttl { min-width: 0; display: grid; gap: 1px }
+.m-exam .xh .ttl b { font-family: var(--display); font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-exam .xh .ttl small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-exam .lockpill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--red) }
 .m-exam .lockpill i { width: 7px; height: 7px; border-radius: 50%; background: var(--red) }
 .m-exam .timer { display: grid; justify-items: center; line-height: 1.1 }
-.m-exam .timer b { font-family: var(--mono); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0 }
+.m-exam .timer b { font-family: var(--mono); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums }
 .m-exam .timer small { font-size: 11px; color: var(--muted) }
 .m-exam .timer.low b { color: var(--amber) }
 .m-exam .timer.crit b { color: var(--red) }
-.m-exam .saver { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); white-space: nowrap; min-width: 150px }
-.m-exam .saver i { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex: none }
+.m-exam .saver { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); white-space: nowrap; min-width: 130px }
+.m-exam .saver i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none }
 .m-exam .saver.saving i { background: var(--amber) }
-.m-exam .xbanner { display: none; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px max(20px, env(safe-area-inset-left, 0px)); background: var(--amber-soft); color: var(--fg); border-bottom: 1px solid var(--line); font-size: 14px }
+.m-exam .xprog { height: 3px; background: var(--line) }
+.m-exam .xprog i { display: block; height: 100%; background: var(--brand); transition: width .4s ease }
+.m-exam .xbanner { display: none; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px max(24px, env(safe-area-inset-left, 0px)); background: var(--amber-soft); color: var(--fg); border-bottom: 1px solid var(--line); font-size: 14px }
 .m-exam .xbanner.show { display: flex }
 .m-exam .xbanner.red { background: var(--red-soft) }
 .m-exam .xbanner b { color: var(--amber) }
 .m-exam .xbanner.red b { color: var(--red) }
 .m-exam .xbanner span { flex: 1; min-width: 200px }
-.m-exam .xbody { overflow: auto; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-content: start; padding: 20px max(20px, env(safe-area-inset-right, 0px)) 40px max(20px, env(safe-area-inset-left, 0px)); max-width: 1180px; width: 100%; margin: 0 auto }
-.m-exam .xside { display: grid; gap: 14px; align-content: start; min-width: 0 }
-.m-exam .qnav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px }
-.m-exam .qnav button { position: relative; height: 42px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); font-weight: 800; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--muted) }
+.m-exam .xbody { overflow: auto; padding: 28px max(20px, env(safe-area-inset-right, 0px)) 48px max(20px, env(safe-area-inset-left, 0px)) }
+.m-exam .xcol { max-width: 780px; margin: 0 auto; display: grid; gap: 18px; min-width: 0 }
+.m-exam .qnavrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap }
+.m-exam .qnav { display: flex; gap: 6px; flex-wrap: wrap }
+.m-exam .qnav button { position: relative; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 13px; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--muted); padding: 0 }
 .m-exam .qnav button:hover { border-color: var(--brand) }
-.m-exam .qnav button.ans { background: var(--brand-soft); color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--line)) }
+.m-exam .qnav button.ans { background: var(--brand-soft); color: var(--brand); border-color: transparent }
 .m-exam .qnav button.cur { outline: 2px solid var(--brand); outline-offset: 1px; color: var(--fg) }
-.m-exam .qnav button.flag::after { content: ""; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--amber) }
-.m-exam .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted) }
-.m-exam .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 1px solid var(--line); background: var(--surface) }
-.m-exam .legend i.a { background: var(--brand-soft); border-color: var(--brand) }
-.m-exam .legend i.f { background: var(--amber); border-color: var(--amber); border-radius: 50% }
-.m-exam .ilog-mini { display: grid; gap: 6px; font-size: 13px }
-.m-exam .ilog-mini .r { display: flex; justify-content: space-between; gap: 8px }
-.m-exam .qcard { display: grid; gap: 16px }
+.m-exam .qnav button.flag::after { content: ""; position: absolute; top: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--amber); border: 2px solid var(--bg) }
+.m-exam .qcard { display: grid; gap: 18px; padding: 28px }
 .m-exam .qhead { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center }
-.m-exam .qtext { font-size: 17px; font-weight: 600; line-height: 1.45; font-family: var(--body) }
-.m-exam .qtext code, .m-exam .rv code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px }
-.m-exam .opts { display: grid; gap: 8px }
-.m-exam .opt { display: flex; gap: 12px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; font-size: 14.5px }
+.m-exam .qhead .qmeta { display: grid; gap: 2px; min-width: 0 }
+.m-exam .qhead .qmeta span { font-size: 12.5px; color: var(--muted) }
+.m-exam .flagbtn { background: none; border: 0; padding: 4px 0; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer }
+.m-exam .flagbtn:hover { color: var(--brand) }
+.m-exam .flagbtn[aria-pressed="true"] { color: var(--amber) }
+.m-exam .qtext { font-size: 18px; font-weight: 600; line-height: 1.5; font-family: var(--body) }
+.m-exam .opts { display: grid; gap: 10px }
+.m-exam .opt { display: flex; gap: 12px; align-items: start; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; font-size: 15px }
 .m-exam .opt:hover { border-color: var(--brand) }
-.m-exam .opt.sel { border-color: var(--brand); background: var(--brand-soft) }
-.m-exam .opt input { margin: 3px 0 0; accent-color: var(--brand); flex: none; width: 16px; height: 16px }
-.m-exam .opt .ol { font-weight: 800; color: var(--muted); width: 18px; flex: none }
+.m-exam .opt.sel { border-color: var(--brand); background: var(--brand-softer) }
+.m-exam .opt input { margin: 4px 0 0; accent-color: var(--brand); flex: none; width: 16px; height: 16px }
 .m-exam .opt span:last-child { min-width: 0 }
-.m-exam .codebox { width: 100%; min-height: 190px; resize: vertical; background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; font-family: var(--mono); font-size: 13px; line-height: 1.6; tab-size: 4; white-space: pre; overflow: auto }
+.m-exam .codebox { width: 100%; min-height: 200px; resize: vertical; background: var(--code-bg); color: var(--code-fg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; font-family: var(--mono); font-size: 13px; line-height: 1.6; tab-size: 4; white-space: pre; overflow: auto }
 .m-exam .codebox:focus { outline: 2px solid var(--brand); outline-offset: 0 }
-.m-exam .codehead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted) }
-.m-exam .term { min-height: 90px }
-.m-exam .qfoot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px }
-.m-exam .qfoot .row { gap: 8px }
-.m-exam .demo-btn { border-style: dashed }
-.m-exam .confirm { display: grid; gap: 14px; max-width: 620px }
-.m-exam .confirm .grid-3 .stat b { font-size: 22px }
+.m-exam .codehead { font-size: 12.5px; color: var(--muted); font-family: var(--mono) }
+.m-exam .term { min-height: 80px }
+.m-exam .qfoot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 16px }
+.m-exam .confirm { display: grid; gap: 16px; padding: 28px }
+.m-exam .confirm .stat b { font-size: 22px }
+
+/* Small pop-up menu (Demo controls, More) */
+.m-exam .mmenu { position: relative }
+.m-exam .mmenu-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: 280px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px }
+.m-exam .mmenu-pop[hidden] { display: none }
+.m-exam .mmenu-pop .mi { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 7px; padding: 9px 10px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--fg) }
+.m-exam .mmenu-pop .mi:hover { background: var(--surface-2); color: var(--brand) }
+.m-exam .mmenu-pop .mh { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 8px 10px 4px }
+.m-exam .mmenu-pop .ilog-mini { display: grid; gap: 4px; font-size: 13px; padding: 2px 10px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px }
+.m-exam .mmenu-pop .ilog-mini .r { display: flex; justify-content: space-between; gap: 8px }
 
 /* Results */
-.m-exam .score-big { font-family: var(--display); font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--brand) }
-.m-exam .res-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 20px; align-items: center }
-.m-exam .ring { width: 96px; height: 96px; flex: none }
+.m-exam .res { display: grid; gap: 22px }
+.m-exam .res-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 24px; align-items: center }
+.m-exam .res-head h2 { font-size: 22px }
+.m-exam .ring { width: 104px; height: 104px; flex: none; display: block }
 .m-exam .ring circle { fill: none; stroke-width: 9 }
 .m-exam .ring .bg { stroke: var(--surface-2) }
 .m-exam .ring .fg { stroke: var(--brand); stroke-linecap: round; transition: stroke-dashoffset .8s ease }
 .m-exam .ring text { fill: var(--fg); font-family: var(--display); font-weight: 700; font-size: 22px }
+.m-exam .res-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.m-exam .res-facts > div { background: var(--surface-2); border-radius: var(--radius-sm); padding: 14px 16px; display: grid; gap: 2px; min-width: 0 }
+.m-exam .res-facts b { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums }
+.m-exam .res-facts span { font-size: 13px; color: var(--muted) }
+.m-exam .res-facts .warn b { color: var(--amber) }
+.m-exam details.res-more { border-top: 1px solid var(--line); padding-top: 14px }
+.m-exam details.res-more + details.res-more { padding-top: 14px }
+.m-exam details.res-more summary { cursor: pointer; font-weight: 700; font-size: 14.5px; list-style: none; display: flex; justify-content: space-between; gap: 10px; align-items: center }
+.m-exam details.res-more summary::-webkit-details-marker { display: none }
+.m-exam details.res-more summary::after { content: '+'; color: var(--muted); font-weight: 800 }
+.m-exam details.res-more[open] summary::after { content: '–' }
+.m-exam details.res-more > div { margin-top: 14px; display: grid; gap: 14px }
 .m-exam .rv { list-style: none; margin: 0; padding: 0 }
-.m-exam .rv li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px }
+.m-exam .rv li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px }
 .m-exam .rv li:first-child { border-top: 0 }
 .m-exam .rv .n { font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums }
 .m-exam .rv .tx { min-width: 0 }
 .m-exam .rv .tx small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px }
-.m-exam .res-grid { align-items: start }
-.m-exam .mentor-view { align-content: start; border: 1px solid var(--line); border-left: 3px solid var(--violet); border-radius: var(--radius); background: var(--surface); padding: 18px; display: grid; gap: 14px; min-width: 0 }
 .m-exam .ig { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px }
 .m-exam .ig > div { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 2px; min-width: 0 }
-.m-exam .ig b { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums }
+.m-exam .ig b { font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums }
 .m-exam .ig span { font-size: 12.5px; color: var(--muted) }
 .m-exam .ig .warn b { color: var(--amber) }
-.m-exam .tl { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm) }
+.m-exam .tl { list-style: none; margin: 0; padding: 0; display: grid; max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm) }
 .m-exam .tl li { display: grid; grid-template-columns: 74px 58px minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; align-items: start }
 .m-exam .tl li:first-child { border-top: 0 }
 .m-exam .tl .t { font-family: var(--mono); font-size: 12px; color: var(--muted) }
@@ -379,37 +406,53 @@
 }
 @keyframes m-exam-pulse { 50% { opacity: .3 } }
 @keyframes m-exam-drop { from { transform: translateY(-6px); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .m-exam *, .m-exam.layer * { transition: none !important; animation: none !important } }
 
-@media (max-width: 1100px) { .m-exam .ex-top { grid-template-columns: minmax(0, 1fr) } .m-exam .rulescard { order: -1 } .m-exam .res-grid { grid-template-columns: minmax(0, 1fr) } }
+@media (max-width: 1100px) { .m-exam .ex-top { grid-template-columns: minmax(0, 1fr) } }
 @media (max-width: 900px) {
-  .m-exam .xbody { grid-template-columns: minmax(0, 1fr); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
-  .m-exam .qnav { grid-template-columns: repeat(8, minmax(0, 1fr)) }
-  .m-exam .xside { display: contents }
-  .m-exam .xside > .navcard { order: 0 }
-  .m-exam .xmain { order: 1 }
-  .m-exam .xside > .card:not(.navcard) { order: 2 }
-  .m-exam .xbody { gap: 14px }
   .m-exam .xh { grid-template-columns: minmax(0, 1fr) auto auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
   .m-exam .xh .saver { grid-column: 1 / 2; grid-row: 2; min-width: 0 }
-  .m-exam .xh .offpills { grid-column: 2 / -1; grid-row: 2; justify-self: end }
+  .m-exam .xh .mmenu { grid-column: 2; grid-row: 2; justify-self: end }
+  .m-exam .xh .subbtn { grid-column: 3; grid-row: 2 }
 }
 @media (max-width: 640px) {
-  .m-exam .rules { grid-template-columns: minmax(0, 1fr) }
-  .m-exam .qnav { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px }
-  .m-exam .qnav button { height: 36px }
-  .m-exam .legend { display: none }
+  .m-exam .card, .m-exam .qcard, .m-exam .confirm { padding: 18px }
   .m-exam .xh { grid-template-columns: minmax(0, 1fr) auto; gap: 10px }
   .m-exam .xh .timer { grid-row: 1; grid-column: 2 }
+  .m-exam .xh .saver { grid-column: 1; grid-row: 2 }
+  .m-exam .xh .mmenu { grid-column: 2; grid-row: 2 }
   .m-exam .xh .subbtn { grid-row: 3; grid-column: 1 / -1 }
-  .m-exam .xh .offpills { display: none }
-  .m-exam .xh .saver { grid-column: 1 / -1 }
-  .m-exam .res-head { grid-template-columns: minmax(0, 1fr) }
+  .m-exam .xbody { padding-top: 18px }
+  .m-exam .qnav button { width: 30px; height: 30px; font-size: 12px }
+  .m-exam .res-head { grid-template-columns: auto minmax(0, 1fr); gap: 16px }
+  .m-exam .res-head > .btn { grid-column: 1 / -1; justify-self: start }
+  .m-exam .ring { width: 84px; height: 84px }
+  .m-exam .res-facts { grid-template-columns: minmax(0, 1fr) }
   .m-exam .tl li { grid-template-columns: 66px minmax(0, 1fr) }
   .m-exam .tl li .k { grid-column: 2 }
   .m-exam .tl li span:last-child { grid-column: 1 / -1 }
-  .m-exam .qtext { font-size: 16px }
+  .m-exam .qtext { font-size: 16.5px }
 }`;
     document.head.append(Object.assign(document.createElement('style'), { id: 'm-exam', textContent: css }));
+  }
+
+  // Small pop-up menu: a button that opens a list of actions; closes on outside click or Escape.
+  function makeMenu(h, label, build, cls) {
+    const pop = h('div', { class: 'mmenu-pop', role: 'menu', hidden: true });
+    const btn = h('button', { class: 'btn sm ' + (cls || ''), 'aria-haspopup': 'menu', 'aria-expanded': 'false', onclick: (e) => { e.stopPropagation(); if (pop.hidden) open(); else close(); } }, label);
+    const wrap = h('div', { class: 'mmenu' }, btn, pop);
+    const onDoc = (e) => { if (!wrap.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') { close(); btn.focus(); } };
+    function open() {
+      pop.textContent = ''; build(pop, close); pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+      document.addEventListener('pointerdown', onDoc, true); document.addEventListener('keydown', onKey);
+    }
+    function close() {
+      if (pop.hidden) return; pop.hidden = true; btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onDoc, true); document.removeEventListener('keydown', onKey);
+    }
+    wrap.close = close; wrap.repaint = () => { if (!pop.hidden) { pop.textContent = ''; build(pop, close); } };
+    return wrap;
   }
 
   // ---------- Landing ----------
@@ -421,35 +464,23 @@
     const done = submitted && s.sess.result.final != null;
     const running = s.status === 'running';
     const past = pastAssessments(c.data, sp);
-    const recent = past.slice(-2), earlier = past.slice(0, -2);
+    const due = S.next_exam && S.next_exam.due ? S.next_exam.due : 'now';
     const avg = (arr) => Math.round(arr.reduce((a, b) => a + b.score, 0) / Math.max(1, arr.length));
-    const items = [];
-    sp.quizzes.forEach(([wk, topic, sc]) => items.push({ ok: 1, quiz: true, t: `Weekly quiz · Week ${wk}`, m: topic, score: `${sc}/10`, r: h('span', { class: 'pill green' }, `${sc}/10`) }));
-    if (earlier.length) items.push({ ok: 1, group: earlier, t: earlier.length === 1 ? `Month ${earlier[0].month} assessment` : `Earlier assessments · Months 1–${earlier[earlier.length - 1].month}`, m: earlier.length === 1 ? earlier[0].topic : `${earlier.length} monthly assessments · average ${avg(earlier)}%`, r: h('span', { class: 'pill green' }, `${avg(earlier)}% avg`) });
-    recent.forEach((p) => items.push({ ok: 1, past: p, t: `Month ${p.month} assessment`, m: p.topic, score: `${p.score}%`, r: h('span', { class: 'pill ' + (p.score >= 60 ? 'green' : 'amber') }, `${p.score}%`) }));
-    items.push({ t: title, m: '30 minutes · 8 questions · lockdown mode', due: true,
-      r: done ? h('span', { class: 'pill blue' }, `Submitted · ${s.sess.result.final}%`) : submitted ? h('span', { class: 'pill blue' }, 'Submitted · grading') : running ? h('span', { class: 'pill amber' }, 'In progress') : h('span', { class: 'pill amber' }, S.next_exam && S.next_exam.due ? `Due ${S.next_exam.due}` : 'Due now') });
-    if (sp.month < 12) items.push({ t: 'Final exam', m: 'Month 12 · covers the whole year', r: h('span', { class: 'pill' }, 'Later') });
-    const list = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, `Assessments · ${S.name}`), h('h2', {}, 'Your tests this term')), h('span', { class: 'pill' }, 'Demo data')),
-      h('ul', { class: 'alist' }, items.map((it) => h('li', { class: (it.due ? 'due ' : '') + 'pick', tabindex: '0', role: 'button', 'aria-label': `${it.t}: details`, onclick: () => openItem(it), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(it); } } },
-        h('span', { class: 'ix', html: icon(it.ok || (it.due && submitted) ? 'check' : 'exam') }),
-        h('span', { class: 'tx' }, h('b', {}, it.t), h('span', { class: 'meta' }, it.m)), it.r))),
-      h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Weekly quizzes take 10 minutes and run inside the lecture player. Monthly assessments run in lockdown mode.'));
+
+    // Every result item, newest first: the paper just taken, this month's weekly quizzes, then monthly assessments.
+    const quizzes = sp.quizzes.slice().reverse().map(([wk, topic, sc]) => ({ quiz: true, t: `Weekly quiz · Week ${wk}`, m: topic, score: `${sc}/10`, ok: sc >= 6 }));
+    const months = past.slice().reverse().map((p) => ({ past: p, t: `Month ${p.month} assessment`, m: p.topic, score: `${p.score}%`, ok: p.score >= 60 }));
+    const mine = submitted ? [{ mine: true, t: title, m: done ? 'Taken today in lockdown mode' : 'Code question being marked', score: done ? `${s.sess.result.final}%` : '…', ok: !done || s.sess.result.final >= 60 }] : [];
+    const recent = mine.concat(quizzes.slice(0, 1), months, quizzes.slice(1)).slice(0, 4);
+
+    const resultRow = (it) => h('li', { tabindex: '0', role: 'button', 'aria-label': `${it.t}: details`, onclick: () => openItem(it), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(it); } } },
+      h('span', { class: 'tx' }, h('b', {}, it.t), h('span', { class: 'meta' }, it.m)),
+      h('span', { class: 'sc ' + (it.later ? 'dim' : it.ok ? 'ok' : 'low') }, it.score));
 
     function openItem(it) {
-      if (it.due) { const rc = root.querySelector('.rulescard'); if (rc) { rc.scrollIntoView({ behavior: 'smooth', block: 'start' }); rc.classList.remove('flash'); void rc.offsetWidth; rc.classList.add('flash'); } return; }
-      if (!it.ok) { c.toast('The final exam opens in Month 12. It covers the whole year and runs in the same lockdown mode.'); return; }
-      if (it.group) {
-        const m = c.modal(h('div', { class: 'm-exam stack' },
-          h('div', {}, h('div', { class: 'eyebrow' }, 'Monthly assessments · lockdown mode'), h('h3', {}, it.t)),
-          h('div', { class: 'table-wrap' }, h('table', {},
-            h('thead', {}, h('tr', {}, h('th', {}, 'Assessment'), h('th', {}, 'Topic'), h('th', { style: { textAlign: 'right' } }, 'Score'))),
-            h('tbody', {}, it.group.map((p) => h('tr', {}, h('td', {}, `Month ${p.month}`), h('td', { class: 'muted' }, p.topic), h('td', { class: 'num', style: { textAlign: 'right' } }, `${p.score}%`)))))),
-          h('p', { class: 'note' }, `Average ${avg(it.group)}%. Every paper and its integrity report stay in ${S.name.split(' ')[0]}'s record for the mentor.`),
-          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
-        return;
-      }
+      if (it.mine) { const r = root.querySelector('.res'); if (r) r.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      if (it.later) { c.toast('The final exam opens in Month 12. It covers the whole year and runs in the same lockdown mode.'); return; }
+      if (it.due) { const b = root.querySelector('.ex-start .btn.primary'); if (b) b.focus(); return; }
       const quiz = !!it.quiz;
       const flags = it.past ? it.past.flags : 0;
       const m = c.modal(h('div', { class: 'm-exam stack' },
@@ -460,37 +491,61 @@
           h('div', { class: 'stat' }, h('b', { class: 'num' }, quiz ? '10 min' : '30 min'), h('span', {}, 'time allowed')),
           h('div', { class: 'stat' }, h('b', { class: 'num' }, String(flags)), h('span', {}, 'integrity events'))),
         h('p', { class: 'note' }, quiz ? 'Marked straight away. Wrong answers link back to the exact minute of the lecture that explains them.' : flags ? 'One tab switch was recorded. Your mentor accepted the result. Nothing is failed automatically.' : 'No integrity events were recorded. Your mentor signed off the result.'),
-        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn', onclick: () => m.close() }, 'Close'), quiz ? h('button', { class: 'btn primary', onclick: () => { m.close(); c.go('lecture'); } }, 'Open the lecture player') : null)));
+        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, quiz ? h('button', { class: 'btn', onclick: () => { m.close(); c.go('lecture'); } }, 'Open the lecture player') : null, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
     }
-    const rule = (ic, b, sm, off) => h('li', { class: off ? 'off' : '' }, h('span', { html: icon(ic) }), h('span', {}, h('b', {}, b), h('small', {}, sm)));
-    const timeLeft = running ? Math.max(0, EXAM_MIN * 60 - (Date.now() - s.sess.startedAt) / 1000) : 0;
-    const startBtn = submitted
-      ? null
-      : h('button', { class: 'btn primary', onclick: () => startExam(c), html: icon('exam') + `<span>${running ? 'Resume exam' : 'Start exam'}</span>` });
-    const rules = h('section', { class: 'card stack rulescard' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', {}, h('div', { class: 'eyebrow' }, `Due ${S.next_exam && S.next_exam.due ? S.next_exam.due : 'now'} · Month ${sp.month}`), h('h2', {}, title),
-          h('p', { class: 'small muted', style: { marginTop: '4px' } }, sp.sub)),
-        h('span', { class: 'pill violet' }, sp.pill)),
-      h('ul', { class: 'rules' },
-        rule('exam', '30 minutes', 'The timer starts when you press Start.'),
-        rule('spark', '8 questions from a question pool', 'Every student gets a different paper.'),
-        rule('check', 'Answers save every 20 seconds', 'And each time you answer.'),
-        rule('flow', 'Full screen is required', 'Leaving full screen is recorded.'),
-        rule('play', 'Switching tabs is recorded', 'Your mentor sees each switch.', true),
-        rule('code', 'Copy and paste are turned off', 'Attempts are recorded.', true),
-        rule('forum', 'AI tutor and forum are off', 'They come back after you submit.', true),
-        rule('mentor', 'Nothing fails you automatically', 'Your mentor reviews anything recorded.')),
-      running ? h('div', { class: 'callout small' }, `Your exam is still open with ${mmss(timeLeft)} left. Your answers were saved.`) : null,
-      h('div', { class: 'startbar' },
-        h('span', { class: 'small muted' }, submitted ? 'Submitted. Your results and the integrity report are above.' : 'Works in any browser on a basic laptop.'),
-        h('div', { class: 'row', style: { gap: '8px' } },
-          done ? h('button', { class: 'btn', onclick: () => { resetSt(field); c.toast('Demo reset: you can take the exam again.'); refresh(); } }, 'Reset demo') : null,
-          startBtn)));
 
-    const wrap = h('div', { class: 'm-exam' });
+    function openAll() {
+      const list = h('ul', { class: 'alist' });
+      const m = c.modal(h('div', { class: 'm-exam stack' },
+        h('div', {}, h('div', { class: 'eyebrow' }, `${S.name} · Batch ${S.batch}`), h('h3', {}, 'All results this year')),
+        list,
+        h('p', { class: 'tiny muted' }, `Monthly assessments average ${avg(past)}%. Weekly quizzes take 10 minutes inside the lecture player. Demo data.`),
+        h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', onclick: () => m.close() }, 'Close'))));
+      const row = (it) => { const r = resultRow(it); r.addEventListener('click', () => m.close(), true); return r; };
+      list.append(h('li', { class: 'grp' }, 'Monthly assessments'));
+      if (sp.month < 12) list.append(row({ later: true, t: 'Final exam', m: 'Month 12 · covers the whole year', score: 'Later' }));
+      list.append(submitted ? row(mine[0]) : row({ due: true, later: true, t: title, m: `30 minutes · 8 questions · due ${due}`, score: running ? 'In progress' : 'Due' }));
+      months.forEach((it) => list.append(row(it)));
+      list.append(h('li', { class: 'grp' }, `Weekly quizzes · Month ${sp.month}`));
+      quizzes.forEach((it) => list.append(row(it)));
+    }
+
+    const timeLeft = running ? Math.max(0, EXAM_MIN * 60 - (Date.now() - s.sess.startedAt) / 1000) : 0;
+    const fact = (ic, text) => h('li', {}, h('span', { class: 'ix', html: icon(ic) }), h('span', {}, text));
+    const startCard = h('section', { class: 'card ex-start' },
+      h('div', { class: 'card-head', style: { marginBottom: 0 } },
+        h('div', {}, h('div', { class: 'eyebrow' }, submitted ? 'Submitted today' : `Due ${due}`), h('h2', {}, title)),
+        running ? h('span', { class: 'pill amber' }, 'In progress') : submitted ? h('span', { class: 'pill green' }, done ? `${s.sess.result.final}%` : 'Marking') : null),
+      h('ul', { class: 'ex-facts' },
+        fact('exam', '30 minutes, in one sitting'),
+        fact('spark', '8 questions: 7 multiple-choice and 1 short code task'),
+        fact('lock', 'Lockdown mode: full screen, with answers saved as you go')),
+      running ? h('div', { class: 'callout small' }, `Your exam is still open with ${mmss(timeLeft)} left. Your answers were saved.`) : null,
+      h('div', { class: 'ex-go' },
+        submitted
+          ? h('button', { class: 'btn', onclick: () => { resetSt(field); c.toast('Demo reset: you can take the exam again.'); refresh(); } }, 'Reset demo and take it again')
+          : h('button', { class: 'btn primary', onclick: () => startExam(c), html: icon('exam') + `<span>${running ? 'Resume exam' : 'Start exam'}</span>` }),
+        h('span', { class: 'small muted' }, submitted ? 'Your results are above.' : 'Works in any browser on a basic laptop.')),
+      h('details', { class: 'ex-more' },
+        h('summary', {}, 'What happens in lockdown'),
+        h('ul', { class: 'ex-rules' },
+          h('li', {}, 'The timer starts when you press Start.'),
+          h('li', {}, 'Every student gets a different paper from a question pool.'),
+          h('li', {}, 'Answers save every 20 seconds and each time you answer.'),
+          h('li', {}, 'Leaving full screen or switching tabs is recorded.'),
+          h('li', {}, 'Copy and paste are turned off.'),
+          h('li', {}, 'The AI tutor and forum are off until you submit.'),
+          h('li', {}, 'Nothing fails you automatically. Your mentor reviews anything recorded.')),
+        h('p', { class: 'ex-cover' }, `Covers: ${sp.sub}`)));
+
+    const pastCard = h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h3', {}, 'Past results'), h('button', { class: 'btn sm', onclick: openAll }, 'All results')),
+      h('ul', { class: 'alist' }, recent.map(resultRow)));
+
+    const wrap = h('div', { class: 'm-exam' },
+      h('p', { class: 'ex-purpose' }, h('span', {}, 'Monthly tests run in a locked-down browser window. Answers save as you go.'), h('span', { class: 'demo' }, 'Demo data')));
     if (submitted) wrap.append(drawResults(c, s.sess));
-    wrap.append(h('div', { class: 'ex-top' }, list, rules));
+    wrap.append(h('div', { class: 'ex-top' }, startCard, pastCard));
     root.append(wrap);
   }
 
@@ -526,38 +581,39 @@
     LIVE = L;
     const add = (target, evt, fn, opts) => { target.addEventListener(evt, fn, opts); L.offs.push(() => target.removeEventListener(evt, fn, opts)); };
 
-    // Header
+    // Header: title, timer, autosave, a small Demo controls menu and one Submit button.
     const timerB = h('b', {}, '30:00');
     const timer = h('div', { class: 'timer', role: 'timer', 'aria-label': 'Time left' }, timerB, h('small', {}, 'time left'));
     const saverTx = h('span', {}, 'Saved just now');
     const saver = h('div', { class: 'saver', 'aria-live': 'polite' }, h('i'), saverTx);
     const subBtn = h('button', { class: 'btn primary subbtn', onclick: () => showConfirm() }, 'Review and submit');
+    const counts = h('div', { class: 'ilog-mini' });
+    const demoMenu = makeMenu(h, 'Demo controls', (pop, close) => {
+      const mi = (label, fn) => h('button', { class: 'mi', role: 'menuitem', onclick: () => { close(); fn(); } }, label);
+      pop.append(h('div', { class: 'mh' }, 'Recorded for your mentor'), counts, h('div', { class: 'mh' }, 'For investors'),
+        mi('Simulate a tab switch', () => tabSwitch(true)),
+        mi('Fill in the remaining answers', () => fillRest()),
+        mi('Type a sample code answer', () => sampleCode()));
+      paintCounts();
+    });
     const header = h('header', { class: 'xh' },
-      h('div', { class: 'ttl' }, h('span', { class: 'lockpill' }, h('i'), 'Lockdown mode'), h('b', {}, sess.title), h('small', {}, `Paper ${sess.paper.code} · ${c.data.demo_student.name}`)),
-      timer, saver,
-      h('div', { class: 'row offpills', style: { gap: '6px' } }, h('span', { class: 'pill amber' }, 'AI tutor off'), h('span', { class: 'pill amber' }, 'Forum off')),
-      subBtn);
+      h('div', { class: 'ttl' }, h('span', { class: 'lockpill' }, h('i'), 'Lockdown mode'), h('b', {}, sess.title), h('small', {}, `Paper ${sess.paper.code} · ${c.data.demo_student.name} · AI tutor and forum are off`)),
+      timer, saver, demoMenu, subBtn);
+    const progI = h('i', { style: { width: '0%' } });
+    const prog = h('div', { class: 'xprog', role: 'progressbar', 'aria-label': 'Questions answered', 'aria-valuemin': '0', 'aria-valuemax': String(qs.length) }, progI);
 
     const bannerTx = h('span');
     const bannerAct = h('div', { class: 'row', style: { gap: '8px' } });
     const banner = h('div', { class: 'xbanner', role: 'status', 'aria-live': 'assertive' }, bannerTx, bannerAct);
 
-    // Side: navigator + integrity
+    // Body: one question at a time, with a compact row of question numbers above it.
     const qnav = h('div', { class: 'qnav', role: 'navigation', 'aria-label': 'Questions' });
-    const counts = h('div', { class: 'ilog-mini' });
-    const side = h('aside', { class: 'xside' },
-      h('div', { class: 'card stack navcard' }, h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('b', { class: 'small' }, 'Questions'), h('span', { class: 'tiny muted num', id: 'm-exam-anscount' }, '')),
-        qnav, h('div', { class: 'legend' }, h('span', {}, h('i', { class: 'a' }), 'Answered'), h('span', {}, h('i', { class: 'f' }), 'Flagged'), h('span', {}, h('i'), 'Not answered'))),
-      h('div', { class: 'card stack' }, h('b', { class: 'small' }, 'Recorded for your mentor'), counts,
-        h('p', { class: 'tiny muted' }, 'Nothing here fails you. Your mentor reviews it.')),
-      h('div', { class: 'card stack' }, h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('b', { class: 'small' }, 'For investors'), h('span', { class: 'demo-tag' }, 'Demo')),
-        h('button', { class: 'btn sm demo-btn', onclick: () => tabSwitch(true) }, 'Demo: simulate a tab switch'),
-        h('button', { class: 'btn sm demo-btn', onclick: () => fillRest() }, 'Demo: fill remaining answers')));
-
+    const ansCount = h('span', { class: 'small muted num' });
     const main = h('section', { class: 'xmain', style: { minWidth: 0 } });
-    const body = h('div', { class: 'xbody' }, side, main);
-    const layer = h('div', { class: 'm-exam layer', role: 'dialog', 'aria-modal': 'true', 'aria-label': `${sess.title}, lockdown mode` }, header, banner, body);
+    const body = h('div', { class: 'xbody' }, h('div', { class: 'xcol' }, h('div', { class: 'qnavrow' }, qnav, ansCount), main));
+    const layer = h('div', { class: 'm-exam layer', role: 'dialog', 'aria-modal': 'true', 'aria-label': `${sess.title}, lockdown mode` }, header, prog, banner, body);
     L.layer = layer;
+    L.menu = demoMenu;
     document.body.append(layer);
     L.prevOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
@@ -679,18 +735,19 @@
         'aria-current': i === sess.cur ? 'step' : null,
         onclick: () => { L.confirming = false; sess.cur = i; paintQ(); },
       }, String(i + 1))));
-      const ac = layer.querySelector('#m-exam-anscount'); if (ac) ac.textContent = `${qs.filter(isAnswered).length} of ${qs.length} answered`;
+      const na = qs.filter(isAnswered).length;
+      ansCount.textContent = `${na} of ${qs.length} answered`;
+      progI.style.width = `${Math.round((na / qs.length) * 100)}%`; prog.setAttribute('aria-valuenow', String(na));
     }
 
     function paintQ() {
       main.textContent = '';
       const q = qs[sess.cur], i = sess.cur;
-      const flagBtn = h('button', { class: 'btn sm', 'aria-pressed': sess.flags[q.id] ? 'true' : 'false', onclick: () => { sess.flags[q.id] = !sess.flags[q.id]; paintQ(); answered(); } },
+      const flagBtn = h('button', { class: 'flagbtn', 'aria-pressed': sess.flags[q.id] ? 'true' : 'false', onclick: () => { sess.flags[q.id] = !sess.flags[q.id]; paintQ(); answered(); } },
         sess.flags[q.id] ? 'Flagged for review' : 'Flag for review');
-      if (sess.flags[q.id]) { flagBtn.style.borderColor = 'var(--amber)'; flagBtn.style.color = 'var(--amber)'; }
       const head = h('div', { class: 'qhead' },
-        h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'eyebrow' }, `Question ${i + 1} of ${qs.length}`), h('span', { class: 'pill' }, q.topic),
-          q.type === 'multi' ? h('span', { class: 'pill violet' }, 'Select all that apply') : null, q.type === 'code' ? h('span', { class: 'pill violet' }, 'Code · 30 marks') : h('span', { class: 'pill' }, '10 marks')),
+        h('div', { class: 'qmeta' }, h('span', { class: 'eyebrow' }, `Question ${i + 1} of ${qs.length}`),
+          h('span', {}, `${q.topic} · ${q.type === 'code' ? '30 marks' : '10 marks'}${q.type === 'multi' ? ' · select all that apply' : ''}`)),
         flagBtn);
       const card = h('div', { class: 'card qcard' }, head, h('p', { class: 'qtext' }, q.q));
 
@@ -701,7 +758,7 @@
           const cur = sess.answers[q.id];
           const sel = multi ? (cur || []).includes(j) : cur === j;
           const inp = h('input', { type: multi ? 'checkbox' : 'radio', name: 'm-exam-' + q.id, checked: sel ? true : null });
-          const lab = h('label', { class: 'opt' + (sel ? ' sel' : '') }, inp, h('span', { class: 'ol' }, 'ABCDE'[j]), h('span', {}, o.t));
+          const lab = h('label', { class: 'opt' + (sel ? ' sel' : '') }, inp, h('span', {}, o.t));
           inp.addEventListener('change', () => {
             if (multi) { const a = new Set(sess.answers[q.id] || []); if (inp.checked) a.add(j); else a.delete(j); sess.answers[q.id] = [...a].sort(); }
             else sess.answers[q.id] = j;
@@ -728,14 +785,13 @@
           const n = r.tests.filter((t) => t.ok).length;
           term.append(h('span', { class: n === 3 ? 'ok' : 'bad' }, `\n${n} of 3 sample tests passed.`), h('span', { class: 'dim' }, ' Hidden tests run after you submit.'));
         };
-        const runBtn = h('button', { class: 'btn sm primary', html: c.icon('play') + '<span>Run sample test</span>', onclick: () => {
+        const runBtn = h('button', { class: 'btn sm', html: c.icon('play') + '<span>Run sample test</span>', onclick: () => {
           sess.codeRun = 'running'; paintRun(); runBtn.disabled = true;
           const t = setTimeout(() => { sess.codeRun = cq.check(sess.answers.code); runBtn.disabled = false; paintRun(); }, 900);
           L.timers.push(t);
         } });
         card.append(
-          h('div', { class: 'codehead' }, h('span', {}, cq.file),
-            h('button', { class: 'btn sm demo-btn', onclick: () => { sess.answers.code = cq.model; ta.value = sess.answers.code; answered(); c.toast('Demo: a sample answer was typed in for you.'); } }, 'Demo: type a sample answer')),
+          h('div', { class: 'codehead' }, cq.file),
           ta, h('div', { class: 'row' }, runBtn, h('span', { class: 'tiny muted' }, 'Paste is turned off. Tab inserts 4 spaces.')), term);
         paintRun();
       }
@@ -765,11 +821,17 @@
           h('div', { class: 'stat' }, h('b', { class: 'num' }, String(fl)), h('span', {}, 'flagged for review')),
           h('div', { class: 'stat' }, h('b', { class: 'num' }, mmss(left)), h('span', {}, 'time left'))),
         unanswered.length ? h('div', { class: 'note' }, `Not answered: question ${unanswered.join(', ')}. Unanswered questions score zero.`) : null,
-        flagged.length ? h('div', { class: 'note' }, `Flagged: question ${flagged.join(', ')}. Use the numbers on the left to look again.`) : null,
+        flagged.length ? h('div', { class: 'note' }, `Flagged: question ${flagged.join(', ')}. Use the question numbers above to look again.`) : null,
         h('p', { class: 'small muted' }, `Once you submit, you cannot change your answers. Multiple-choice questions are marked straight away. The code question is marked on the server within 2 minutes. ${t.tab + t.fs + t.paste + t.copy} integrity events were recorded for your mentor.`),
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => { L.confirming = false; paintQ(); } }, 'Go back to my answers'),
           h('button', { class: 'btn primary', onclick: () => finish(c, s) }, 'Submit exam'))));
+    }
+
+    function sampleCode() {
+      sess.answers.code = cq.model; L.confirming = false;
+      sess.cur = qs.findIndex((q) => q.type === 'code'); paintQ(); answered();
+      c.toast('Demo: a sample answer was typed in for you.');
     }
 
     function fillRest() {
@@ -796,6 +858,7 @@
     L.timers.forEach((t) => { clearInterval(t); clearTimeout(t); });
     [L.blurT, L.bannerT, L.saveT].forEach((t) => clearTimeout(t));
     L.offs.forEach((off) => off());
+    if (L.menu) L.menu.close();
     if (L.layer) L.layer.remove();
     document.documentElement.style.overflow = L.prevOverflow || '';
     if (exitFs !== false && document.fullscreenElement && document.exitFullscreen) { try { document.exitFullscreen().catch(() => {}); } catch (e) {} }
@@ -877,28 +940,26 @@
     const { h, icon } = c;
     const r = sess.result; if (!r) return h('div');
     const pending = r.final == null;
-    const shown = pending ? Math.round((r.mcq / r.mcqMax) * 100) : r.final;
     const C2 = 2 * Math.PI * 40;
     const ring = h('div', { html: `<svg class="ring" viewBox="0 0 96 96" role="img" aria-label="${pending ? 'Score pending' : 'Overall score ' + r.final + ' percent'}"><circle class="bg" cx="48" cy="48" r="40"/><circle class="fg" cx="48" cy="48" r="40" stroke-dasharray="${C2.toFixed(1)}" stroke-dashoffset="${(C2 * (1 - (pending ? r.mcq / 100 : r.final / 100))).toFixed(1)}" transform="rotate(-90 48 48)"/><text x="48" y="56" text-anchor="middle">${pending ? '…' : r.final + '%'}</text></svg>` });
+    const f = flagSummary(sess);
 
-    const head = h('section', { class: 'card stack' },
-      h('div', { class: 'res-head' }, ring,
-        h('div', { style: { minWidth: 0 } }, h('div', { class: 'eyebrow' }, `Results · Paper ${sess.paper.code}`),
-          h('h2', {}, pending ? 'Multiple-choice marked. Code is being marked.' : `${sess.title}: ${r.final}%`),
-          h('p', { class: 'small muted', style: { marginTop: '4px' } }, pending ? 'The code question is graded on the server within 2 minutes. You can leave this page; the score will appear here.' : `Submitted at ${clock(r.submittedAt)}. Your mentor has the full report.`)),
-        h('div', { class: 'row', style: { gap: '8px' } },
-          h('button', { class: 'btn primary', onclick: () => c.go('mentor'), html: icon('mentor') + '<span>View it in the mentor console</span>' }))),
-      h('div', { class: 'grid-4' },
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, pending ? '…' : `${r.final}%`), h('span', {}, 'overall score')),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, `${r.mcq}/${r.mcqMax}`), h('span', {}, 'multiple-choice, marked instantly')),
-        h('div', { class: 'stat' }, pending ? h('b', { class: 'row', style: { gap: '8px', color: 'var(--brand)' } }, h('span', { class: 'spin' }), h('span', { style: { fontSize: '16px' } }, 'Grading…')) : h('b', { class: 'num' }, `${r.code}/${r.codeMax}`),
-          h('span', {}, pending ? 'code question, on the server' : `code question · ${r.codePassed} of 5 server tests passed`)),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, mmss(r.used)), h('span', {}, 'time used of 30:00'))));
+    const head = h('div', { class: 'res-head' }, ring,
+      h('div', { style: { minWidth: 0 } }, h('div', { class: 'eyebrow' }, `Your result · Paper ${sess.paper.code}`),
+        h('h2', {}, pending ? 'Multiple-choice marked. Code is being marked.' : `${sess.title}: ${r.final}%`),
+        h('p', { class: 'small muted', style: { marginTop: '4px' } }, pending ? 'The code question is marked on the server within 2 minutes.' : `Submitted at ${clock(r.submittedAt)} after ${mmss(r.used)} of 30:00.`)),
+      h('button', { class: 'btn primary', onclick: () => c.go('mentor'), html: icon('mentor') + '<span>See the mentor view</span>' }));
+
+    const facts = h('div', { class: 'res-facts' },
+      h('div', {}, h('b', { class: 'num' }, `${r.mcq}/${r.mcqMax}`), h('span', {}, 'multiple-choice, marked instantly')),
+      h('div', {}, pending ? h('b', { class: 'row', style: { gap: '8px', color: 'var(--brand)' } }, h('span', { class: 'spin' }), h('span', { style: { fontSize: '16px' } }, 'Marking…')) : h('b', { class: 'num' }, `${r.code}/${r.codeMax}`),
+        h('span', {}, pending ? 'code question, on the server' : `code question · ${r.codePassed} of 5 tests passed`)),
+      h('div', { class: f.total ? 'warn' : '' }, h('b', { class: 'num' }, String(f.total)), h('span', {}, f.total ? 'integrity events · nothing auto-failed' : 'integrity events recorded')));
 
     const rv = h('ul', { class: 'rv' }, r.per.map((p, i) => {
       let pill, sub;
       if (p.q.type === 'code') {
-        pill = pending ? h('span', { class: 'pill blue' }, h('span', { class: 'spin' }), 'Grading') : h('span', { class: 'pill ' + (r.code >= 24 ? 'green' : r.code >= 12 ? 'amber' : 'red') }, `${r.code}/30`);
+        pill = pending ? h('span', { class: 'pill blue' }, 'Marking') : h('span', { class: 'pill ' + (r.code >= 24 ? 'green' : r.code >= 12 ? 'amber' : 'red') }, `${r.code}/30`);
         sub = pending ? 'Running 5 hidden tests on the server.' : r.codeMissed.length ? `Missed: ${r.codeMissed.join(', ')}.` : 'All server tests passed.';
       } else {
         pill = h('span', { class: 'pill ' + (p.got === p.max ? 'green' : p.got > 0 ? 'amber' : 'red') }, `${p.got}/${p.max}`);
@@ -906,25 +967,23 @@
       }
       return h('li', {}, h('span', { class: 'n' }, String(i + 1)), h('span', { class: 'tx' }, p.q.q, h('small', {}, sub)), pill);
     }));
-    const review = h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', {}, 'Question by question'), h('span', { class: 'small muted' }, `${sess.company} · demo data`)), rv);
 
     // Integrity summary, exactly as the mentor console shows it.
-    const f = flagSummary(sess);
     const cell = (v, k) => h('div', { class: v ? 'warn' : '' }, h('b', {}, String(v)), h('span', {}, k));
     const tl = h('ul', { class: 'tl' }, sess.log.map((e) => h('li', { class: e.type === 'info' ? '' : 'flagged' },
       h('span', { class: 't' }, clock(e.at)), h('span', { class: 'k' }, { tab: 'Tab', fullscreen: 'Screen', paste: 'Paste', copy: 'Copy', menu: 'Click', info: 'Info' }[e.type] || 'Info'),
       h('span', {}, `${e.text} `, h('span', { class: 'tiny muted num' }, `(at ${mmss(e.t)})`)))));
     const verdict = f.total === 0 ? 'No integrity events. Nothing for the mentor to review.' : `${f.total} event${f.total === 1 ? '' : 's'} recorded. Nothing was failed automatically. The mentor decides if anything needs a conversation.`;
-    const integ = h('section', { class: 'mentor-view' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } },
-        h('div', {}, h('div', { class: 'eyebrow' }, 'What your mentor sees'), h('h3', {}, `Integrity report · ${c.data.demo_student.name} · ${sess.title}`)),
-        h('span', { class: 'pill ' + (f.total ? 'amber' : 'green') }, f.total ? 'Review suggested' : 'Clean')),
-      h('div', { class: 'ig' }, cell(f.tabSwitches, 'tab switches'), cell(f.fullscreenExits, 'full-screen exits'), cell(f.pasteAttempts + f.copyAttempts, 'copy or paste attempts'), h('div', {}, h('b', { style: { color: 'var(--green)' } }, 'No'), h('span', {}, 'auto-failed'))),
-      h('div', { class: 'callout small' }, h('b', {}, 'Auto-failed: no. '), verdict),
-      h('div', { class: 'stack', style: { gap: '6px' } }, h('b', { class: 'small' }, 'Timeline'), tl),
-      h('p', { class: 'tiny muted' }, 'Recorded in the browser during the exam: tab switches, focus loss, full-screen exits, copy, paste and right-click attempts. Times are shown as clock time and as time into the exam.'));
 
-    return h('div', { class: 'm-exam' }, head, h('div', { class: 'grid-2 res-grid' }, integ, review));
+    return h('section', { class: 'card res' }, head, facts,
+      h('div', {},
+        h('details', { class: 'res-more' }, h('summary', {}, `Question by question (${r.per.length})`), h('div', {}, rv)),
+        h('details', { class: 'res-more' }, h('summary', {}, 'Integrity report: what your mentor sees'),
+          h('div', {},
+            h('div', { class: 'ig' }, cell(f.tabSwitches, 'tab switches'), cell(f.fullscreenExits, 'full-screen exits'), cell(f.pasteAttempts + f.copyAttempts, 'copy or paste attempts'), h('div', {}, h('b', { style: { color: 'var(--green)' } }, 'No'), h('span', {}, 'auto-failed'))),
+            h('div', { class: 'callout small' }, verdict),
+            tl,
+            h('p', { class: 'tiny muted' }, 'Recorded in the browser during the exam: tab switches, focus loss, full-screen exits, copy, paste and right-click attempts.')))));
   }
 
   function refresh() {

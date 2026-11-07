@@ -9,7 +9,7 @@
   /* ---------- module-level state ---------- */
   const seeded = {};          // field id -> [thread]
   const mine = [];            // threads the student asked in this session (kept across fields)
-  const ui = { filter: 'all', q: '', sort: 'newest', month: 'all', open: null, drafts: {} };
+  const ui = { filter: 'all', q: '', sort: 'newest', month: 'all', status: 'any', open: null, drafts: {} };
   let pendingOpen = null;     // thread to open on the next visit (set when a mentor replies off-screen)
   let flash = null;           // thread id to highlight briefly in the list
   const streams = {};         // thread id -> { timer, full, finish }
@@ -535,56 +535,61 @@
   function injectCSS() {
     if (document.getElementById('m-forum')) return;
     const css = `
-.m-forum { display: grid; gap: 20px; min-width: 0 }
-.m-forum .fhead { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap }
-.m-forum .fhead > div { min-width: 0; display: grid; gap: 4px }
-.m-forum .fhead p { color: var(--muted); max-width: 62ch }
-.m-forum .flay { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start }
-.m-forum .fmain { min-width: 0; display: grid; gap: 14px }
+.m-forum { display: grid; gap: 24px; min-width: 0 }
+.m-forum .purpose { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap }
+.m-forum .purpose p { color: var(--muted); font-size: 15px; margin: 0; min-width: 0; flex: 1 1 320px; line-height: 1.5 }
+.m-forum .purpose p .demo { font-size: 12.5px; color: var(--faint); white-space: nowrap }
+.m-forum .flay { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start }
+.m-forum .fmain { min-width: 0; display: grid; gap: 16px }
 .m-forum .faside { display: grid; gap: 16px; min-width: 0 }
-.m-forum .tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 }
-.m-forum .tools .tabs { padding: 0 12px }
-.m-forum .tab .ct { font-size: 11.5px; font-weight: 700; color: var(--faint); margin-left: 4px }
-.m-forum .tab[aria-selected="true"] .ct { color: var(--brand) }
-.m-forum .ctrl { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px }
-.m-forum .srch { position: relative; flex: 1 1 220px; min-width: 0 }
+.m-forum .fbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; position: relative }
+.m-forum .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); flex: none }
+.m-forum .seg button { border: 0; background: none; padding: 9px 14px; font-weight: 700; font-size: 13.5px; color: var(--muted); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap }
+.m-forum .seg button:last-child { border-right: 0 }
+.m-forum .seg button:hover { color: var(--fg) }
+.m-forum .seg button[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand) }
+.m-forum .seg .ct { font-size: 12px; font-weight: 700; margin-left: 5px; opacity: .75 }
+.m-forum .srch { position: relative; flex: 1 1 200px; min-width: 0 }
 .m-forum .srch svg { position: absolute; left: 11px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--faint); pointer-events: none }
 .m-forum .srch input { padding-left: 34px }
-.m-forum .ctrl select { width: auto; flex: 0 1 auto; min-width: 0; max-width: 100%; cursor: pointer }
+.m-forum .fpop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(300px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 16px; display: grid; gap: 12px }
+.m-forum .fpop label { display: grid; gap: 6px; font-size: 13px; font-weight: 700 }
+.m-forum .fpop .pfoot { display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.m-forum .fbtn[aria-expanded="true"] { border-color: var(--brand); color: var(--brand) }
 .m-forum .list { padding: 0; overflow: hidden }
-.m-forum .listhead { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
-.m-forum .trow { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--line); cursor: pointer; align-items: start; transition: background .15s }
-.m-forum .trow:first-of-type { border-top: 0 }
+.m-forum .listhead { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap }
+.m-forum .trow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 16px 20px; border-top: 1px solid var(--line); cursor: pointer; align-items: center; transition: background .15s }
+.m-forum .listhead + .trow { border-top: 0 }
 .m-forum .trow:hover { background: var(--surface-2) }
 .m-forum .trow.flash { background: var(--brand-soft) }
 .m-forum .trow > div { min-width: 0 }
-.m-forum .tlink { background: none; border: 0; padding: 0; text-align: left; font-weight: 700; font-size: 15px; color: var(--fg); cursor: pointer; line-height: 1.35 }
+.m-forum .tlink { display: block; max-width: 100%; background: none; border: 0; padding: 0; text-align: left; font-weight: 700; font-size: 15px; color: var(--fg); cursor: pointer; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .m-forum .trow:hover .tlink { color: var(--brand) }
-.m-forum .tmeta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px }
-.m-forum .tmeta .pill { font-weight: 600 }
-.m-forum .tsnip { color: var(--muted); font-size: 13px; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.m-forum .tsub { color: var(--muted); font-size: 13px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.m-forum .tsub b { color: var(--brand); font-weight: 700 }
 .m-forum .tside { display: grid; gap: 6px; justify-items: end; text-align: right }
-.m-forum .vote { display: grid; justify-items: center; gap: 0; width: 48px; padding: 6px 0; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); cursor: pointer; color: var(--muted); font-weight: 800; font-size: 14px; line-height: 1.2 }
-.m-forum .vote svg { width: 16px; height: 16px }
+.m-forum .tcount { display: inline-flex; gap: 12px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap }
+.m-forum .tcount span { display: inline-flex; gap: 4px; align-items: center }
+.m-forum .tcount svg { width: 13px; height: 13px }
+.m-forum .vote { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-pill); cursor: pointer; color: var(--muted); font-weight: 700; font-size: 13px; line-height: 1.2 }
+.m-forum .vote svg { width: 14px; height: 14px }
 .m-forum .vote:hover { border-color: var(--brand); color: var(--brand) }
 .m-forum .vote[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand) }
-.m-forum .vote.inline { display: inline-flex; width: auto; gap: 6px; padding: 5px 10px; font-size: 13px }
-.m-forum .vote.inline svg { width: 14px; height: 14px }
-.m-forum .by { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12.5px }
+.m-forum .by { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; flex-wrap: wrap }
 .m-forum .by.me b { color: var(--brand) }
 .m-forum .mini-av { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; background: var(--surface-2); color: var(--muted); flex: none }
 .m-forum .empty .btn { margin-top: 12px }
 /* thread page */
 .m-forum .back { justify-self: start }
 .m-forum .qcard { display: grid; gap: 14px }
-.m-forum .qtitle { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; align-items: start }
-.m-forum .qtitle > div { min-width: 0; display: grid; gap: 8px }
-.m-forum .qtitle h1 { font-size: 21px; overflow-wrap: anywhere }
-.m-forum .qbody { white-space: pre-line; overflow-wrap: anywhere }
+.m-forum .qcard h1 { font-size: 22px; line-height: 1.35; overflow-wrap: anywhere }
+.m-forum .qhead { display: grid; gap: 8px; min-width: 0 }
+.m-forum .qbody { white-space: pre-line; overflow-wrap: anywhere; font-size: 15px; line-height: 1.6 }
 .m-forum .codebox { display: grid; grid-template-columns: minmax(0, 1fr) }
-.m-forum .codebox .lbl { font-family: var(--mono); font-size: 11.5px; color: var(--code-muted); background: var(--code-bg); border: 1px solid color-mix(in srgb, var(--code-bg) 80%, var(--line)); border-bottom: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 8px 16px 0 }
+.m-forum .codebox .lbl { font-family: var(--mono); font-size: 11.5px; color: var(--code-muted); background: var(--code-bg); border: 1px solid var(--line); border-bottom: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0; padding: 8px 16px 0 }
 .m-forum .codebox .code { margin: 0; border-radius: 0 0 var(--radius-sm) var(--radius-sm); border-top: 0; padding-top: 6px }
-.m-forum .qact { display: flex; gap: 8px; flex-wrap: wrap }
+.m-forum .qact { display: flex; gap: 8px 18px; flex-wrap: wrap; align-items: center; padding-top: 12px; border-top: 1px solid var(--line) }
+.m-forum .seclbl { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 4px 0 -4px }
 .m-forum .ans { display: grid; gap: 10px; border-left: 3px solid var(--line) }
 .m-forum .ans.ai { border-left-color: var(--violet) }
 .m-forum .ans.mentor { border-left-color: var(--green) }
@@ -601,8 +606,9 @@
 .m-forum .atext { white-space: pre-line; overflow-wrap: anywhere; font-size: 14.5px }
 .m-forum .afoot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .m-forum .afoot .sp { flex: 1 }
-.m-forum .fb[aria-pressed="true"].up { background: var(--green-soft); border-color: var(--green); color: var(--green) }
-.m-forum .fb[aria-pressed="true"].down { background: var(--amber-soft); border-color: var(--amber); color: var(--amber) }
+.m-forum .linkbtn[aria-pressed="true"].up { color: var(--green) }
+.m-forum .linkbtn[aria-pressed="true"].down { color: var(--amber) }
+.m-forum .linkbtn[aria-pressed="true"]::before { content: "\\2713  " }
 .m-forum .typing { display: inline-flex; gap: 4px; align-items: center; padding: 6px 0 }
 .m-forum .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); opacity: .35; animation: mf-dot 1s infinite }
 .m-forum .typing i:nth-child(2) { animation-delay: .15s } .m-forum .typing i:nth-child(3) { animation-delay: .3s }
@@ -613,24 +619,30 @@
 .m-forum .rb-foot { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap }
 .m-forum .held { color: var(--red); font-size: 13px; font-weight: 600 }
 /* aside */
-.m-forum .how { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px }
-.m-forum .how li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13.5px }
-.m-forum .how li b { display: block; font-size: 14px }
-.m-forum .how .ix { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand) }
-.m-forum .how .ix svg { width: 16px; height: 16px }
-.m-forum .how li:nth-child(2) .ix { background: var(--green-soft); color: var(--green) }
-.m-forum .how li:nth-child(3) .ix { background: var(--violet-soft); color: var(--violet) }
-.m-forum .how li:nth-child(4) .ix { background: var(--amber-soft); color: var(--amber) }
+.m-forum details.how { padding: 20px }
+.m-forum details.how > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 16px }
+.m-forum details.how > summary::-webkit-details-marker { display: none }
+.m-forum details.how > summary::after { content: "+"; color: var(--muted); font-weight: 600 }
+.m-forum details.how[open] > summary::after { content: "\\2212" }
+.m-forum .howl { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; counter-reset: hw }
+.m-forum .howl li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--muted); counter-increment: hw }
+.m-forum .howl li::before { content: counter(hw); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 800 }
+.m-forum .howl b { color: var(--fg) }
+.m-forum .fstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line) }
+.m-forum .fstats .stat b { font-size: 20px }
+.m-forum .howfoot { margin-top: 14px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap }
 .m-forum .helpers { display: grid; gap: 2px }
-.m-forum .helper { display: grid; grid-template-columns: 20px 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--radius-sm); padding: 8px 6px; cursor: pointer }
+.m-forum .helper { display: grid; grid-template-columns: 20px 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--radius-sm); padding: 8px 6px; cursor: pointer; color: var(--fg) }
 .m-forum .helper:hover { background: var(--surface-2) }
 .m-forum .helper .nm { min-width: 0; display: grid }
 .m-forum .helper .nm b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .m-forum .helper .nm span { font-size: 12px; color: var(--muted) }
 .m-forum .helper .av { width: 30px; height: 30px; font-size: 11px }
-.m-forum .linkbtn { background: none; border: 0; padding: 0; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13px }
+.m-forum .linkbtn { background: none; border: 0; padding: 0; color: var(--brand); font-weight: 700; cursor: pointer; font-size: 13.5px; display: inline-flex; gap: 6px; align-items: center }
+.m-forum .linkbtn svg { width: 15px; height: 15px }
 .m-forum .linkbtn:hover { text-decoration: underline }
-.m-forum .fstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px }
+.m-forum .linkbtn.muted { color: var(--muted) }
+.m-forum .linkbtn:disabled { color: var(--faint); cursor: default; text-decoration: none }
 /* ask modal */
 .m-forum.mf-ask { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0 }
 .m-forum.mf-ask label.fl { display: grid; gap: 6px; font-size: 13px; font-weight: 700 }
@@ -652,17 +664,17 @@
 @keyframes mf-in { from { opacity: 0; transform: translateY(6px) } }
 @media (max-width: 1180px) {
   .m-forum .flay { grid-template-columns: minmax(0, 1fr) }
-  .m-forum .faside { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
 }
 @media (max-width: 640px) {
-  .m-forum .trow { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; padding: 12px }
-  .m-forum .tside { grid-column: 2; justify-items: start; text-align: left; display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-  .m-forum .vote { width: 42px }
-  .m-forum .qtitle { grid-template-columns: minmax(0, 1fr) }
-  .m-forum .qtitle > .vote { display: inline-flex; width: auto; gap: 6px; padding: 5px 10px; font-size: 13px; justify-self: start; order: 2 }
-  .m-forum .qtitle h1 { font-size: 18px }
-  .m-forum .ctrl select { flex: 1 1 140px }
-  .m-forum .fhead .btn { width: 100% }
+  .m-forum { gap: 18px }
+  .m-forum .purpose .btn { width: 100% }
+  .m-forum .seg { width: 100% }
+  .m-forum .seg button { flex: 1 1 0; padding: 9px 6px }
+  .m-forum .trow { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 14px 16px }
+  .m-forum .tlink { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+  .m-forum .tside { display: flex; gap: 10px; justify-items: start; text-align: left; align-items: center; flex-wrap: wrap }
+  .m-forum .qcard h1 { font-size: 19px }
+  .m-forum .fpop { width: 100% }
 }
 @media (prefers-reduced-motion: reduce) { .m-forum .trow, .m-forum .ans.fresh { animation: none; transition: none } .m-forum .caret { animation: none } }
 `;
@@ -674,7 +686,8 @@
     let list = allThreads(f);
     const q = ui.q.trim().toLowerCase();
     if (ui.filter === 'unanswered') list = list.filter((t) => !t.mentor && !t.solved);
-    if (ui.filter === 'mentor') list = list.filter((t) => t.mentor);
+    if (ui.status === 'mentor') list = list.filter((t) => t.mentor);
+    if (ui.status === 'solved') list = list.filter((t) => t.solved);
     if (ui.filter === 'mine') list = list.filter(isMine);
     if (ui.month !== 'all') list = list.filter((t) => monthOf(t) === Number(ui.month));
     if (q) list = list.filter((t) => [t.title, t.body, t.author, tagsOf(t).join(' '), t.code || ''].join(' ').toLowerCase().includes(q));
@@ -683,7 +696,7 @@
   }
 
   function voteBtn(c, target, opts) {
-    const b = c.h('button', { class: 'vote' + (opts && opts.inline ? ' inline' : ''), type: 'button', 'aria-pressed': target.voted ? 'true' : 'false', 'aria-label': `Upvote (${target.votes} votes)`, title: target.voted ? 'Remove your vote' : 'Upvote: this helped me too' });
+    const b = c.h('button', { class: 'vote', type: 'button', 'aria-pressed': target.voted ? 'true' : 'false', 'aria-label': `Upvote (${target.votes} votes)`, title: target.voted ? 'Remove your vote' : 'Upvote: this helped me too' });
     const draw = () => { b.innerHTML = c.icon('star') + `<span class="num">${target.votes}</span>`; b.setAttribute('aria-pressed', target.voted ? 'true' : 'false'); b.setAttribute('aria-label', `Upvote (${target.votes} votes)`); };
     draw();
     b.addEventListener('click', (e) => {
@@ -698,16 +711,13 @@
     injectCSS();
     if (pendingOpen) { ui.open = pendingOpen; pendingOpen = null; }
     if (ui.open && !findThread(ui.open)) ui.open = null;
-    const { h, field: f } = c;
+    const { h } = c;
     const wrap = h('div', { class: 'm-forum' });
     const main = h('div', { class: 'fmain' });
-    mount = { root: wrap, c, main, listBox: null, tabsBox: null };
+    mount = { root: wrap, c, main, listBox: null, segBox: null };
 
-    const head = h('section', { class: 'card fhead' },
-      h('div', {},
-        h('div', { class: 'eyebrow' }, c.data.demo_student.month <= 3 ? `Community · Month ${c.data.demo_student.month} · Common foundation, then ${f.short}` : `Community · Month ${c.data.demo_student.month} · ${f.short} · ${f.company}`),
-        h('h1', {}, 'Doubt forum'),
-        h('p', { class: 'small' }, 'Ask about any lecture or practical. The AI tutor answers in seconds with hints, then a mentor checks the answer.')),
+    const head = h('div', { class: 'purpose' },
+      h('p', {}, 'Ask about any lecture or practical. The AI tutor answers in seconds with hints, then a mentor checks it. ', h('span', { class: 'demo' }, 'Demo data')),
       h('button', { class: 'btn primary', type: 'button', html: c.icon('forum') + '<span>Ask a question</span>', onclick: () => openAsk(c) }));
 
     wrap.append(head, h('div', { class: 'flay' }, main, aside(c)));
@@ -720,99 +730,131 @@
   function renderMain() {
     if (!mount) return;
     const { main, c } = mount;
+    closeFilters();
     main.textContent = '';
     const t = ui.open && findThread(ui.open);
     if (t) threadView(main, c, t); else listView(main, c);
   }
 
+  /* Filters popover (sort, month, status): one open at a time, closed on outside click or Escape. */
+  let popClose = null;
+  function closeFilters() { if (popClose) { const f = popClose; popClose = null; f(); } }
+  const nFilters = () => (ui.sort !== 'newest' ? 1 : 0) + (ui.month !== 'all' ? 1 : 0) + (ui.status !== 'any' ? 1 : 0);
+
   function listView(main, c) {
     const { h, field: f } = c;
-    const tabsBox = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Filter questions' });
-    const search = h('input', { class: 'field-input', type: 'search', placeholder: 'Search questions, topics or people', value: ui.q, 'aria-label': 'Search questions' });
+    const segBox = h('div', { class: 'seg', role: 'group', 'aria-label': 'Show questions' });
+    const search = h('input', { class: 'field-input', type: 'search', placeholder: 'Search questions', value: ui.q, 'aria-label': 'Search questions' });
     search.addEventListener('input', () => { ui.q = search.value; renderList(); });
-    const sort = h('select', { class: 'field-input', 'aria-label': 'Sort questions' },
-      h('option', { value: 'newest' }, 'Newest first'), h('option', { value: 'votes' }, 'Most votes'));
-    sort.value = ui.sort;
-    sort.addEventListener('change', () => { ui.sort = sort.value; renderList(); });
-    const months = [...new Set(allThreads(f).map(monthOf))].sort((a, b) => a - b);
-    if (ui.month !== 'all' && !months.includes(Number(ui.month))) ui.month = 'all';
-    const month = h('select', { class: 'field-input', 'aria-label': 'Filter by month' },
-      h('option', { value: 'all' }, 'All months'),
-      months.map((m) => h('option', { value: String(m), title: D().months[m] }, `Month ${m}`)));
-    month.value = String(ui.month);
-    month.addEventListener('change', () => { ui.month = month.value; renderList(); });
+    const fbtn = h('button', { class: 'btn fbtn', type: 'button', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', html: `<span>Filters${nFilters() ? ` · ${nFilters()}` : ''}</span>` });
+    const bar = h('div', { class: 'fbar' }, segBox, h('label', { class: 'srch', html: c.icon('search') }, search), fbtn);
+    fbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (popClose) { closeFilters(); return; }
+      const sort = h('select', { class: 'field-input', 'aria-label': 'Sort questions' },
+        h('option', { value: 'newest' }, 'Newest first'), h('option', { value: 'votes' }, 'Most votes'));
+      sort.value = ui.sort;
+      const months = [...new Set(allThreads(f).map(monthOf))].sort((a, b) => a - b);
+      if (ui.month !== 'all' && !months.includes(Number(ui.month))) ui.month = 'all';
+      const month = h('select', { class: 'field-input', 'aria-label': 'Filter by month' },
+        h('option', { value: 'all' }, 'All months'),
+        months.map((m) => h('option', { value: String(m) }, `Month ${m}: ${D().months[m]}`)));
+      month.value = String(ui.month);
+      const st = h('select', { class: 'field-input', 'aria-label': 'Filter by answer status' },
+        h('option', { value: 'any' }, 'Any status'), h('option', { value: 'mentor' }, 'Mentor confirmed'), h('option', { value: 'solved' }, 'Solved'));
+      st.value = ui.status;
+      const apply = () => { ui.sort = sort.value; ui.month = month.value; ui.status = st.value; fbtn.firstChild.textContent = `Filters${nFilters() ? ` · ${nFilters()}` : ''}`; renderList(); };
+      [sort, month, st].forEach((x) => x.addEventListener('change', apply));
+      const pop = h('div', { class: 'fpop', role: 'dialog', 'aria-label': 'Filters' },
+        h('label', {}, 'Sort', sort), h('label', {}, 'Month', month), h('label', {}, 'Answer status', st),
+        h('div', { class: 'pfoot' },
+          h('button', { class: 'linkbtn muted', type: 'button', onclick: () => { sort.value = 'newest'; month.value = 'all'; st.value = 'any'; apply(); } }, 'Reset'),
+          h('button', { class: 'btn sm', type: 'button', onclick: () => closeFilters() }, 'Done')));
+      bar.append(pop); fbtn.setAttribute('aria-expanded', 'true');
+      const outside = (ev) => { if (!pop.contains(ev.target) && ev.target !== fbtn && !fbtn.contains(ev.target)) closeFilters(); };
+      const key = (ev) => { if (ev.key === 'Escape') { closeFilters(); fbtn.focus(); } };
+      setTimeout(() => { document.addEventListener('pointerdown', outside, true); }, 0);
+      document.addEventListener('keydown', key, true);
+      popClose = () => { pop.remove(); fbtn.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', key, true); };
+      setTimeout(() => sort.focus(), 0);
+    });
 
-    const tools = h('section', { class: 'card tools' }, tabsBox,
-      h('div', { class: 'ctrl' }, h('label', { class: 'srch', html: c.icon('search') }, search), sort, month));
     const listBox = h('section', { class: 'card list', 'aria-live': 'polite' });
-    mount.tabsBox = tabsBox; mount.listBox = listBox;
-    main.append(tools, listBox);
+    mount.segBox = segBox; mount.listBox = listBox;
+    main.append(bar, listBox);
     renderList();
   }
 
   function renderList() {
     if (!mount || !mount.listBox || !mount.listBox.isConnected) return;
-    const { c, listBox, tabsBox } = mount;
+    const { c, listBox, segBox } = mount;
     const { h, field: f } = c;
     const all = allThreads(f);
-    const tabs = [['all', 'All', all.length], ['unanswered', 'Unanswered', all.filter((t) => !t.mentor && !t.solved).length], ['mentor', 'Mentor confirmed', all.filter((t) => t.mentor).length], ['mine', 'My questions', all.filter(isMine).length]];
-    tabsBox.textContent = '';
-    tabs.forEach(([id, label, n]) => tabsBox.append(h('button', {
-      class: 'tab', role: 'tab', type: 'button', 'aria-selected': ui.filter === id ? 'true' : 'false',
+    const segs = [['all', 'All', all.length], ['unanswered', 'Unanswered', all.filter((t) => !t.mentor && !t.solved).length], ['mine', 'My questions', all.filter(isMine).length]];
+    if (!segs.some((x) => x[0] === ui.filter)) ui.filter = 'all';
+    segBox.textContent = '';
+    segs.forEach(([id, label, n]) => segBox.append(h('button', {
+      type: 'button', 'aria-pressed': ui.filter === id ? 'true' : 'false',
       title: id === 'unanswered' ? 'Questions still waiting for a mentor' : null,
       onclick: () => { ui.filter = id; renderList(); },
     }, label, h('span', { class: 'ct num' }, String(n)))));
 
     const list = filtered(f);
     listBox.textContent = '';
-    const filterName = tabs.find((x) => x[0] === ui.filter)[1];
+    const filterName = segs.find((x) => x[0] === ui.filter)[1];
+    const extra = [ui.status === 'mentor' ? 'mentor confirmed' : ui.status === 'solved' ? 'solved' : '', ui.month !== 'all' ? `Month ${ui.month}` : '', ui.q.trim() ? `matching "${ui.q.trim()}"` : ''].filter(Boolean);
     listBox.append(h('div', { class: 'listhead' },
-      h('span', { class: 'small muted' }, `${list.length} ${list.length === 1 ? 'question' : 'questions'} · ${filterName}${ui.month !== 'all' ? ` · Month ${ui.month}: ${D().months[ui.month]}` : ''}${ui.q.trim() ? ` · matching "${ui.q.trim()}"` : ''}`),
-      (ui.q || ui.month !== 'all' || ui.filter !== 'all')
-        ? h('button', { class: 'linkbtn', type: 'button', onclick: () => { ui.q = ''; ui.month = 'all'; ui.filter = 'all'; renderMain(); } }, 'Clear filters')
-        : h('span', { class: 'demo-tag' }, 'Demo data')));
+      h('span', { class: 'small muted' }, `${list.length} ${list.length === 1 ? 'question' : 'questions'} · ${filterName}${extra.length ? ' · ' + extra.join(' · ') : ''}${ui.sort === 'votes' ? ' · most votes first' : ''}`),
+      (ui.q || ui.month !== 'all' || ui.filter !== 'all' || ui.status !== 'any' || ui.sort !== 'newest')
+        ? h('button', { class: 'linkbtn', type: 'button', onclick: () => { ui.q = ''; ui.month = 'all'; ui.filter = 'all'; ui.status = 'any'; ui.sort = 'newest'; renderMain(); } }, 'Clear filters')
+        : null));
 
     if (!list.length) {
       const msg = ui.filter === 'mine' && !ui.q ? 'You have not asked anything here yet.' : 'No questions match. Ask it, and the AI tutor answers in seconds.';
       listBox.append(h('div', { class: 'empty' }, h('p', {}, msg),
-        h('button', { class: 'btn primary sm', type: 'button', onclick: () => openAsk(c, ui.q.trim()) }, 'Ask a question')));
+        h('button', { class: 'btn sm', type: 'button', onclick: () => openAsk(c, ui.q.trim()) }, 'Ask a question')));
       return;
     }
-    list.forEach((t) => {
-      const [, label, tone] = status(t);
-      const st = status(t)[0];
+    const LIMIT = 8;
+    const shown = ui.showAll || ui.q.trim() ? list : list.slice(0, LIMIT);
+    shown.forEach((t) => {
+      const [st, label, tone] = status(t);
       const n = answerCount(t);
       const open = () => { ui.open = t.id; renderMain(); window.scrollTo({ top: 0 }); };
       const row = h('div', { class: 'trow' + (flash === t.id ? ' flash' : ''), 'data-id': t.id, onclick: open },
-        voteBtn(c, t, { onChange: () => { if (ui.sort === 'votes') renderList(); } }),
         h('div', {},
-          h('button', { class: 'tlink', type: 'button', onclick: (e) => { e.stopPropagation(); open(); } }, t.title),
-          h('div', { class: 'tmeta' },
-            tagsOf(t).map((x, i) => h('span', { class: 'pill' + (i === 0 ? ' blue' : '') }, x)),
-            h('span', { class: 'by' + (isMine(t) ? ' me' : ''), html: `<span class="mini-av">${initials(t.author)}</span><b>${c.esc(isMine(t) ? 'You' : t.author)}</b> · ${rel(t.ts)}` })),
-          h('p', { class: 'tsnip' }, st === 'typing' ? 'The AI tutor is writing hints for this question…' : (t.body || (t.ai && t.ai.text ? t.ai.text.split('\n')[0] : '')))),
+          h('button', { class: 'tlink', type: 'button', title: t.title, onclick: (e) => { e.stopPropagation(); open(); } }, t.title),
+          h('div', { class: 'tsub', html: `${c.esc(subTopic(t))} · ${isMine(t) ? '<b>You</b>' : c.esc(t.author)} · ${rel(t.ts)}` })),
         h('div', { class: 'tside' },
           h('span', { class: 'pill ' + tone }, st === 'typing' ? h('span', { class: 'spin', style: { width: '10px', height: '10px' } }) : null, label),
-          h('span', { class: 'tiny muted num' }, `${n} ${n === 1 ? 'answer' : 'answers'}`)));
+          h('span', { class: 'tcount', html: `<span title="Votes">${c.icon('star')}${t.votes}</span><span>${n} ${n === 1 ? 'answer' : 'answers'}</span>` })));
       listBox.append(row);
     });
+    if (shown.length < list.length) listBox.append(h('div', { class: 'listhead', style: { borderTop: '1px solid var(--line)', borderBottom: '0', justifyContent: 'center' } },
+      h('button', { class: 'linkbtn', type: 'button', onclick: () => { ui.showAll = true; renderList(); } }, `Show all (${list.length})`)));
     if (flash) { const id = flash; setTimeout(() => { if (flash === id) flash = null; }, 2500); }
+  }
+  // One short context line for a thread: lecture and topic, or the extra tag.
+  function subTopic(t) {
+    const l = lectureById(t.lecture);
+    if (l) return `L${l.id} ${shortText(l.topic.split(/[:;]/)[0], 32)}`;
+    return `${t.extraTag || 'General'} · Month ${monthOf(t)}`;
   }
 
   function threadView(main, c, t) {
     const { h, esc } = c;
     const lec = lectureById(t.lecture);
     const [, label, tone] = status(t);
-    const back = h('button', { class: 'btn sm back', type: 'button', onclick: () => { ui.open = null; renderMain(); window.scrollTo({ top: 0 }); } }, '← All questions');
+    const back = h('button', { class: 'linkbtn back', type: 'button', onclick: () => { ui.open = null; renderMain(); window.scrollTo({ top: 0 }); } }, '← All questions');
 
-    const actions = h('div', { class: 'qact' });
-    if (lec) actions.append(h('button', { class: 'btn sm', type: 'button', html: c.icon('play') + `<span>Jump to the lecture moment · L${lec.id} at ${moment(lec.id)}</span>`, onclick: () => { c.toast(`Opening Lecture ${lec.id} near ${moment(lec.id)}`); c.go('lecture'); } }));
-    if (t.capstone) actions.append(h('button', { class: 'btn sm', type: 'button', html: c.icon('project') + '<span>Open the capstone</span>', onclick: () => c.go('projects') }));
-    else actions.append(h('button', { class: 'btn sm', type: 'button', html: c.icon('code') + '<span>Open the practical</span>', onclick: () => c.go('practical') }));
+    const actions = h('div', { class: 'qact' }, voteBtn(c, t));
+    if (lec) actions.append(h('button', { class: 'linkbtn', type: 'button', html: c.icon('play') + `<span>Jump to Lecture ${lec.id} at ${moment(lec.id)}</span>`, onclick: () => { c.toast(`Opening Lecture ${lec.id} near ${moment(lec.id)}`); c.go('lecture'); } }));
+    if (t.capstone) actions.append(h('button', { class: 'linkbtn', type: 'button', html: c.icon('project') + '<span>Open the capstone</span>', onclick: () => c.go('projects') }));
+    else actions.append(h('button', { class: 'linkbtn', type: 'button', html: c.icon('code') + '<span>Open the practical</span>', onclick: () => c.go('practical') }));
     if (isMine(t)) {
       actions.append(t.solved
-        ? h('button', { class: 'btn sm', type: 'button', onclick: () => { t.solved = false; c.toast('Question reopened'); renderMain(); } }, 'Reopen question')
-        : h('button', { class: 'btn sm success', type: 'button', html: c.icon('check') + '<span>Mark as solved</span>', disabled: t.ai && (t.ai.typing || t.ai.streaming) ? true : null,
+        ? h('button', { class: 'linkbtn', type: 'button', onclick: () => { t.solved = false; c.toast('Question reopened'); renderMain(); } }, 'Reopen question')
+        : h('button', { class: 'linkbtn', type: 'button', html: c.icon('check') + '<span>Mark as solved</span>', disabled: t.ai && (t.ai.typing || t.ai.streaming) ? true : null,
           onclick: () => {
             t.solved = true;
             if (!t.xpSolved) { t.xpSolved = true; c.addXP(5, 'Doubt solved'); } else c.toast('Marked as solved', 'green');
@@ -820,13 +862,12 @@
           } }));
     }
 
+    const tags = tagsOf(t).filter((x, i) => !(lec && i === 1));
     const q = h('section', { class: 'card qcard' },
-      h('div', { class: 'qtitle' },
-        voteBtn(c, t),
-        h('div', {},
-          h('div', { class: 'tmeta', style: { marginTop: 0 } }, h('span', { class: 'pill ' + tone }, label), tagsOf(t).map((x, i) => h('span', { class: 'pill' + (i === 0 ? ' blue' : '') }, x))),
-          h('h1', {}, t.title),
-          h('span', { class: 'by' + (isMine(t) ? ' me' : ''), html: `<span class="mini-av">${initials(t.author)}</span>Asked by <b>${esc(isMine(t) ? 'you' : t.author)}</b> · ${rel(t.ts)} · ${esc(t.fieldShort)}` }))),
+      h('div', { class: 'qhead' },
+        h('div', {}, h('span', { class: 'pill ' + tone }, label)),
+        h('h1', {}, t.title),
+        h('span', { class: 'by' + (isMine(t) ? ' me' : ''), html: `<span class="mini-av">${initials(t.author)}</span>Asked by <b>${esc(isMine(t) ? 'you' : t.author)}</b> · ${rel(t.ts)} · ${esc(tags.join(' · '))}${lec ? ` · ${esc(shortText(lec.topic, 48))}` : ''}` })),
       t.body ? h('p', { class: 'qbody' }, t.body) : null,
       t.code ? h('div', { class: 'codebox' }, h('div', { class: 'lbl' }, t.codeLabel || 'code'), h('pre', { class: 'code', html: hl(t.code) })) : null,
       actions);
@@ -849,8 +890,8 @@
         };
         foot.append(
           h('span', { class: 'small muted' }, 'Was this hint useful?'),
-          h('button', { class: 'btn sm fb up', type: 'button', 'aria-pressed': a.helpful === true ? 'true' : 'false', html: c.icon('check') + '<span>Helpful</span>', onclick: () => set(true) }),
-          h('button', { class: 'btn sm fb down', type: 'button', 'aria-pressed': a.helpful === false ? 'true' : 'false', onclick: () => set(false) }, 'Not helpful'),
+          h('button', { class: 'linkbtn up', type: 'button', 'aria-pressed': a.helpful === true ? 'true' : 'false', onclick: () => set(true) }, 'Helpful'),
+          h('button', { class: 'linkbtn down', type: 'button', 'aria-pressed': a.helpful === false ? 'true' : 'false', onclick: () => set(false) }, 'Not helpful'),
           h('span', { class: 'sp' }),
           h('span', { class: 'tiny muted' }, `Answered in ${a.secs} s`));
       }
@@ -864,7 +905,7 @@
       const card = h('section', { class: 'card ans mentor' + (m.fresh ? ' fresh' : '') },
         h('div', { class: 'ahead', html: `<span class="av mentor">${initials(m.name)}</span><div><b>${esc(m.name)}</b> <span class="pill green" style="margin-left:4px">Mentor confirmed</span><div class="tiny muted">Mentor · ${esc(t.fieldShort)} · ${rel(m.ts)}</div></div>` }),
         h('p', { class: 'atext' }, m.text),
-        h('div', { class: 'afoot' }, voteBtn(c, m, { inline: true }),
+        h('div', { class: 'afoot' }, voteBtn(c, m),
           m.fresh ? h('span', { class: 'tiny muted' }, 'Demo: the reply arrives in seconds here. Real mentors confirm within a day.') : null));
       m.fresh = false;
       answers.push(card);
@@ -874,12 +915,12 @@
         h('span', {}, isMine(t) && t.mentorTimer ? `${MENTOR} has been told about your question and will confirm the answer.` : (status(t)[0] === 'needs' ? 'Waiting for a mentor. Mentors confirm within a day.' : 'No mentor reply yet. Mentors check AI answers within a day.'))));
     }
     // Student replies
-    t.replies.forEach((r) => {
+    const replies = t.replies.map((r) => {
       const me = r.sid === meId();
-      answers.push(h('section', { class: 'card ans' + (me ? ' mine' : '') },
+      return h('section', { class: 'card ans' + (me ? ' mine' : '') },
         h('div', { class: 'ahead', html: `<span class="av${me ? ' me' : ''}">${initials(r.name)}</span><div><b>${esc(me ? 'You' : r.name)}</b><div class="tiny muted">Student · ${rel(r.ts)}</div></div>` }),
         h('p', { class: 'atext' }, r.text),
-        h('div', { class: 'afoot' }, voteBtn(c, r, { inline: true }))));
+        h('div', { class: 'afoot' }, voteBtn(c, r)));
     });
 
     // Reply box
@@ -906,45 +947,54 @@
       ta,
       h('div', { class: 'rb-foot' }, h('div', { class: 'stack', style: { gap: '2px' } }, h('span', { class: 'tiny muted' }, 'Hints are welcome. Please don\'t post full graded answers.'), held), h('button', { class: 'btn primary', type: 'button', onclick: post }, 'Post reply')));
 
-    main.append(back, q,
-      h('div', { class: 'row small muted', style: { justifyContent: 'space-between' } }, h('span', {}, `${answerCount(t)} ${answerCount(t) === 1 ? 'answer' : 'answers'}`)),
-      ...answers, box);
+    const nRep = t.replies.length;
+    main.append(...[back, q, ...answers,
+      nRep ? h('div', { class: 'seclbl' }, `${nRep} ${nRep === 1 ? 'reply' : 'replies'} from students`) : null,
+      ...replies, box].filter(Boolean));
   }
 
   function aside(c) {
-    const { h, field: f, data } = c;
-    const how = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h3', {}, 'How the forum works')),
-      h('ul', { class: 'how' },
-        [['spark', 'AI answers in seconds', 'The AI tutor replies first, with hints tied to the lecture.'],
-          ['mentor', 'Mentors confirm within a day', `${MENTOR} and the mentor team check every AI answer.`],
-          ['lock', 'No graded solutions', 'Answers give hints and point to the lecture. They never hand over graded work.'],
-          ['shield', 'Abusive content filtered', 'Rude or abusive posts are held back before anyone sees them.']]
-          .map(([ic, b, s]) => h('li', { html: `<span class="ix">${c.icon(ic)}</span><span><b>${c.esc(b)}</b><span class="muted">${c.esc(s)}</span></span>` }))));
+    const { h, field: f } = c;
+    const all = allThreads(f);
+    const done = all.filter((t) => t.mentor || t.solved).length;
+    const narrow = window.innerWidth <= 640;
+    const how = h('details', { class: 'card how', open: narrow ? null : true },
+      h('summary', {}, 'How the forum works'),
+      h('ol', { class: 'howl' },
+        h('li', { html: '<span><b>AI answers in seconds</b> with hints tied to the lecture, never graded solutions.</span>' }),
+        h('li', { html: `<span><b>A mentor confirms</b> within a day. ${c.esc(MENTOR)} and the team check every AI answer.</span>` }),
+        h('li', { html: '<span><b>Abusive posts are held back</b> before anyone sees them.</span>' })),
+      h('div', { class: 'fstats' },
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, '8 s'), h('span', {}, 'median AI answer')),
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, '5 h'), h('span', {}, 'median mentor check')),
+        h('div', { class: 'stat' }, h('b', { class: 'num', 'data-stat': 'open' }, String(all.length - done)), h('span', {}, 'waiting for a mentor')),
+        h('div', { class: 'stat' }, h('b', { class: 'num' }, `${Math.round(done / Math.max(1, all.length) * 100)}%`), h('span', {}, 'confirmed or solved'))),
+      h('div', { class: 'howfoot' },
+        h('button', { class: 'linkbtn', type: 'button', onclick: () => openHelpers(c) }, 'Top helpers this week'),
+        h('button', { class: 'linkbtn muted', type: 'button', onclick: () => c.go('achievements') }, 'Badges')));
+    return h('aside', { class: 'faside', 'aria-label': 'About the forum' }, how);
+  }
 
+  function openHelpers(c) {
+    const { h, data, field: f } = c;
     const pool = data.students.filter((s) => s.id !== meId());
     const local = pool.filter((s) => s.field === f.id);
     const rest = pool.filter((s) => s.field !== f.id).sort((a, b) => b.xp - a.xp);
     const top = local.concat(rest).slice(0, 5);
     const counts = [23, 18, 14, 11, 9];
-    const helpers = h('section', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h3', {}, 'Top helpers this week'), h('button', { class: 'linkbtn', type: 'button', onclick: () => c.go('achievements') }, 'Badges')),
+    let dlg = null;
+    const box = h('div', { class: 'm-forum', style: { gap: '14px' } },
+      h('div', {}, h('div', { class: 'eyebrow' }, 'Doubt forum · this week'), h('h2', {}, 'Top helpers')),
+      h('p', { class: 'small muted' }, 'Students whose replies classmates voted up most. Helpers earn a badge on the leaderboard.'),
       h('div', { class: 'helpers' }, top.map((s, i) => {
         const fld = data.fields.find((x) => x.id === s.field);
-        return h('button', { class: 'helper', type: 'button', title: `See ${first(s.name)}'s helper badge`, onclick: () => c.go('achievements'), html:
+        return h('button', { class: 'helper', type: 'button', title: `See ${first(s.name)}'s helper badge`, onclick: () => { dlg.close(); c.go('achievements'); }, html:
           `<span class="tiny muted num">${i + 1}</span><span class="av">${initials(s.name)}</span><span class="nm"><b>${c.esc(s.name)}</b><span>${c.esc(fld ? fld.short : '')}</span></span><span class="tiny muted num">${counts[i]} answers</span>` });
-      })));
-
-    const all = allThreads(f);
-    const done = all.filter((t) => t.mentor || t.solved).length;
-    const stats = h('section', { class: 'card stack' },
-      h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('h3', {}, 'Forum speed'), h('span', { class: 'demo-tag' }, 'Demo data')),
-      h('div', { class: 'fstats' },
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, '8 s'), h('span', {}, 'median AI answer')),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, '5 h'), h('span', {}, 'median mentor confirmation')),
-        h('div', { class: 'stat' }, h('b', { class: 'num', 'data-stat': 'open' }, String(all.length - done)), h('span', {}, 'waiting for a mentor')),
-        h('div', { class: 'stat' }, h('b', { class: 'num' }, `${Math.round(done / Math.max(1, all.length) * 100)}%`), h('span', {}, 'confirmed or solved'))));
-    return h('aside', { class: 'faside', 'aria-label': 'About the forum' }, how, helpers, stats);
+      })),
+      h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
+        h('button', { class: 'btn', type: 'button', onclick: () => dlg.close() }, 'Close'),
+        h('button', { class: 'btn primary', type: 'button', onclick: () => { dlg.close(); c.go('achievements'); } }, 'See badges')));
+    dlg = c.modal(box);
   }
 
   /* ---------- ask a question ---------- */
@@ -1017,7 +1067,7 @@
       };
       mine.unshift(t);
       dlg.close();
-      ui.filter = 'all'; ui.q = ''; ui.month = 'all'; ui.sort = 'newest'; ui.open = t.id; flash = t.id;
+      ui.filter = 'all'; ui.q = ''; ui.month = 'all'; ui.status = 'any'; ui.sort = 'newest'; ui.open = t.id; flash = t.id;
       c.emit('forum:asked', { title: tt });
       c.addXP(10, 'Asked a doubt');
       startAnswer(t, c);
@@ -1051,6 +1101,7 @@
       // Finish any answer still streaming so nothing animates off-screen.
       // The mentor confirmation stays scheduled: it only updates data and the bell, then shows up next visit.
       Object.values(streams).forEach((s) => s.finish());
+      closeFilters();
       mount = null;
     },
   });

@@ -666,8 +666,6 @@
     const css = `
 .m-lecture { display: grid; gap: 20px; min-width: 0 }
 .m-lecture [hidden] { display: none !important }
-.m-lecture .lx-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start }
-.m-lecture .lx-main, .m-lecture .lx-side { display: grid; gap: 16px; min-width: 0 }
 .m-lecture .lx-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px 16px; flex-wrap: wrap }
 .m-lecture .lx-head > div { min-width: 0 }
 .m-lecture .lx-head h2 { margin-top: 2px }
@@ -812,67 +810,94 @@
 .m-lecture .lx-speed option { color: var(--fg); background: var(--surface) }
 .m-lecture .lx-ask { background: color-mix(in srgb, var(--violet) 26%, transparent); border-color: color-mix(in srgb, var(--violet) 60%, transparent) }
 
-.m-lecture .lx-prog { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
-.m-lecture .lx-pbox { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-width: 0 }
-.m-lecture .lx-pbox.open { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); background: color-mix(in srgb, var(--green-soft) 50%, var(--surface)) }
-.m-lecture .lx-big-n { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1.1 }
-.m-lecture .lx-bar { position: relative; height: 8px; border-radius: 99px; background: var(--surface-2); margin-top: 2px }
+.m-lecture { max-width: 880px; width: 100%; margin: 0 auto; gap: 20px }
+.m-lecture .lx-purpose { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap }
+.m-lecture .lx-purpose .demo-tag { font-size: 10px }
+.m-lecture .lx-headr { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.m-lecture .lx-sub { font-size: 13px; color: var(--muted); margin: 4px 0 0 }
+.m-lecture .lx-player.card { padding: 0 }
+
+/* Choose lecture: a compact menu with this month's lectures, plus an "All lectures" modal */
+.m-lecture .lx-choose { position: relative }
+.m-lecture .lx-choose > .btn svg { width: 15px; height: 15px }
+.m-lecture .lx-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: min(400px, calc(100vw - 32px)); max-height: min(520px, 70vh); overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 8px; display: grid; gap: 2px }
+.m-lecture .lx-menu[hidden] { display: none }
+.m-lecture .lx-mhead { padding: 6px 10px 8px; display: grid; gap: 2px }
+.m-lecture .lx-mhead b { font-size: 14px }
+.m-lecture .lx-mfoot { border-top: 1px solid var(--line); margin-top: 6px; padding: 8px 4px 2px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between }
+.m-lecture .lx-li2, .m-lecture-modal .lx-li2 { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; background: none; color: var(--fg); border-radius: var(--radius-sm); padding: 8px 10px; cursor: pointer; font: inherit }
+.m-lecture .lx-li2:hover, .m-lecture-modal .lx-li2:hover { background: var(--surface-2) }
+.m-lecture .lx-li2[aria-current="true"], .m-lecture-modal .lx-li2[aria-current="true"] { background: var(--brand-soft) }
+.m-lecture .lx-li2 .no, .m-lecture-modal .lx-li2 .no { width: 40px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 12.5px }
+.m-lecture .lx-li2[aria-current="true"] .no, .m-lecture-modal .lx-li2[aria-current="true"] .no { background: var(--brand); color: var(--on-brand) }
+.m-lecture .lx-li2 .tx, .m-lecture-modal .lx-li2 .tx { min-width: 0; display: grid; gap: 1px }
+.m-lecture .lx-li2 b, .m-lecture-modal .lx-li2 b { font-size: 14px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.m-lecture .lx-li2 .sub, .m-lecture-modal .lx-li2 .sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.m-lecture-modal { display: grid; gap: 14px; min-width: 0 }
+.m-lecture-modal .lx-allhead { display: flex; justify-content: space-between; gap: 10px; align-items: end; flex-wrap: wrap }
+.m-lecture-modal .lx-alllist { display: grid; gap: 2px; max-height: 52vh; overflow: auto; margin: 0 -6px; padding: 0 2px }
+.m-lecture-modal select.field-input { width: auto; min-width: 0; max-width: 100% }
+
+/* Progress strip under the player: watched, questions, practical */
+.m-lecture .lx-strip { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .9fr) minmax(0, 1.35fr); padding: 16px 20px }
+.m-lecture .lx-strip > div { min-width: 0; display: grid; gap: 6px; align-content: start; padding: 0 20px; border-left: 1px solid var(--line) }
+.m-lecture .lx-strip > div:first-child { padding-left: 0; border-left: 0 }
+.m-lecture .lx-strip > div:last-child { padding-right: 0 }
+.m-lecture .lx-sv { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0 }
+.m-lecture .lx-big-n { font-family: var(--display); font-size: 20px; font-weight: 700; line-height: 1.2 }
+.m-lecture .lx-bar { position: relative; height: 8px; border-radius: 99px; background: var(--surface-2); margin-top: 4px }
 .m-lecture .lx-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: var(--brand); transition: width .3s ease }
 .m-lecture .lx-bar.done > i { background: var(--green) }
-.m-lecture .lx-mk { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--faint); border-radius: 2px }
-.m-lecture .lx-mkl { position: relative; height: 16px; font-size: 11px; color: var(--muted) }
-.m-lecture .lx-mkl span { position: absolute; transform: translateX(-50%); white-space: nowrap }
-.m-lecture .lx-mkl span:last-child { transform: translateX(-80%) }
-.m-lecture .lx-qd { display: flex; gap: 6px }
+.m-lecture .lx-mk { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--faint); border-radius: 2px }
+.m-lecture .lx-qd { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
 .m-lecture .lx-qd i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; color: var(--faint) }
 .m-lecture .lx-qd i.ok { background: var(--green); border-color: var(--green); color: var(--surface) }
 .m-lecture .lx-qd i.bad { background: var(--red); border-color: var(--red); color: var(--surface) }
 .m-lecture .lx-lockrow { display: flex; gap: 10px; align-items: center; min-width: 0 }
-.m-lecture .lx-lockrow > div { min-width: 0 }
-.m-lecture .lx-lock { width: 36px; height: 36px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--surface-2); color: var(--muted) }
-.m-lecture .lx-lock svg { width: 18px; height: 18px }
+.m-lecture .lx-lockrow > div { min-width: 0; display: grid; gap: 1px }
+.m-lecture .lx-lock { width: 34px; height: 34px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--surface-2); color: var(--muted) }
+.m-lecture .lx-lock svg { width: 17px; height: 17px }
 .m-lecture .lx-lock.open { background: var(--green-soft); color: var(--green); animation: lx-pop .35s ease }
 .m-lecture .lx-ok { color: var(--green); font-weight: 700 }
+.m-lecture .lx-strip .btn { justify-self: start }
 
-.m-lecture .lx-tx { display: grid; gap: 2px; max-height: 420px; overflow-y: auto; position: relative; margin: 0 -6px; padding: 0 2px }
-.m-lecture .lx-line { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; text-align: left; background: none; border: 0; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-size: 13.5px; line-height: 1.45; color: var(--muted) }
-.m-lecture .lx-line .ts { font-family: var(--mono); font-size: 12px; color: var(--faint); padding-top: 1px; white-space: nowrap }
+/* One panel with tabs: Transcript, Key moments, Ask the tutor */
+.m-lecture .lx-panel { padding: 0 }
+.m-lecture .lx-panel .tabs { padding: 6px 14px 0 }
+.m-lecture .lx-pbody { padding: 16px 20px 20px; display: grid; gap: 12px; min-width: 0 }
+.m-lecture .lx-pbody > [hidden] { display: none !important }
+.m-lecture .lx-tx { display: grid; gap: 2px; max-height: 360px; overflow-y: auto; position: relative; margin: 0 -8px; padding: 0 2px }
+.m-lecture .lx-line { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; text-align: left; background: none; border: 0; border-radius: 8px; padding: 7px 8px; cursor: pointer; font-size: 14px; line-height: 1.5; color: var(--muted) }
+.m-lecture .lx-line .ts { font-family: var(--mono); font-size: 12px; color: var(--faint); padding-top: 2px; white-space: nowrap }
 .m-lecture .lx-line:hover { background: var(--surface-2); color: var(--fg) }
 .m-lecture .lx-line.on { background: var(--brand-soft); color: var(--fg); font-weight: 600 }
 .m-lecture .lx-line.on .ts { color: var(--brand) }
 .m-lecture .lx-line.q .ts::after { content: " ?"; color: var(--amber); font-weight: 800 }
-
-.m-lecture .lx-list { display: grid; gap: 6px }
-.m-lecture .lx-preview { display: grid; gap: 12px; border-left: 3px solid var(--brand) }
-.m-lecture .lx-preview .pill svg { width: 13px; height: 13px }
-.m-lecture .lx-pts { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px }
-.m-lecture .lx-item { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: var(--radius-sm); padding: 9px 10px; cursor: pointer }
-.m-lecture .lx-item:hover { border-color: var(--brand) }
-.m-lecture .lx-item[aria-current="true"] { border-color: var(--brand); background: var(--brand-soft) }
-.m-lecture .lx-item .no { width: 42px; height: 42px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 13px }
-.m-lecture .lx-item[aria-current="true"] .no { background: var(--brand); color: var(--on-brand) }
-.m-lecture .lx-item .tx { min-width: 0 }
-.m-lecture .lx-item b { display: block; font-size: 13.5px; line-height: 1.3 }
-.m-lecture .lx-item .meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; color: var(--muted); flex-wrap: wrap }
-.m-lecture .lx-item .mini { height: 3px; border-radius: 99px; background: var(--surface-2); margin-top: 6px; overflow: hidden }
-.m-lecture .lx-item .mini i { display: block; height: 100%; background: var(--green) }
-
-.m-lecture-modal { display: grid; gap: 12px }
-.m-lecture-modal .lx-ctxchip { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.m-lecture-modal .lx-msg { border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; max-width: 92% }
-.m-lecture-modal .lx-msg.me { justify-self: end; background: var(--brand); color: var(--on-brand); border-bottom-right-radius: 4px }
-.m-lecture-modal .lx-msg.ai { background: var(--surface-2); border-bottom-left-radius: 4px; display: grid; gap: 6px }
-.m-lecture-modal .lx-thread { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto }
-.m-lecture-modal .lx-sugg { display: flex; gap: 6px; flex-wrap: wrap }
-
-@media (max-width: 1100px) {
-  .m-lecture .lx-grid { grid-template-columns: minmax(0, 1fr) }
-  .m-lecture .lx-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start }
-  .m-lecture .lx-tx { max-height: 360px }
-}
+.m-lecture .lx-ask-wrap { display: grid; gap: 12px; min-width: 0 }
+.m-lecture .lx-ctx { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted) }
+.m-lecture .lx-thread { display: grid; gap: 10px; max-height: 340px; overflow-y: auto; align-content: start }
+.m-lecture .lx-msg { border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.55; max-width: 88% }
+.m-lecture .lx-msg.me { justify-self: end; background: var(--brand); color: var(--on-brand); border-bottom-right-radius: 4px }
+.m-lecture .lx-msg.ai { justify-self: start; background: var(--surface-2); border-bottom-left-radius: 4px; display: grid; gap: 6px }
+.m-lecture .lx-sugg { display: flex; gap: 6px; flex-wrap: wrap }
+.m-lecture .lx-askrow { display: flex; gap: 8px; min-width: 0 }
+.m-lecture .lx-askrow .field-input { flex: 1; min-width: 0 }
+.m-lecture .lx-askfoot { display: flex; gap: 8px 12px; justify-content: space-between; align-items: center; flex-wrap: wrap }
+.m-lecture .lx-preview { display: grid; gap: 14px; padding: 24px }
+.m-lecture .lx-pts { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 15px }
+.m-lecture .lx-more { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; font-weight: 700; cursor: pointer }
+.m-lecture .lx-more:hover { text-decoration: underline }
 @media (max-width: 760px) {
-  .m-lecture .lx-side { grid-template-columns: minmax(0, 1fr) }
-  .m-lecture .lx-prog { grid-template-columns: minmax(0, 1fr) }
+  .m-lecture .lx-strip { grid-template-columns: minmax(0, 1fr); padding: 14px 16px }
+  .m-lecture .lx-strip > div { padding: 12px 0 0; margin-top: 12px; border-left: 0; border-top: 1px solid var(--line) }
+  .m-lecture .lx-strip > div:first-child { padding-top: 0; margin-top: 0; border-top: 0 }
+  .m-lecture .lx-pbody { padding: 14px 16px 16px }
+  .m-lecture .lx-panel .tabs { padding: 4px 8px 0 }
+  .m-lecture .lx-tx { max-height: 300px }
+  .m-lecture .lx-head { position: relative }
+  .m-lecture .lx-choose { position: static }
+  .m-lecture .lx-menu { left: 0; right: 0; width: auto; top: calc(100% + 6px) }
 }
 @media (max-width: 640px) {
   .m-lecture .lx-q { position: static; background: var(--code-bg); backdrop-filter: none; padding: 10px }
@@ -898,12 +923,23 @@
   const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>';
   const UNLOCKED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.8"/></svg>';
   const REPLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/></svg>';
+  const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
   function cleanup() {
     if (!live) return;
     live.timers.forEach(clearInterval);
     live.offs.forEach((f) => { try { f(); } catch (e) {} });
     live = null;
+  }
+
+  // Status of a lecture for the active student: watched, today, started, upcoming or opens later.
+  function lecStatus(l, me) {
+    const st = store.lec[l.id], pct = st ? watchedPct(st) : l.id < me.lecture ? 1 : 0;
+    const done = st ? st.completed : l.id < me.lecture;
+    if (done) return { pill: 'green', text: 'Watched', pct };
+    if (l.id === me.lecture) return { pill: 'blue', text: 'Today', pct };
+    if (l.id > me.lecture) return { pill: '', text: 'Opens later', pct };
+    return pct > 0 ? { pill: 'amber', text: 'Started', pct } : { pill: '', text: 'Not watched', pct };
   }
 
   const DEF = {
@@ -925,9 +961,9 @@
       }
       if (!store.sel || !data.lectures.some((l) => l.id === store.sel)) store.sel = me.lecture;
       const lec = data.lectures.find((l) => l.id === store.sel);
-      const monthLecs = data.lectures.filter((l) => l.month === lec.month);
       const locked = lec.id > me.lecture; // lectures after the student's current one: show a preview, not the player
       const rewatch = lec.id < me.lecture;
+      const curLec = data.lectures.find((l) => l.id === me.lecture) || lec;
       const goPractical = () => { state.practicalRequest = me.lecture; c.go('practical'); };
       const pracLabel = rewatch ? `Go to this week's practical (L${me.lecture})` : 'Go to the practical';
       const S = lecState(lec.id, me.lecture);
@@ -935,11 +971,18 @@
       const L = (live = { timers: [], offs: [] });
       let playing = false, slideIdx = -1, lineIdx = -2, overlay = null, seenKey = '';
 
-      // ----- Header -----
+      // ----- Purpose line + header -----
+      const purpose = h('p', { class: 'lx-purpose' },
+        h('span', {}, locked ? 'This lecture opens later. Here is what it covers.' : 'Watch the lesson. Short questions pop up inside the video.'),
+        h('span', { class: 'demo-tag' }, 'Demo data'));
       const statusPill = h('span', { class: 'pill' });
+      const menu = h('div', { class: 'lx-menu', hidden: true, role: 'menu', 'aria-label': 'Choose lecture' });
+      const chooseBtn = h('button', { class: 'btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', onclick: (e) => { e.stopPropagation(); toggleMenu(); } }, h('span', {}, 'Choose lecture'), h('span', { html: CHEV }));
+      const choose = h('div', { class: 'lx-choose' }, chooseBtn, menu);
       const head = h('div', { class: 'lx-head' },
-        h('div', {}, h('div', { class: 'eyebrow' }, `Month ${lec.month} · Week ${lec.week} · Lecture ${lec.id} of 104`), h('h2', {}, lec.topic)),
-        h('div', { class: 'lx-pills' }, rewatch ? h('span', { class: 'pill amber' }, 'Rewatch') : null, h('span', { class: 'pill' }, '40 min recorded'), h('span', { class: 'pill violet' }, '4 questions inside'), statusPill));
+        h('div', {}, h('div', { class: 'eyebrow' }, `Month ${lec.month} · Week ${lec.week} · Lecture ${lec.id} of 104`), h('h2', {}, lec.topic),
+          h('p', { class: 'lx-sub' }, locked ? `Practical: ${lec.practical}` : `${rewatch ? 'Rewatch · ' : ''}40 min recorded · 4 questions inside · Practical: ${lec.practical}`)),
+        h('div', { class: 'lx-headr' }, statusPill, choose));
 
       // ----- Stage -----
       const slideHost = h('div', { style: { position: 'absolute', inset: '0' } });
@@ -990,33 +1033,27 @@
       const askBtn = h('button', { class: 'lx-cbtn lx-ask', onclick: () => askTutor(), html: `${c.icon('spark')}<span>Ask <span class="lbl-long">about this moment</span></span>` });
       const controls = h('div', { class: 'lx-controls' }, scrub,
         h('div', { class: 'lx-row' }, playBtn, h('button', { class: 'lx-cbtn', 'aria-label': 'Back 30 seconds', title: 'Back 30 s', html: REPLAY, onclick: () => seek(S.t - 30) }), timeEl, h('span', { class: 'lx-spacer' }), askBtn, ccBtn, speedSel));
-      const player = h('div', { class: 'lx-player' }, stageWrap, controls);
+      const player = h('section', { class: 'card lx-player', 'aria-label': 'Lecture video' }, stageWrap, controls);
 
-      // ----- Progress strip -----
-      const pctEl = h('div', { class: 'lx-big-n num' });
+      // ----- Progress strip: watched, questions, practical -----
+      const pctEl = h('span', { class: 'lx-big-n num' });
       const barFill = h('i');
-      const bar = h('div', { class: 'lx-bar' }, barFill, h('span', { class: 'lx-mk', style: { left: '60%' } }), h('span', { class: 'lx-mk', style: { left: '90%' } }));
-      const watchNote = h('div', { class: 'tiny muted' });
-      const qNum = h('div', { class: 'lx-big-n num' });
-      const qSub = h('div', { class: 'tiny muted' });
-      const qDots = h('div', { class: 'lx-qd' }, spec.cues.map((_, i) => h('i', {}, String(i + 1))));
+      const bar = h('div', { class: 'lx-bar', title: 'Practical opens at 60%. Marked as watched at 90%.' }, barFill, h('span', { class: 'lx-mk', style: { left: '60%' } }), h('span', { class: 'lx-mk', style: { left: '90%' } }));
+      const watchNote = h('span', { class: 'tiny muted' });
+      const qNum = h('span', { class: 'lx-big-n num' });
+      const qSub = h('span', { class: 'tiny muted' });
+      const qDots = h('div', { class: 'lx-qd' }, spec.cues.map((_, i) => h('i', {}, String(i + 1))), qSub);
       const lockIc = h('span', { class: 'lx-lock' });
-      const lockTitle = h('b', { class: 'small', style: { display: 'block' } });
+      const lockTitle = h('b', { class: 'small' });
       const pracBtn = h('button', { class: 'btn primary sm', onclick: goPractical }, pracLabel);
-      const pracBox = h('div', { class: 'lx-pbox' },
-        h('div', { class: 'eyebrow' }, 'Practical'),
-        h('div', { class: 'lx-lockrow' }, lockIc, h('div', {}, lockTitle, h('span', { class: 'tiny muted' }, `${lec.practical} · 20 min`))),
-        pracBtn,
-        rewatch ? h('span', { class: 'tiny muted' }, `You finished this practical earlier. The button opens this week's practical: ${(data.lectures.find((l) => l.id === me.lecture) || {}).practical || 'the current one'}.`) : null);
-      const prog = h('section', { class: 'card' },
-        h('div', { class: 'card-head', style: { marginBottom: '10px' } }, h('h3', {}, 'Your progress in this lecture'), h('span', { class: 'tiny muted' }, 'Only the parts you play count. Skipping ahead does not.')),
-        h('div', { class: 'lx-prog' },
-          h('div', { class: 'lx-pbox' }, h('div', { class: 'eyebrow' }, 'Watched'), pctEl, bar,
-            h('div', { class: 'tiny muted' }, 'Practical opens at 60%. Marked as watched at 90%.'), watchNote),
-          h('div', { class: 'lx-pbox' }, h('div', { class: 'eyebrow' }, 'Questions in the video'), qNum, qDots, qSub),
-          pracBox));
+      const strip = h('section', { class: 'card lx-strip', 'aria-label': 'Your progress in this lecture' },
+        h('div', {}, h('div', { class: 'eyebrow' }, 'Watched'), h('div', { class: 'lx-sv' }, pctEl, watchNote), bar),
+        h('div', {}, h('div', { class: 'eyebrow' }, 'Questions'), h('div', { class: 'lx-sv' }, qNum), qDots),
+        h('div', {}, h('div', { class: 'eyebrow' }, 'Practical'),
+          h('div', { class: 'lx-lockrow' }, lockIc, h('div', {}, lockTitle, h('span', { class: 'tiny muted' }, rewatch ? `Done earlier. This week: L${me.lecture}, ${curLec.practical}` : `${lec.practical} · 20 min`))),
+          pracBtn));
 
-      // ----- Transcript -----
+      // ----- One panel, three tabs: Transcript, Key moments, Ask the tutor -----
       const cueLine = (t) => spec.cues.some((q) => q.t >= t && q.t < t + 80);
       const lineEls = spec.transcript.map((ln) => h('button', { class: 'lx-line' + (cueLine(ln.t) ? ' q' : ''), onclick: () => { closeOverlay(); seek(ln.t); } }, h('span', { class: 'ts num' }, fmt(ln.t)), h('span', {}, ln.text)));
       const txList = h('div', { class: 'lx-tx', role: 'list' }, lineEls);
@@ -1024,57 +1061,102 @@
       const kmItems = spec.slides.map((sl) => ({ t: sl.start, kind: 'ch', sl, label: `Part ${sl.n}: ${sl.title}` }))
         .concat(spec.cues.map((q, i) => ({ t: q.t, kind: 'q', i, label: `Question ${i + 1}: ${q.q}` }))).sort((a, b) => a.t - b.t || (a.kind === 'ch' ? -1 : 1));
       const kmEls = kmItems.map((it) => h('button', { class: 'lx-line lx-km' + (it.kind === 'q' ? ' q' : ''),
-        onclick: () => { if (it.kind === 'q') { seek(it.t); openQuestion(it.i); } else { closeOverlay(); seek(it.t); } } },
+        onclick: () => { if (it.kind === 'q') { seek(it.t); openQuestion(it.i); } else { closeOverlay(); seek(it.t); } scrollToPlayer(); } },
         h('span', { class: 'ts num' }, fmt(it.t)), h('span', {}, it.label)));
       const kmList = h('div', { class: 'lx-tx', role: 'list' }, kmEls);
-      const tabTx = h('button', { class: 'tab', role: 'tab', onclick: () => setTab('tx') }, 'Transcript');
-      const tabKm = h('button', { class: 'tab', role: 'tab', onclick: () => setTab('km') }, 'Key moments');
+
+      // Ask the tutor: the conversation is kept per lecture, so it survives a field switch.
+      store.chat = store.chat || {};
+      const chatLog = (store.chat[lec.id] = store.chat[lec.id] || []);
+      const ctxLine = h('div', { class: 'lx-ctx' });
+      const thread = h('div', { class: 'lx-thread', role: 'log', 'aria-live': 'polite' });
+      const sugg = h('div', { class: 'lx-sugg' });
+      const askIn = h('input', { class: 'field-input', type: 'text', placeholder: 'Ask about this part of the lecture', 'aria-label': 'Ask the tutor' });
+      const askGo = h('button', { class: 'btn', onclick: () => askTyped() }, 'Ask');
+      askIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') askTyped(); });
+      const askWrap = h('div', { class: 'lx-ask-wrap' }, ctxLine, thread, sugg, h('div', { class: 'lx-askrow' }, askIn, askGo),
+        h('div', { class: 'lx-askfoot' }, h('span', { class: 'tiny muted' }, 'Hints and explanations only, never the graded answer.'),
+          h('div', { class: 'row', style: { gap: '6px' } },
+            h('button', { class: 'btn sm ghost', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask in the doubt forum</span>' }),
+            h('button', { class: 'btn sm', onclick: () => { scrollToPlayer(); play(); } }, 'Resume the lecture'))));
+
+      const TABS = [['tx', 'Transcript'], ['km', 'Key moments'], ['ask', 'Ask the tutor']];
+      const tabEls = {};
+      const tablist = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Lecture panel' }, TABS.map(([k, label]) => (tabEls[k] = h('button', { class: 'tab', role: 'tab', id: `lx-tab-${k}`, onclick: () => setTab(k) }, label))));
+      const panes = { tx: txList, km: kmList, ask: askWrap };
       const txHint = h('span', { class: 'tiny muted' });
+      const panel = h('section', { class: 'card lx-panel', 'aria-label': 'Transcript, key moments and tutor' }, tablist, h('div', { class: 'lx-pbody' }, txHint, txList, kmList, askWrap));
       function setTab(k) {
         store.tab = k;
-        tabTx.setAttribute('aria-selected', String(k === 'tx')); tabKm.setAttribute('aria-selected', String(k === 'km'));
-        txList.hidden = k !== 'tx'; kmList.hidden = k !== 'km';
-        txHint.textContent = k === 'tx' ? 'Click a line to jump there' : `${spec.slides.length} chapters and ${spec.cues.length} questions`;
+        TABS.forEach(([id]) => { tabEls[id].setAttribute('aria-selected', String(id === k)); panes[id].hidden = id !== k; });
+        txHint.hidden = k === 'ask';
+        txHint.textContent = k === 'tx' ? 'Click a line to jump there in the video.' : `${spec.slides.length} chapters and ${spec.cues.length} questions. Click one to jump there.`;
         if (k === 'tx') lineIdx = -2;
-        if (typeof update === 'function' && slideIdx >= 0) update();
+        if (k === 'ask') paintAsk();
+        if (slideIdx >= 0) update();
       }
-      const txCard = h('section', { class: 'card' },
-        h('div', { class: 'card-head' }, h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Transcript or key moments' }, tabTx, tabKm), txHint), txList, kmList);
 
-      // ----- Month lecture list -----
-      const listCard = h('section', { class: 'card' },
-        h('div', { class: 'card-head' }, h('div', {}, h('div', { class: 'eyebrow' }, `Month ${lec.month}${lec.month === me.month ? ' · this month' : lec.month < me.month ? ' · done' : ' · later'}`), h('h3', {}, data.months[lec.month])), h('span', { class: 'tiny muted' }, `${monthLecs.length} lectures`)),
-        lec.month !== me.month ? h('button', { class: 'btn sm', style: { marginBottom: '10px' }, onclick: () => openLec(me.lecture) }, `Back to this week: Lecture ${me.lecture}`) : null,
-        h('div', { class: 'lx-list' }, monthLecs.map((l) => {
-          const st = store.lec[l.id], pct = st ? watchedPct(st) : l.id < me.lecture ? 1 : 0;
-          const done = st ? st.completed : l.id < me.lecture;
-          const pill = done ? h('span', { class: 'pill green' }, 'Watched') : l.id === me.lecture ? h('span', { class: 'pill blue' }, 'Today') : pct > 0 ? h('span', { class: 'pill amber' }, 'Started') : h('span', { class: 'pill' }, 'Upcoming');
-          return h('button', { class: 'lx-item', 'aria-current': l.id === lec.id ? 'true' : 'false', onclick: () => { if (l.id === store.sel) { c.toast(`Lecture ${l.id} is open above.`); return; } openLec(l.id); } },
-            h('span', { class: 'no' }, `L${l.id}`),
-            h('span', { class: 'tx' }, h('b', {}, l.topic), h('span', { class: 'meta' }, h('span', {}, `Practical: ${l.practical}`), pill), h('span', { class: 'mini' }, h('i', { style: { width: `${Math.round(pct * 100)}%` } }))));
-        })),
-        h('p', { class: 'tiny muted', style: { marginTop: '10px' } }, 'Demo data. Earlier lectures play again as rewatches. Later ones show a preview until they open.'));
+      // ----- Choose lecture menu + All lectures modal -----
+      const row = (l, onPick) => {
+        const st = lecStatus(l, me);
+        return h('button', { class: 'lx-li2', role: 'menuitem', 'aria-current': l.id === lec.id ? 'true' : 'false', title: `Lecture ${l.id}: ${l.topic}`, onclick: () => onPick(l) },
+          h('span', { class: 'no' }, `L${l.id}`), h('span', { class: 'tx' }, h('b', {}, l.topic), h('span', { class: 'sub' }, `Practical: ${l.practical}`)), h('span', { class: 'pill ' + st.pill }, st.text));
+      };
+      const pick = (l) => { closeMenu(); if (l.id === store.sel) { c.toast(`Lecture ${l.id} is already open.`); return; } openLec(l.id); };
+      function buildMenu() {
+        menu.textContent = '';
+        const m = lec.month, lecs = data.lectures.filter((l) => l.month === m);
+        menu.append(h('div', { class: 'lx-mhead' }, h('span', { class: 'eyebrow' }, `Month ${m}${m === me.month ? ' · this month' : m < me.month ? ' · done' : ' · later'}`), h('b', {}, data.months[m])));
+        lecs.forEach((l) => menu.append(row(l, pick)));
+        menu.append(h('div', { class: 'lx-mfoot' },
+          h('button', { class: 'btn sm', onclick: () => { closeMenu(); openAll(); } }, `All lectures (${data.lectures.length})`),
+          lec.id !== me.lecture ? h('button', { class: 'btn sm ghost', onclick: () => pick(curLec) }, `Back to today: L${me.lecture}`) : null));
+      }
+      function onDocClick(e) { if (!choose.contains(e.target)) closeMenu(); }
+      function onDocKey(e) { if (e.key === 'Escape') closeMenu(); }
+      function openMenu() { buildMenu(); menu.hidden = false; chooseBtn.setAttribute('aria-expanded', 'true'); document.addEventListener('click', onDocClick); document.addEventListener('keydown', onDocKey); const cur = menu.querySelector('[aria-current="true"]') || menu.querySelector('.lx-li2'); if (cur) cur.focus({ preventScroll: true }); }
+      function closeMenu() { if (menu.hidden) return; menu.hidden = true; chooseBtn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', onDocClick); document.removeEventListener('keydown', onDocKey); }
+      function toggleMenu() { menu.hidden ? openMenu() : closeMenu(); }
+      L.offs.push(() => { document.removeEventListener('click', onDocClick); document.removeEventListener('keydown', onDocKey); });
+      function openAll() {
+        let mm = lec.month, m;
+        const list = h('div', { class: 'lx-alllist', role: 'list' });
+        const sel = h('select', { class: 'field-input', 'aria-label': 'Month', onchange: () => { mm = +sel.value; draw(); } },
+          Object.keys(data.months).map((k) => h('option', { value: k, selected: +k === mm }, `Month ${k} · ${data.months[k]}${+k === me.month ? ' (now)' : ''}`)));
+        const count = h('span', { class: 'tiny muted' });
+        function draw() {
+          list.textContent = '';
+          const lecs = data.lectures.filter((l) => l.month === mm);
+          lecs.forEach((l) => list.append(row(l, (x) => { m.close(); if (x.id === store.sel) { c.toast(`Lecture ${x.id} is already open.`); return; } openLec(x.id); })));
+          count.textContent = `${lecs.length} lectures · L${lecs[0].id} to L${lecs[lecs.length - 1].id}`;
+        }
+        draw();
+        m = c.modal(h('div', { class: 'm-lecture-modal' },
+          h('div', { class: 'lx-allhead' }, h('div', {}, h('div', { class: 'eyebrow' }, '104 lectures · 12 months'), h('h3', {}, 'All lectures')), sel),
+          count, list,
+          h('p', { class: 'tiny muted' }, 'Earlier lectures play again as rewatches. Later ones show a preview until they open.'),
+          h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn', onclick: () => m.close() }, 'Close'))));
+        m.box.setAttribute('aria-label', 'All lectures');
+      }
 
-      // ----- Preview for a lecture in a later month -----
+      // ----- Preview for a lecture that opens later -----
       let preview = null;
       if (locked) {
         const wk = lec.week - me.week;
         const when = wk <= 0 ? `later in Week ${lec.week}, after Lecture ${me.lecture}` : `in Week ${lec.week}, ${wk} week${wk === 1 ? '' : 's'} after this week`;
         const pts = spec.points || [];
         preview = h('section', { class: 'card lx-preview' },
-          h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'pill' }, h('span', { html: c.icon('lock') }), 'Opens later'), h('span', { class: 'pill amber' }, 'Demo data')),
-          h('h3', {}, `Lecture ${lec.id} opens later`),
-          h('p', { class: 'small muted' }, `Month ${lec.month} is "${data.months[lec.month]}". This lecture opens ${when}. Lectures open in order, so each one builds on the last.`),
+          h('h3', {}, `Lecture ${lec.id} opens ${when}`),
+          h('p', { class: 'muted', style: { margin: 0 } }, `Month ${lec.month}: ${data.months[lec.month]}. Lectures open in order, so each one builds on the last.`),
           pts.length ? h('div', {}, h('b', { class: 'small' }, 'What you will learn'), h('ul', { class: 'lx-pts' }, pts.map((x) => h('li', {}, x)))) : null,
           h('div', { class: 'note' }, `Practical: ${lec.practical} · 20 minutes, auto-checked within a minute.`),
           h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => openLec(me.lecture) }, `Go to this week's lecture (L${me.lecture})`),
-            h('button', { class: 'btn', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask about it in the forum</span>' })));
+            h('button', { class: 'btn ghost', onclick: () => c.go('forum'), html: c.icon('forum') + '<span>Ask about it in the forum</span>' })));
+        statusPill.className = 'pill'; statusPill.append(h('span', { html: c.icon('lock') }), 'Opens later');
+        statusPill.querySelector('svg') && Object.assign(statusPill.querySelector('svg').style, { width: '13px', height: '13px' });
       }
 
-      root.append(h('div', { class: 'm-lecture' }, h('div', { class: 'lx-grid' },
-        h('div', { class: 'lx-main' }, head, locked ? preview : player, locked ? null : prog),
-        h('div', { class: 'lx-side' }, locked ? null : txCard, listCard))));
-      if (locked) { statusPill.className = 'pill'; }
+      root.append(h('div', { class: 'm-lecture' }, purpose, head, locked ? preview : player, locked ? null : strip, locked ? null : panel));
 
       // ----- Behaviour -----
       function clear(r) { r.textContent = ''; return r; }
@@ -1082,6 +1164,12 @@
         store.sel = id; DEF.render(clear(root), c); window.scrollTo(0, 0);
         const v = document.getElementById('view'); if (v) v.scrollTop = 0;
         root.querySelector('.lx-stage')?.focus({ preventScroll: true });
+      }
+      function scrollToPlayer() { if (player.isConnected && player.getBoundingClientRect().top < 0) try { player.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {} }
+      if (locked) {
+        // The preview has no player: only the menu and its buttons are live.
+        L.offs.push(c.on('lecture:open', (p) => { const id = Number(p && (p.lecture && p.lecture.id != null ? p.lecture.id : p.lecture)); if (data.lectures.some((l) => l.id === id) && root.isConnected) openLec(id); }));
+        return;
       }
       function setPlaying(v) {
         playing = v; stage.classList.toggle('playing', v);
@@ -1124,7 +1212,7 @@
         scrub.setAttribute('aria-valuenow', String(Math.round(t))); scrub.setAttribute('aria-valuetext', `${fmt(t)} of 40:00`);
         // slide
         let si = spec.slides.findIndex((s) => t >= s.start && t < s.end); if (si < 0) si = spec.slides.length - 1;
-        if (si !== slideIdx) { slideIdx = si; slideHost.textContent = ''; slideHost.append(slideNode(spec, spec.slides[si], c)); }
+        if (si !== slideIdx) { slideIdx = si; slideHost.textContent = ''; slideHost.append(slideNode(spec, spec.slides[si], c)); if (store.tab === 'ask') { paintCtx(); paintSugg(); } }
         const s = spec.slides[si], frac = (t - s.start) / (s.end - s.start);
         slideHost.querySelectorAll('.bit').forEach((b) => b.classList.toggle('on', frac >= +b.dataset.at));
         // transcript + captions
@@ -1135,7 +1223,7 @@
           const ln = spec.transcript[li];
           capEl.textContent = ln ? ln.text : ''; capEl.hidden = !store.cc || !ln || t - ln.t > 140;
           const el = lineEls[li];
-          if (el) { const top = el.offsetTop; if (top < txList.scrollTop || top > txList.scrollTop + txList.clientHeight - el.offsetHeight) txList.scrollTop = Math.max(0, top - 40); }
+          if (el && !txList.hidden) { const top = el.offsetTop; if (top < txList.scrollTop || top > txList.scrollTop + txList.clientHeight - el.offsetHeight) txList.scrollTop = Math.max(0, top - 40); }
         }
         kmItems.forEach((it, i) => { if (it.kind === 'ch') kmEls[i].classList.toggle('on', it.sl === s); });
         // seen segments on the timeline
@@ -1153,19 +1241,18 @@
         const pct = watchedPct(S), n = Math.round(pct * 100);
         pctEl.textContent = S.before && n === 100 ? 'Watched before' : `${n}%`;
         barFill.style.width = n + '%'; bar.classList.toggle('done', S.completed);
-        watchNote.innerHTML = S.completed ? `<span class="lx-ok">Marked as watched</span>` : `${Math.max(0, 90 - n)}% more to mark it as watched`;
+        watchNote.innerHTML = S.completed ? (S.before && n === 100 ? '' : '<span class="lx-ok">Marked as watched</span>') : n < 60 ? `Practical opens at 60%` : `${Math.max(0, 90 - n)}% more to mark it watched`;
         const ans = Object.values(S.answered), right = ans.filter((a) => a.correct).length;
         qNum.textContent = `${ans.length} of ${spec.cues.length} answered`;
-        qSub.textContent = ans.length ? `${right} correct · +${right * 10} XP` : 'Each correct answer earns 10 XP';
-        [...qDots.children].forEach((d, i) => { const a = S.answered[i]; d.className = a ? (a.correct ? 'ok' : 'bad') : ''; });
+        qSub.textContent = ans.length ? `${right} right · +${right * 10} XP` : '10 XP each';
+        [...qDots.children].forEach((d, i) => { if (d.tagName !== 'I') return; const a = S.answered[i]; d.className = a ? (a.correct ? 'ok' : 'bad') : ''; });
         cueBtns.forEach((b, i) => { const a = S.answered[i]; b.classList.toggle('ok', !!(a && a.correct)); b.classList.toggle('bad', !!(a && !a.correct)); });
         lockIc.innerHTML = S.unlocked ? UNLOCKED : LOCK; lockIc.classList.toggle('open', S.unlocked);
-        lockTitle.textContent = S.unlocked ? 'Practical unlocked' : 'Practical unlocks at 60% watched';
-        pracBox.classList.toggle('open', S.unlocked);
+        lockTitle.textContent = rewatch ? 'Practical done' : S.unlocked ? 'Practical unlocked' : 'Unlocks at 60% watched';
         pracBtn.disabled = !S.unlocked;
         pracBtn.title = S.unlocked ? '' : `Watch ${Math.max(0, 60 - n)}% more to unlock`;
         statusPill.className = 'pill ' + (S.completed ? 'green' : n > 0 ? 'blue' : '');
-        statusPill.textContent = S.completed ? 'Marked as watched' : n > 0 ? `${n}% watched` : 'Not started';
+        statusPill.textContent = S.completed ? (rewatch ? 'Watched · rewatch' : 'Watched') : n > 0 ? `${n}% watched` : 'Not started';
       }
 
       function closeOverlay() { overlay = null; qLayer.hidden = true; qLayer.textContent = ''; stage.classList.remove('asking'); }
@@ -1178,7 +1265,7 @@
         const waitNote = prevAns ? null : h('span', { class: 'tiny muted' }, 'The video waits for your answer.');
         const cont = h('button', { class: 'btn primary', hidden: true, onclick: () => { closeOverlay(); play(); } }, 'Continue the lecture');
         const askQ = h('button', { class: 'btn', onclick: () => askTutor(i), html: c.icon('spark') + '<span>Ask the tutor about this</span>' });
-        const optEls = q.options.map((o, k) => h('button', { class: 'lx-opt', onclick: () => pick(k) }, h('span', { class: 'lt' }, 'ABCD'[k]), h('span', {}, o)));
+        const optEls = q.options.map((o, k) => h('button', { class: 'lx-opt', onclick: () => choose(k) }, h('span', { class: 'lt' }, 'ABCD'[k]), h('span', {}, o)));
         function show(k) {
           const ok = k === q.correct;
           optEls.forEach((b, j) => { b.disabled = true; if (j === q.correct) b.classList.add('right'); else if (j === k) b.classList.add('wrong'); else b.classList.add('dim'); });
@@ -1188,7 +1275,7 @@
           cont.hidden = false; overlay.done = true; if (waitNote) waitNote.remove();
           setTimeout(() => cont.focus({ preventScroll: true }), 30);
         }
-        function pick(k) {
+        function choose(k) {
           if (S.answered[i]) return;
           const ok = k === q.correct;
           S.answered[i] = { choice: k, correct: ok };
@@ -1220,11 +1307,12 @@
           S.completed ? null : h('p', { class: 'small muted' }, 'Lectures count as watched at 90%. Play the parts you skipped.'),
           h('div', { class: 'lx-qfoot' },
             h('button', { class: 'btn', onclick: () => { closeOverlay(); seek(0); play(); } }, 'Watch again'),
-            h('button', { class: 'btn', onclick: () => c.go('forum') }, 'Ask a doubt'),
+            h('button', { class: 'btn ghost', onclick: () => c.go('forum') }, 'Ask a doubt'),
             h('button', { class: 'btn primary', disabled: !S.unlocked, onclick: goPractical }, pracLabel))));
         qLayer.hidden = false;
       }
 
+      // ----- Ask the tutor (inline tab) -----
       // The moment (one of the 4 cue points) closest to where the student paused, if it is on the same slide.
       function momentAt(t, sl) {
         if (!spec.moments) return -1;
@@ -1232,36 +1320,56 @@
         spec.cues.forEach((q, i) => { const d = Math.abs(q.t - t); if (spec.moments[i] && q.t >= sl.start && q.t < sl.end && d < bd) { bd = d; best = i; } });
         return best;
       }
+      function curSlide() { return spec.slides[Math.max(0, slideIdx)]; }
+      function paintCtx() {
+        const sl = curSlide();
+        ctxLine.textContent = '';
+        ctxLine.append(h('span', { class: 'ai-badge' }, 'AI tutor'), h('span', {}, `Sees where you are: ${fmt(S.t)} · Part ${sl.n}, ${sl.title}`));
+      }
+      function paintThread() {
+        thread.textContent = '';
+        if (!chatLog.length) thread.append(h('div', { class: 'lx-msg ai' }, h('span', {}, `Hi ${me.name.split(' ')[0]}. Pause anywhere and ask me about that part. I explain and give hints, never the full graded answer.`)));
+        chatLog.forEach((m) => thread.append(m.who === 'me' ? h('div', { class: 'lx-msg me' }, m.text) : h('div', { class: 'lx-msg ai' }, h('span', {}, m.text))));
+        thread.scrollTop = thread.scrollHeight;
+      }
+      function paintSugg() {
+        sugg.textContent = '';
+        const sl = curSlide(), mi = momentAt(S.t, sl);
+        const asked = new Set(chatLog.filter((m) => m.who === 'me').map((m) => m.text));
+        const opts = [['Explain this part again, more simply', spec.tutor[Math.max(0, slideIdx)]]].concat(mi >= 0 ? [spec.moments[mi]] : [], spec.followUps || []);
+        opts.filter(([q]) => !asked.has(q)).slice(0, 3).forEach(([q, a]) => sugg.append(h('button', { class: 'btn sm', onclick: () => ask(q, a) }, q)));
+      }
+      function paintAsk() { paintCtx(); paintThread(); paintSugg(); }
+      function ask(qText, answer) {
+        chatLog.push({ who: 'me', text: qText });
+        paintThread(); paintSugg();
+        const ai = h('div', { class: 'lx-msg ai' }, h('span', { class: 'row small muted', style: { gap: '8px' } }, h('span', { class: 'spin' }), 'Tutor is looking at this moment...'));
+        thread.append(ai); thread.scrollTop = thread.scrollHeight;
+        const tm = setTimeout(() => { chatLog.push({ who: 'ai', text: answer }); if (thread.isConnected) paintThread(); }, 750);
+        L.timers.push(tm);
+        if (c.emit) c.emit('tutor:asked', { question: qText, lecture: lec.id });
+      }
+      function askTyped() {
+        const q = askIn.value.trim();
+        if (!q) { askIn.focus(); c.toast('Type a question, or tap one of the suggestions.', 'amber'); return; }
+        askIn.value = '';
+        const si = Math.max(0, slideIdx);
+        const ans = /answer|solution|full code|do it for me|write it/i.test(q)
+          ? "I can't give the graded answer. I can explain this part again or point you to the right idea for the practical."
+          : `Here is the idea at this point in the lecture: ${spec.tutor[si]}`;
+        ask(q, ans);
+      }
       function askTutor(momentIdx) {
-        const was = playing; pause();
+        pause();
         if (overlay && overlay.kind === 'q' && overlay.done) closeOverlay();
-        const si = Math.max(0, slideIdx), sl = spec.slides[si];
+        setTab('ask');
+        const sl = curSlide();
         const mi = momentIdx != null ? momentIdx : momentAt(S.t, sl);
-        const followUps = (mi >= 0 ? [spec.moments[mi]] : []).concat(spec.followUps || []);
-        const thread = h('div', { class: 'lx-thread' });
-        function ask(qText, answer) {
-          thread.append(h('div', { class: 'lx-msg me' }, qText));
-          const ai = h('div', { class: 'lx-msg ai' }, h('span', { class: 'row small muted', style: { gap: '8px' } }, h('span', { class: 'spin' }), 'Tutor is looking at this moment...'));
-          thread.append(ai); thread.scrollTop = thread.scrollHeight;
-          setTimeout(() => { ai.textContent = ''; ai.append(h('span', { class: 'ai-badge', style: { justifySelf: 'start' } }, 'AI tutor'), h('span', {}, answer)); thread.scrollTop = thread.scrollHeight; }, 750);
-        }
-        const sugg = h('div', { class: 'lx-sugg' }, followUps.map(([q, a]) => {
-          const b = h('button', { class: 'btn sm', onclick: () => { b.disabled = true; ask(q, a); } }, q); return b;
-        }));
-        let m;
-        const node = h('div', { class: 'm-lecture-modal' },
-          h('div', { class: 'card-head', style: { marginBottom: 0 } }, h('div', {}, h('div', { class: 'eyebrow' }, 'Ask about this moment'), h('h3', {}, 'AI tutor')), h('span', { class: 'ai-badge' }, 'AI')),
-          h('div', { class: 'lx-ctxchip' }, h('span', { class: 'pill blue' }, `Lecture ${lec.id} · ${fmt(S.t)}`), h('span', { class: 'pill' }, `Slide ${sl.n}: ${sl.title}`)),
-          thread, sugg,
-          h('p', { class: 'note' }, 'The tutor sees the slide you paused on. It explains and gives hints, never the full graded answer. Demo: answers are scripted.'),
-          h('div', { class: 'row', style: { justifyContent: 'flex-end' } },
-            h('button', { class: 'btn ghost', onclick: () => { m.close(); c.go('forum'); }, html: c.icon('forum') + '<span>Ask in the doubt forum</span>' }),
-            h('button', { class: 'btn', onclick: () => m.close() }, 'Close'),
-            h('button', { class: 'btn primary', onclick: () => { m.close(); play(); } }, was ? 'Resume the lecture' : 'Play the lecture')));
-        m = c.modal(node);
-        if (momentIdx != null && spec.moments && spec.moments[momentIdx]) { sugg.firstChild.disabled = true; ask(spec.moments[momentIdx][0], spec.moments[momentIdx][1]); }
-        else ask('Can you explain this part again, more simply?', spec.tutor[si]);
-        if (c.emit) c.emit('tutor:asked', { question: momentIdx != null ? spec.moments[momentIdx][0] : 'Explain this part again', lecture: lec.id });
+        const asked = new Set(chatLog.filter((m) => m.who === 'me').map((m) => m.text));
+        if (momentIdx != null && spec.moments && spec.moments[momentIdx] && !asked.has(spec.moments[momentIdx][0])) ask(spec.moments[momentIdx][0], spec.moments[momentIdx][1]);
+        else if (mi >= 0 && momentIdx == null && !asked.has(spec.moments[mi][0])) ask(spec.moments[mi][0], spec.moments[mi][1]);
+        else ask('Can you explain this part again, more simply?', spec.tutor[Math.max(0, slideIdx)]);
+        try { panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
       }
 
       // watermark drifts so a screen recording always shows who it belongs to
@@ -1271,8 +1379,8 @@
       L.timers.push(setInterval(tick, TICK), setInterval(placeWm, 7000));
       L.offs.push(c.on('field', () => pause()));
       L.offs.push(c.on('lecture:open', (p) => { const id = Number(p && (p.lecture && p.lecture.id != null ? p.lecture.id : p.lecture)); if (data.lectures.some((l) => l.id === id) && root.isConnected) openLec(id); }));
-      setTab(store.tab === 'km' ? 'km' : 'tx');
       update(); updateProgress();
+      setTab(['km', 'ask'].includes(store.tab) ? store.tab : 'tx');
     },
   };
   NM.register('lecture', DEF);
